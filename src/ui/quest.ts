@@ -1,10 +1,37 @@
-import { dayKey, dayLabel, weekdayName } from '../logic/day';
+import { addDays, dayKey, dayLabel, lateCutoffLabel, lateWindowOpen, weekdayName } from '../logic/day';
 import { isActive, isDue, xpForLevel, type Score } from '../logic/score';
 import type { Habit, State } from '../logic/types';
 import { COIN, FLAME, hero, icon, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
 
-export function questView(state: State, sc: Score, today: string, now: Date, arming?: string) {
+// arming: "day:id" of a done quest waiting for a second tap to undo.
+// lateTouched: quests logged for yesterday this session, kept visible so a mistake can be undone.
+export type QuestUi = { arming?: string; lateTouched: Set<string> };
+
+function lateView(state: State, today: string, now: Date, ui: QuestUi) {
+  const r = state.settings.rolloverHour;
+  if (!lateWindowOpen(now, r)) return '';
+  const y = addDays(today, -1);
+  const late = state.habits.filter((h) => isActive(h, y) && (isDue(h, y) || h.schedule.kind === 'weekly'));
+  if (!late.some((h) => !state.log[y]?.[h.id] || ui.lateTouched.has(h.id))) return '';
+  const rows = late.map((h) => {
+    const mark = state.log[y]?.[h.id];
+    const key = `${y}:${h.id}`;
+    const armed = ui.arming === key;
+    const name = esc(h.name);
+    const buttons = mark
+      ? `<button class="btn small${armed ? ' danger' : ' ghost'}" data-action="mark" data-day="${y}" data-id="${h.id}" data-mark="${mark}" aria-label="${name}, logged for yesterday. Tap ${armed ? 'again' : 'twice'} to undo">${armed ? 'UNDO?' : CHECK}</button>`
+      : `<button class="btn small" data-action="mark" data-day="${y}" data-id="${h.id}" data-mark="full" aria-label="Log ${name} for yesterday">DONE</button>` +
+        (h.tiny ? `<button class="btn small blue" data-action="mark" data-day="${y}" data-id="${h.id}" data-mark="tiny" aria-label="Log tiny version for yesterday: ${esc(h.tiny)}">TINY</button>` : '');
+    return `<li class="late-row${mark ? ' done' : ''}" data-row="${key}"><span class="q-icon">${icon(h.icon, 24)}</span><span class="q-name">${name}</span>${buttons}</li>`;
+  });
+  return `<section class="late" aria-label="Log forgotten quests for yesterday">
+      <h3>FORGOT YESTERDAY? <span class="muted">open until ${lateCutoffLabel(r)}</span></h3>
+      <ul class="late-list">${rows.join('')}</ul>
+    </section>`;
+}
+
+export function questView(state: State, sc: Score, today: string, now: Date, ui: QuestUi) {
   // Between midnight and the rollover hour the calendar has moved on but the quest day hasn't.
   const lateNight = dayKey(now, 0) !== today;
   const dateLine = `${dayLabel(today)}${lateNight ? ` <span class="muted">(still ${weekdayName(today)} until ${state.settings.rolloverHour}:00 AM)</span>` : ''}`;
@@ -22,7 +49,7 @@ export function questView(state: State, sc: Score, today: string, now: Date, arm
     const award = sc.awards[today]?.[h.id];
     const weekly = h.schedule.kind === 'weekly' ? h.schedule.times : 0;
     const rest = !weekly && !isDue(h, today);
-    const armed = mark && arming === h.id;
+    const armed = mark && ui.arming === `${today}:${h.id}`;
     let meta = '';
     if (armed) meta = '<span class="hot">TAP AGAIN TO UNDO</span>';
     else if (mark && award) meta = `+${award.xp} XP${mark === 'tiny' ? ' (tiny)' : ''}`;
@@ -31,7 +58,7 @@ export function questView(state: State, sc: Score, today: string, now: Date, arm
     if (weekly) meta = `${st.weekCount}/${weekly} this week ${meta}`;
     const streak = st.streak ? `<span class="streak">${svg(FLAME, 16)}${st.streak}${st.unit === 'week' ? 'w' : ''}</span>` : '';
     const label = `${h.name}${armed ? ', tap again to undo' : mark ? ', done. Tap twice to undo' : ''}`;
-    return `<li class="quest${mark ? ' done' : ''}${armed ? ' arming' : ''}${rest ? ' rest' : ''}" data-row="${h.id}">
+    return `<li class="quest${mark ? ' done' : ''}${armed ? ' arming' : ''}${rest ? ' rest' : ''}" data-row="${today}:${h.id}">
       <button class="q-main" data-action="mark" data-id="${h.id}" data-mark="full" aria-pressed="${!!mark}" aria-label="${esc(label)}">
         <span class="q-icon">${icon(h.icon, 32)}</span>
         <span class="q-text"><span class="q-name">${esc(h.name)}</span><span class="q-meta">${meta}</span></span>
@@ -52,6 +79,7 @@ export function questView(state: State, sc: Score, today: string, now: Date, arm
         <div class="hud-row small"><span title="Share of your quests done in the last 14 days">x${sc.momentum.toFixed(2)} MOMENTUM</span><span>${svg(FLAME, 12)} ${sc.perfect}d</span></div>
       </div>
     </header>
+    ${lateView(state, today, now, ui)}
     <h2>${allDone ? 'ALL QUESTS DONE!' : "TODAY'S QUESTS"}</h2>
     <p class="date-line">${dateLine}</p>
     ${habits.length ? `<ul class="quests">${rows.join('')}</ul>` : '<p class="empty">No quests yet. Every hero needs one.</p>'}

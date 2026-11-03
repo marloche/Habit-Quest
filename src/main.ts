@@ -1,7 +1,7 @@
 import './style.css';
 import { audio, sfx, unlock } from './audio';
 import { banner, floatText, shake, toast } from './fx';
-import { dayKey, rolloverMovesBack } from './logic/day';
+import { addDays, dayKey, lateWindowOpen, rolloverMovesBack } from './logic/day';
 import { isActive, isDue, score, type Score } from './logic/score';
 import type { Mark, Schedule, State } from './logic/types';
 import { KEY, exportFile, load, newId, parseState, save } from './store';
@@ -28,7 +28,7 @@ function render() {
   const t = today();
   const sc = (scored = score(state, t));
   const views: Record<Tab, () => string> = {
-    quest: () => questView(state, sc, t, new Date(), arming),
+    quest: () => questView(state, sc, t, new Date(), { arming, lateTouched }),
     edit: () => editListView(state.habits),
     form: () => formView(state.habits.find((h) => h.id === editingId)),
     stats: () => statsView(state, sc, t),
@@ -53,6 +53,7 @@ function checkNewDay() {
   const t = today();
   if (t === shownDay) return;
   shownDay = t;
+  lateTouched.clear();
   const last = state.lastOpened;
   state.lastOpened = t;
   commit();
@@ -67,16 +68,21 @@ const dayComplete = (t: string) => {
   return due.length > 0 && due.every((h) => state.log[t]?.[h.id]);
 };
 
-let arming: string | undefined; // done quest waiting for a second tap to undo
+let arming: string | undefined; // "day:id" of a done quest waiting for a second tap to undo
 let armTimer: ReturnType<typeof setTimeout>;
+const lateTouched = new Set<string>();
 
-function mark(id: string, m: Mark) {
+function mark(id: string, m: Mark, d = today()) {
   const t = today();
-  const day = (state.log[t] ??= {});
+  // The DOM says which day; only today, or yesterday inside the late window, may be changed.
+  if (d !== t && !(d === addDays(t, -1) && lateWindowOpen(new Date(), state.settings.rolloverHour))) return render();
+  if (d !== t) lateTouched.add(id);
+  const key = `${d}:${id}`;
+  const day = (state.log[d] ??= {});
   if (day[id]) {
     clearTimeout(armTimer);
-    if (arming !== id) {
-      arming = id;
+    if (arming !== key) {
+      arming = key;
       armTimer = setTimeout(() => {
         arming = undefined;
         render();
@@ -85,18 +91,18 @@ function mark(id: string, m: Mark) {
     }
     arming = undefined;
     delete day[id];
-    if (!Object.keys(day).length) delete state.log[t];
+    if (!Object.keys(day).length) delete state.log[d];
     commit();
     sfx('undo');
     return;
   }
   const before = scored;
-  const wasComplete = dayComplete(t);
+  const wasComplete = dayComplete(d);
   day[id] = m;
   commit();
   const after = scored;
-  const a = after.awards[t][id];
-  const row = app.querySelector(`[data-row="${id}"]`);
+  const a = after.awards[d][id];
+  const row = app.querySelector(`[data-row="${key}"]`);
   row?.classList.add('pop');
   floatText(row, `+${a.xp} XP`);
   setTimeout(() => floatText(row, `+${a.gold} G`, 'gold'), 180);
@@ -110,7 +116,7 @@ function mark(id: string, m: Mark) {
   if (after.level > before.level) {
     banner({ title: 'LEVEL UP!', sub: `You reached level ${after.level}`, level: after.level, onShow: () => { shake(); sfx('levelup'); } });
   }
-  if (!wasComplete && dayComplete(t)) {
+  if (!wasComplete && dayComplete(d)) {
     banner({ title: 'PERFECT DAY!', sub: `${after.perfect}-day perfect run`, onShow: () => sfx('perfect') });
   }
 }
@@ -188,7 +194,7 @@ app.addEventListener('click', (e) => {
   if (!el || el.tagName === 'INPUT') return;
   const id = el.dataset.id ?? '';
   switch (el.dataset.action) {
-    case 'mark': return mark(id, el.dataset.mark as Mark);
+    case 'mark': return mark(id, el.dataset.mark as Mark, el.dataset.day);
     case 'tab': return go(el.dataset.tab as Tab);
     case 'new': editingId = undefined; return go('form');
     case 'edit-habit': editingId = id; return go('form');
@@ -235,7 +241,10 @@ addEventListener('storage', (e) => {
 
 render();
 checkNewDay();
-setInterval(checkNewDay, 60_000);
+setInterval(() => {
+  checkNewDay();
+  if (tab === 'quest') render(); // time-based UI, e.g. the yesterday window closing
+}, 60_000);
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && checkNewDay());
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {}); // app still works online without it

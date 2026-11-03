@@ -20,6 +20,20 @@ const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', '
 export const weekdayName = (k: string) => WEEKDAYS[weekday(k)];
 export const dayLabel = (k: string) => `${weekdayName(k)} ${MONTHS[Number(k.slice(5, 7)) - 1]} ${Number(k.slice(8))}`;
 
+// Forgotten checks for yesterday can be logged for this long after the new day starts (noon with a 4 AM rollover).
+// Short on purpose: long enough to fix a forgotten tap, too short to make logging-the-next-day a habit.
+export const LATE_HOURS = 8;
+
+export function lateWindowOpen(now: Date, rolloverHour: number): boolean {
+  const [y, m, d] = dayKey(now, rolloverHour).split('-').map(Number);
+  return now.getTime() - new Date(y, m - 1, d, rolloverHour).getTime() < LATE_HOURS * 36e5;
+}
+
+export function lateCutoffLabel(rolloverHour: number): string {
+  const h = rolloverHour + LATE_HOURS;
+  return `${h % 12 || 12}:00 ${h < 12 ? 'AM' : 'PM'}`;
+}
+
 // A later rollover can turn "today" back into yesterday, which would reopen yesterday's quests.
 export const rolloverMovesBack = (now: Date, from: number, to: number) => dayKey(now, to) < dayKey(now, from);
 

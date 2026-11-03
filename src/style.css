@@ -60,7 +60,7 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
 .center { text-align: center; }
 
 /* Pixel frame: stepped corners instead of border-radius. */
-.hud, .quest, .btn, .card, .edit-row, input, select, .icon-pick, .day-pick span {
+.hud, .quest, .btn, .card, .edit-row, .late-row, input, select, .icon-pick, .day-pick span {
   background: var(--panel);
   border: 0;
   box-shadow:
@@ -100,6 +100,13 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
   border-left: 4px solid var(--edge); background: var(--blue); color: var(--text); font: inherit; font-size: 10px; cursor: pointer;
 }
 .q-tiny small { font-size: 6px; max-width: 72px; overflow-wrap: anywhere; text-align: center; color: #c8d6ff; }
+.late h3 { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--hot); }
+.late h3 .muted { font-size: 8px; }
+.late-list { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 12px; }
+.late-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin: 4px; }
+.late-row .q-name { flex: 1; font-size: 10px; overflow-wrap: anywhere; }
+.late-row.done { background: #1f3b38; }
+.btn.small.blue { background: var(--blue); }
 h2 + .date-line { margin: -4px 0 16px; font-size: 10px; color: var(--text); }
 .empty { color: var(--muted); text-align: center; padding: 24px 0; }
 

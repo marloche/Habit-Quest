@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dayKey, dayLabel, rolloverMovesBack, weekStart, weekday } from './day';
+import { addDays, dayKey, dayLabel, lateCutoffLabel, lateWindowOpen, rolloverMovesBack, weekStart, weekday } from './day';
+
+describe('late window for yesterday', () => {
+  it('is open from the rollover until 8 hours later', () => {
+    expect(lateWindowOpen(new Date(2026, 10, 3, 4, 0), 4)).toBe(true);
+    expect(lateWindowOpen(new Date(2026, 10, 3, 11, 59), 4)).toBe(true);
+    expect(lateWindowOpen(new Date(2026, 10, 3, 12, 0), 4)).toBe(false);
+    expect(lateWindowOpen(new Date(2026, 10, 3, 23, 0), 4)).toBe(false);
+  });
+  it('closes again after midnight while the old day is still running', () => {
+    expect(lateWindowOpen(new Date(2026, 10, 4, 1, 0), 4)).toBe(false); // still Nov 3, opened 21h ago
+  });
+  it('labels the cut-off', () => {
+    expect(lateCutoffLabel(4)).toBe('12:00 PM');
+    expect(lateCutoffLabel(0)).toBe('8:00 AM');
+    expect(lateCutoffLabel(6)).toBe('2:00 PM');
+  });
+});
 
 describe('dayLabel', () => {
   it('formats a day key for the header', () => {
