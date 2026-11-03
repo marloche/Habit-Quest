@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dayKey, weekStart, weekday } from './day';
+import { addDays, dayKey, rolloverMovesBack, weekStart, weekday } from './day';
+
+describe('rolloverMovesBack', () => {
+  it('blocks a change that would reopen yesterday', () => {
+    expect(rolloverMovesBack(new Date(2026, 10, 3, 5, 0), 4, 6)).toBe(true);
+  });
+  it('allows changes that keep or advance the day', () => {
+    expect(rolloverMovesBack(new Date(2026, 10, 3, 7, 0), 4, 6)).toBe(false);
+    expect(rolloverMovesBack(new Date(2026, 10, 3, 5, 0), 6, 4)).toBe(false);
+    expect(rolloverMovesBack(new Date(2026, 10, 3, 2, 0), 4, 6)).toBe(false); // already yesterday under both
+  });
+});
 
 describe('dayKey rollover', () => {
   it('counts 1 AM as the previous day with a 4 AM rollover', () => {

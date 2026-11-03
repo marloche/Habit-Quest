@@ -1,7 +1,7 @@
 import './style.css';
 import { audio, sfx, unlock } from './audio';
 import { banner, floatText, shake, toast } from './fx';
-import { dayKey } from './logic/day';
+import { dayKey, rolloverMovesBack } from './logic/day';
 import { isActive, isDue, score } from './logic/score';
 import type { Mark, Schedule, State } from './logic/types';
 import { KEY, exportFile, load, newId, parseState, save } from './store';
@@ -195,7 +195,12 @@ app.addEventListener('change', (e) => {
   if (!t.dataset.setting) return; // habit form fields save on submit
   if (t.dataset.setting === 'muted') audio.muted = state.settings.muted = t.checked;
   if (t.dataset.setting === 'rolloverHour') {
-    state.settings.rolloverHour = Number(t.value);
+    const next = Number(t.value);
+    if (rolloverMovesBack(new Date(), state.settings.rolloverHour, next)) {
+      render(); // puts the select back
+      return toast(`That would turn today back into yesterday. Change it after ${next}:00 AM.`);
+    }
+    state.settings.rolloverHour = next;
     shownDay = '';
     checkNewDay();
   }
