@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './day';
-import { levelOf, momentumAt, score, xpForLevel } from './score';
+import { COMEBACK, levelOf, momentumAt, score, XP, xpForLevel } from './score';
 import type { Habit, Log, Mark, Schedule, State } from './types';
 
 const MON = '2026-11-02';
@@ -72,6 +72,30 @@ describe('momentum', () => {
   it('a comeback check stacks x1.5 on momentum', () => {
     const s = score(state([habit()], logOf([day(0), day(2)])), day(2));
     expect(s.awards[day(2)].h.xp).toBe(Math.round(10 * 1.5 * 1.5)); // 1 of 2 days done -> x1.5
+  });
+});
+
+describe('momentum inside score()', () => {
+  it('matches momentumAt for every award on random long histories', () => {
+    let seed = 42;
+    const rand = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+    const schedules: Schedule[] = [{ kind: 'daily' }, { kind: 'days', days: [1, 3, 5] }, { kind: 'weekly', times: 3 }, { kind: 'weekly', times: 5 }];
+    for (let run = 0; run < 5; run++) {
+      const habits = schedules.map((s, i) => ({ ...habit(s, day(Math.floor(rand() * 40)), `h${i}`), ...(rand() < 0.3 ? { archived: day(150 + i) } : {}) }));
+      const log: Log = {};
+      for (let i = 0; i < 200; i++) {
+        for (const h of habits) if (rand() < 0.7) (log[day(i)] ??= {})[h.id] = rand() < 0.2 ? 'tiny' : 'full';
+      }
+      const today = day(199);
+      const s = score(state(habits, log), today);
+      for (const [d, awards] of Object.entries(s.awards)) {
+        for (const [id, a] of Object.entries(awards)) {
+          const want = Math.round(XP[log[d][id]] * momentumAt(habits, log, d) * (a.comeback ? COMEBACK : 1)) + a.milestone;
+          expect(a.xp, `${d} ${id}`).toBe(want);
+        }
+      }
+      expect(s.momentum).toBe(momentumAt(habits, log, today));
+    }
   });
 });
 

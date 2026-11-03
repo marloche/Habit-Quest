@@ -18,33 +18,45 @@ export function levelOf(xp: number) {
 
 export const isActive = (h: Habit, day: string) => day >= h.created && (!h.archived || day < h.archived);
 
-// Expected completions on a day; weekly habits spread their quota evenly.
-export function expected(h: Habit, day: string): number {
+// Expected completions on a day in sevenths, so weekly quotas (times/7 a day) stay exact integers.
+function expected7(h: Habit, day: string): number {
   if (!isActive(h, day)) return 0;
   const s = h.schedule;
-  if (s.kind === 'daily') return 1;
-  if (s.kind === 'days') return s.days.includes(weekday(day)) ? 1 : 0;
-  return s.times / 7;
+  if (s.kind === 'daily') return 7;
+  if (s.kind === 'days') return s.days.includes(weekday(day)) ? 7 : 0;
+  return s.times;
 }
 
-export const isDue = (h: Habit, day: string) => h.schedule.kind !== 'weekly' && expected(h, day) === 1;
+// Expected completions on a day; weekly habits spread their quota evenly.
+export const expected = (h: Habit, day: string) => expected7(h, day) / 7;
+
+export const isDue = (h: Habit, day: string) => h.schedule.kind !== 'weekly' && expected7(h, day) === 7;
+
+const done = (h: Habit, log: Log, day: string) => (isActive(h, day) && log[day]?.[h.id] ? 1 : 0);
+
+// Each habit's checks count up to what it expected, so over-delivering one habit can't hide skipping another.
+function momentumOf(want7: number[], got: number[]): number {
+  let w = 0;
+  let g = 0;
+  want7.forEach((want, i) => {
+    w += want;
+    g += Math.min(7 * got[i], want);
+  });
+  return w ? Math.round((1 + g / w) * 100) / 100 : 1;
+}
 
 // 1 + share of expected checks done in the 14 days before `day`, so x1.0 to x2.0.
 export function momentumAt(habits: Habit[], log: Log, day: string): number {
-  let want = 0;
-  let got = 0;
-  for (const h of habits) {
-    let w = 0;
-    let g = 0;
-    for (let i = 1; i <= MOMENTUM_DAYS; i++) {
-      const d = addDays(day, -i);
-      w += expected(h, d);
-      if (isActive(h, d) && log[d]?.[h.id]) g++;
-    }
-    want += w;
-    got += Math.min(g, w);
+  const want7 = habits.map(() => 0);
+  const got = habits.map(() => 0);
+  for (let i = 1; i <= MOMENTUM_DAYS; i++) {
+    const d = addDays(day, -i);
+    habits.forEach((h, j) => {
+      want7[j] += expected7(h, d);
+      got[j] += done(h, log, d);
+    });
   }
-  return want ? Math.round((1 + got / want) * 100) / 100 : 1;
+  return momentumOf(want7, got);
 }
 
 export type Award = { xp: number; gold: number; comeback: boolean; milestone: number; streak: number };
@@ -69,7 +81,7 @@ export type Score = {
   bestPerfect: number;
 };
 
-// Replays the whole log. shortcut: O(days x habits x 14), fine for years of data; cache per day if it ever lags.
+// Replays the whole log in one pass, O(days x habits); momentum uses a rolling 14-day window.
 export function score(state: State, today: string): Score {
   const { habits, log } = state;
   const awards: Score['awards'] = {};
@@ -85,9 +97,20 @@ export function score(state: State, today: string): Score {
     missed[h.id] = false;
   }
 
+  // The window for the first day is empty: nothing is active before the earliest quest was created.
+  const want7 = habits.map(() => 0);
+  const got = habits.map(() => 0);
+  const slide = (d: string, sign: number) =>
+    habits.forEach((h, i) => {
+      want7[i] += sign * expected7(h, d);
+      got[i] += sign * done(h, log, d);
+    });
+  let momentumToday = 1;
+
   const start = habits.reduce((m, h) => (h.created < m ? h.created : m), today);
   for (let d = start; d <= today; d = addDays(d, 1)) {
-    const momentum = momentumAt(habits, log, d);
+    const momentum = momentumOf(want7, got);
+    momentumToday = momentum;
     let dueCount = 0;
     let doneCount = 0;
 
@@ -147,8 +170,11 @@ export function score(state: State, today: string): Score {
     if (dueCount && doneCount === dueCount) perfect++;
     else if (dueCount && d !== today) perfect = 0;
     bestPerfect = Math.max(bestPerfect, perfect);
+
+    slide(d, 1);
+    slide(addDays(d, -MOMENTUM_DAYS), -1);
   }
 
   for (const h of habits) stats[h.id].comebackReady = missed[h.id];
-  return { xp, gold, ...levelOf(xp), momentum: momentumAt(habits, log, today), habits: stats, awards, perfect, bestPerfect };
+  return { xp, gold, ...levelOf(xp), momentum: momentumToday, habits: stats, awards, perfect, bestPerfect };
 }

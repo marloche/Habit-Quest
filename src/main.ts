@@ -2,7 +2,7 @@ import './style.css';
 import { audio, sfx, unlock } from './audio';
 import { banner, floatText, shake, toast } from './fx';
 import { dayKey, rolloverMovesBack } from './logic/day';
-import { isActive, isDue, score } from './logic/score';
+import { isActive, isDue, score, type Score } from './logic/score';
 import type { Mark, Schedule, State } from './logic/types';
 import { KEY, exportFile, load, newId, parseState, save } from './store';
 import { editListView, formView } from './ui/edit';
@@ -22,9 +22,11 @@ audio.muted = state.settings.muted;
 
 const today = () => dayKey(new Date(), state.settings.rolloverHour);
 
+let scored: Score; // score of the last render, reused so a tap scores the log once
+
 function render() {
   const t = today();
-  const sc = score(state, t);
+  const sc = (scored = score(state, t));
   const views: Record<Tab, () => string> = {
     quest: () => questView(state, sc, t),
     edit: () => editListView(state.habits),
@@ -55,8 +57,7 @@ function checkNewDay() {
   state.lastOpened = t;
   commit();
   if (last && last < t) {
-    const sc = score(state, t);
-    const comeback = state.habits.some((h) => isActive(h, t) && sc.habits[h.id].comebackReady);
+    const comeback = state.habits.some((h) => isActive(h, t) && scored.habits[h.id].comebackReady);
     toast(comeback ? 'Welcome back, hero! Comeback bonus x1.5 is ready.' : 'A new day dawns. Quests refreshed!');
   }
 }
@@ -76,11 +77,11 @@ function mark(id: string, m: Mark) {
     sfx('undo');
     return;
   }
-  const before = score(state, t);
+  const before = scored;
   const wasComplete = dayComplete(t);
   day[id] = m;
   commit();
-  const after = score(state, t);
+  const after = scored;
   const a = after.awards[t][id];
   const row = app.querySelector(`[data-row="${id}"]`);
   row?.classList.add('pop');
