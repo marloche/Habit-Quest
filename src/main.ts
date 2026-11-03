@@ -219,6 +219,21 @@ app.addEventListener('click', (e) => {
   }
 });
 
+// PC shortcuts: 1-9 toggles quest N in your order, Shift+1-9 its tiny version, Q/S/E switch screens.
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || (e.target as Element).closest('input, select, textarea')) return;
+  const n = /^Digit([1-9])$/.exec(e.code)?.[1];
+  if (n && tab === 'quest') {
+    const h = state.habits.filter((x) => isActive(x, today()))[Number(n) - 1];
+    if (!h) return;
+    e.preventDefault();
+    unlock();
+    return mark(h.id, e.shiftKey && h.tiny ? 'tiny' : 'full');
+  }
+  const to = ({ KeyQ: 'quest', KeyS: 'stats', KeyE: 'edit' } as Record<string, Tab>)[e.code];
+  if (to && !e.shiftKey) go(to);
+});
+
 app.addEventListener('submit', (e) => {
   e.preventDefault();
   saveHabit(e.target as HTMLFormElement);

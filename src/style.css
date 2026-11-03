@@ -89,6 +89,10 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
   background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
 .q-main:active { transform: translateY(2px); }
+/* Keyboard numbers only where there's a keyboard-and-mouse setup. */
+.q-key, .kbd-help { display: none; }
+.q-key { font-size: 8px; color: var(--muted); width: 8px; flex: none; }
+@media (hover: hover) and (pointer: fine) { .q-key, .kbd-help { display: block; } }
 .q-text { flex: 1; display: grid; gap: 6px; min-width: 0; }
 .q-name { font-size: 12px; overflow-wrap: anywhere; }
 .done .q-name { color: var(--accent-2); }

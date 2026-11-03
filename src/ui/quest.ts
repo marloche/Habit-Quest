@@ -39,7 +39,10 @@ export function questView(state: State, sc: Score, today: string, now: Date, ui:
   const have = sc.xp - xpForLevel(sc.level);
   // Still-to-do quests first, then rest-day bonuses, then done ones; your order is kept within each group.
   const rank = (h: Habit) => (state.log[today]?.[h.id] ? 2 : h.schedule.kind !== 'weekly' && !isDue(h, today) ? 1 : 0);
-  const habits = state.habits.filter((h) => isActive(h, today)).sort((a, b) => rank(a) - rank(b));
+  const listed = state.habits.filter((h) => isActive(h, today));
+  const habits = [...listed].sort((a, b) => rank(a) - rank(b));
+  // Keyboard numbers follow your order, not the sorted one, so a quest keeps its key after you check it.
+  const keyOf = (h: Habit) => (listed.indexOf(h) < 9 ? listed.indexOf(h) + 1 : 0);
   const due = habits.filter((h) => isDue(h, today));
   const allDone = due.length > 0 && due.every((h) => state.log[today]?.[h.id]);
   const risky = new Set(isEvening(now, state.settings.rolloverHour) ? atRisk(state, sc, today).map((h) => h.id) : []);
@@ -51,6 +54,7 @@ export function questView(state: State, sc: Score, today: string, now: Date, ui:
     const weekly = h.schedule.kind === 'weekly' ? h.schedule.times : 0;
     const rest = !weekly && !isDue(h, today);
     const armed = mark && ui.arming === `${today}:${h.id}`;
+    const key = keyOf(h);
     let meta = '';
     if (armed) meta = '<span class="hot">TAP AGAIN TO UNDO</span>';
     else if (mark && award) meta = `+${award.xp} XP${mark === 'tiny' ? ' (tiny)' : ''}`;
@@ -61,7 +65,8 @@ export function questView(state: State, sc: Score, today: string, now: Date, ui:
     const streak = st.streak ? `<span class="streak">${svg(FLAME, 16)}${st.streak}${st.unit === 'week' ? 'w' : ''}</span>` : '';
     const label = `${h.name}${armed ? ', tap again to undo' : mark ? ', done. Tap twice to undo' : ''}`;
     return `<li class="quest${mark ? ' done' : ''}${armed ? ' arming' : ''}${rest ? ' rest' : ''}" data-row="${today}:${h.id}">
-      <button class="q-main" data-action="mark" data-id="${h.id}" data-mark="full" aria-pressed="${!!mark}" aria-label="${esc(label)}">
+      <button class="q-main" data-action="mark" data-id="${h.id}" data-mark="full" aria-pressed="${!!mark}" aria-label="${esc(label)}"${key ? ` aria-keyshortcuts="${key}"` : ''}>
+        ${key ? `<span class="q-key" aria-hidden="true">${key}</span>` : ''}
         <span class="q-icon">${icon(h.icon, 32)}</span>
         <span class="q-text"><span class="q-name">${esc(h.name)}</span><span class="q-meta">${meta}</span></span>
         ${streak}
