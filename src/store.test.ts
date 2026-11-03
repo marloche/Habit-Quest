@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { parseState } from './store';
+import { backupAge, parseState } from './store';
+import type { State } from './logic/types';
+
+describe('backupAge', () => {
+  const s = (log: object, lastBackup?: string) => ({ v: 1, settings: { rolloverHour: 4, muted: false, lastBackup }, habits: [], log }) as State;
+  it('is undefined while there is nothing to back up', () => {
+    expect(backupAge(s({}), '2026-11-03')).toBeUndefined();
+  });
+  it('is Infinity when never backed up, else days since', () => {
+    expect(backupAge(s({ '2026-11-01': {} }), '2026-11-03')).toBe(Infinity);
+    expect(backupAge(s({ '2026-11-01': {} }, '2026-10-25'), '2026-11-03')).toBe(9);
+  });
+});
 
 const good = {
   v: 1,

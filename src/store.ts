@@ -1,3 +1,4 @@
+import { daysBetween } from './logic/day';
 import type { Habit, State } from './logic/types';
 
 export const KEY = 'habit-quest';
@@ -59,6 +60,14 @@ export function load(today: string): State {
 }
 
 export const save = (s: State) => localStorage.setItem(KEY, JSON.stringify(s));
+
+export const BACKUP_DAYS = 7;
+
+// Days since the last export, or undefined if there's nothing worth backing up yet.
+export function backupAge(s: State, today: string): number | undefined {
+  if (!Object.keys(s.log).length) return undefined;
+  return s.settings.lastBackup ? daysBetween(s.settings.lastBackup, today) : Infinity;
+}
 
 export async function exportFile(s: State, today: string) {
   const file = new File([JSON.stringify(s, null, 1)], `Habit-Quest-${today}.json`, { type: 'application/json' });

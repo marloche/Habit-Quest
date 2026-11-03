@@ -1,10 +1,11 @@
 import { daysBetween } from '../logic/day';
 import type { State } from '../logic/types';
+import { BACKUP_DAYS, backupAge } from '../store';
 
 export function settingsView(state: State, today: string) {
   const { rolloverHour, muted, lastBackup } = state.settings;
   const age = lastBackup ? daysBetween(lastBackup, today) : undefined;
-  const stale = age === undefined ? Object.keys(state.log).length > 0 : age > 7;
+  const stale = (backupAge(state, today) ?? 0) > BACKUP_DAYS;
   const hours = [0, 1, 2, 3, 4, 5, 6].map((h) => `<option value="${h}" ${h === rolloverHour ? 'selected' : ''}>${h === 0 ? '12' : h}:00 AM</option>`);
   return `
     <h2>SETUP</h2>

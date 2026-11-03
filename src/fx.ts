@@ -21,13 +21,20 @@ export function shake() {
   document.body.classList.add('shake');
 }
 
+let toastFreeAt = 0;
+
+// Toasts queue up instead of drawing on top of each other.
 export function toast(text: string) {
-  const el = document.createElement('div');
-  el.className = 'toast';
-  el.setAttribute('role', 'status');
-  el.textContent = text;
-  layer().append(el);
-  setTimeout(() => el.remove(), 3500);
+  const wait = Math.max(0, toastFreeAt - Date.now());
+  toastFreeAt = Date.now() + wait + 3600;
+  setTimeout(() => {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.setAttribute('role', 'status');
+    el.textContent = text;
+    layer().append(el);
+    setTimeout(() => el.remove(), 3500);
+  }, wait);
 }
 
 type Banner = { title: string; sub: string; level?: number; onShow?: () => void };

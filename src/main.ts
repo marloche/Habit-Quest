@@ -4,7 +4,7 @@ import { banner, floatText, shake, toast } from './fx';
 import { addDays, dayKey, lateWindowOpen, rolloverMovesBack } from './logic/day';
 import { isActive, isDue, score, type Score } from './logic/score';
 import type { Mark, Schedule, State } from './logic/types';
-import { KEY, exportFile, load, newId, parseState, save } from './store';
+import { BACKUP_DAYS, KEY, backupAge, exportFile, load, newId, parseState, save } from './store';
 import { editListView, formView } from './ui/edit';
 import { nav } from './ui/html';
 import { questView } from './ui/quest';
@@ -60,6 +60,8 @@ function checkNewDay() {
   if (last && last < t) {
     const comeback = state.habits.some((h) => isActive(h, t) && scored.habits[h.id].comebackReady);
     toast(comeback ? 'Welcome back, hero! Comeback bonus x1.5 is ready.' : 'A new day dawns. Quests refreshed!');
+    const age = backupAge(state, t) ?? 0;
+    if (age > BACKUP_DAYS) toast(age === Infinity ? 'Your save has never been backed up. SETUP > EXPORT SAVE.' : `No backup for ${age} days. SETUP > EXPORT SAVE.`);
   }
 }
 
