@@ -61,7 +61,7 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
 .center { text-align: center; }
 
 /* Pixel frame: stepped corners instead of border-radius. */
-.hud, .quest, .btn, .card, .edit-row, .late-row, .hero-card, .item, .badge, input, select, .icon-pick, .day-pick span {
+.hud, .quest, .btn, .card, .edit-row, .late-row, .hero-card, .item, .badge, .focus-card, input, select, .icon-pick, .day-pick span {
   background: var(--panel);
   border: 0;
   box-shadow:
@@ -105,6 +105,18 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
   border-left: 4px solid var(--edge); background: var(--blue); color: var(--text); font: inherit; font-size: 10px; cursor: pointer;
 }
 .q-tiny small { font-size: 6px; max-width: 72px; overflow-wrap: anywhere; text-align: center; color: var(--text); }
+.q-focus {
+  width: 48px; flex: none; display: grid; place-items: center; align-content: center; gap: 4px; border: 0;
+  border-left: 4px solid var(--edge); background: #262b44; color: var(--gold); font: inherit; cursor: pointer;
+}
+.q-focus small { font-size: 8px; }
+.q-tiny:active, .q-focus:active { transform: translateY(2px); }
+.focus-card { display: grid; gap: 8px; margin: 12px 4px; padding: 12px; }
+.focus-row { display: flex; align-items: center; gap: 8px; }
+.focus-name { flex: 1; font-size: 8px; overflow-wrap: anywhere; color: var(--gold); }
+.focus-time { font-size: 16px; font-weight: normal; font-variant-numeric: tabular-nums; }
+.focus-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.focus-card > .btn, .focus-btns .btn { justify-self: start; }
 .late h3 { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--hot); }
 .late h3 .muted { font-size: 8px; }
 .late-list { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 12px; }

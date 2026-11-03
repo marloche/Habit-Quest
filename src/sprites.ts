@@ -40,7 +40,9 @@ const FACES = [
 ];
 export const moodFace = (mood: number, size = 24) => svg(FACES[mood - 1], size, '', { ...PAL, m: MOOD_COLOR[mood - 1] });
 
-export const FLAME =['...o....', '...oo...', '..ooy...', '..oyyo..', '.ooyyoo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..'];
+export const HOURGLASS = ['oooooooo', '.CyyyyC.', '..CyyC..', '...CC...', '...CC...', '..CyyC..', '.CyyyyC.', 'oooooooo'];
+
+export const FLAME = ['...o....', '...oo...', '..ooy...', '..oyyo..', '.ooyyoo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..'];
 export const COIN = ['..yyyy..', '.yyoyyy.', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', '.yyoyyy.', '..yyyy..'];
 
 // h = hair/helmet, A/a = armor and its shade; swapped per level tier so the hero visibly grows.

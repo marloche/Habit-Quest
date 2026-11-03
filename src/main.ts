@@ -5,6 +5,7 @@ import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logi
 import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/score';
 import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
+import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
 import { JOURNAL_GOLD, JOURNAL_MAX } from './logic/journal';
 import type { Mark, Mood, Schedule, Slot, State } from './logic/types';
 import { BACKUP_DAYS, KEY, backupAge, exportFile, load, newId, parseState, save } from './store';
@@ -42,7 +43,7 @@ function render() {
   hs = heroOf(state, sc, t);
   announceTiers();
   const views: Record<Tab, () => string> = {
-    quest: () => questView(state, sc, hs, t, new Date(), { arming, lateTouched }),
+    quest: () => questView(state, sc, hs, t, new Date(), { arming, lateTouched, timer, stopping }),
     calendar: () => calendarView(state, sc, t, { month: calMonth, day: calDay, mood: calMood, arming }),
     hero: () => heroView(state, sc, hs, { view: heroTab, slot: shopSlot, buying }),
     edit: () => editListView(state.habits),
@@ -219,7 +220,9 @@ function saveHabit(form: HTMLFormElement) {
   } else if (kind === 'weekly') {
     schedule = { kind, times: Math.min(7, Math.max(1, Number(f.get('times')) || 1)) };
   }
-  const fields = { name, tiny: String(f.get('tiny') ?? '').trim() || undefined, icon: String(f.get('icon') ?? 'star'), schedule };
+  const minutes = Math.round(Number(f.get('focus')));
+  const focus = minutes >= 1 ? Math.min(FOCUS_MAX, minutes) : undefined; // blank or 0 = no timer
+  const fields = { name, tiny: String(f.get('tiny') ?? '').trim() || undefined, icon: String(f.get('icon') ?? 'star'), schedule, focus };
   const existing = state.habits.find((h) => h.id === editingId);
   if (existing) Object.assign(existing, fields);
   else state.habits.push({ id: newId(), created: today(), ...fields });
@@ -314,6 +317,73 @@ function saveJournal(form: HTMLFormElement) {
   toast('Journal saved.');
 }
 
+// Focus timer: one at a time, in its own key so a reload or a locked phone can't lose it.
+const FOCUS_KEY = 'habit-quest-focus';
+let timer = parseTimer(localStorage.getItem(FOCUS_KEY));
+let stopping = false; // STOP tapped: the card asks what to log
+let wake: WakeLockSentinel | undefined;
+
+function setTimer(t?: Timer) {
+  timer = t;
+  stopping = false;
+  if (t) localStorage.setItem(FOCUS_KEY, JSON.stringify(t));
+  else localStorage.removeItem(FOCUS_KEY);
+  void syncWake();
+}
+
+// Banks the minutes focused and logs the mark, if any, for the day the timer started.
+function endTimer(m?: Mark) {
+  const t = timer;
+  if (!t) return;
+  const min = focusedMinutes(t, Date.now());
+  setTimer(undefined);
+  if (min) state.focus[t.day] = Math.min(1440, (state.focus[t.day] ?? 0) + min);
+  if (m && state.habits.some((h) => h.id === t.habit) && !state.log[t.day]?.[t.habit]) return mark(t.habit, m, t.day); // saves too
+  commit();
+}
+
+function startFocus(id: string) {
+  const h = state.habits.find((x) => x.id === id);
+  if (!h?.focus) return;
+  if (timer && !confirm('Replace the running focus timer? Its minutes so far still count.')) return;
+  endTimer();
+  const now = Date.now();
+  setTimer({ habit: id, day: today(), start: now, end: now + h.focus * MINUTE });
+  sfx('tiny');
+  render();
+}
+
+// Runs every second: finishes a timer that ran out (also after the app was asleep), else updates the card in place.
+function tickFocus() {
+  if (!timer) return;
+  const now = Date.now();
+  if (isOver(timer, now)) {
+    const name = state.habits.find((h) => h.id === timer!.habit)?.name ?? 'Your quest';
+    const min = focusedMinutes(timer, now);
+    endTimer('full');
+    banner({ title: 'FOCUS DONE!', sub: `${name}: ${min} min focused`, onShow: () => sfx('perfect') });
+    return;
+  }
+  const time = app.querySelector('.focus-time');
+  if (time) time.textContent = clock(timeLeft(timer, now));
+  const fill = app.querySelector<HTMLElement>('.focus-fill');
+  if (fill) fill.style.width = `${Math.round(((now - timer.start) / (timer.end - timer.start)) * 100)}%`;
+}
+
+// Keep the screen on while a timer runs, if SETUP says so. The browser drops the lock when the app is hidden.
+async function syncWake() {
+  if (!timer || !state.settings.wakeLock || document.visibilityState !== 'visible') {
+    void wake?.release();
+    wake = undefined;
+    return;
+  }
+  if (wake) return;
+  try {
+    wake = await navigator.wakeLock.request('screen');
+    wake.addEventListener('release', () => (wake = undefined));
+  } catch {} // unsupported or refused: the timer still works, just without the screen held on
+}
+
 function pickDay(d: string) {
   calDay = d;
   calMonth = d.slice(0, 7);
@@ -388,6 +458,11 @@ app.addEventListener('click', (e) => {
     case 'cal-day': pickDay(el.dataset.day!); return render();
     case 'cal-view': calMood = !!el.dataset.mood; return render();
     case 'mood': return setMood(el.dataset.day!, Number(el.dataset.mood) as Mood);
+    case 'focus-start': return startFocus(id);
+    case 'focus-stop': stopping = true; return render();
+    case 'focus-keep': stopping = false; return render();
+    case 'focus-tiny': return endTimer('tiny');
+    case 'focus-discard': return endTimer();
     case 'rename': return rename(id);
     case 'unplan': return unplan(id);
     case 'slot': shopSlot = el.dataset.slot as Slot; return render();
@@ -426,6 +501,11 @@ app.addEventListener('change', (e) => {
   if (t.dataset.action === 'import') return void importFile(t);
   if (!t.dataset.setting) return; // habit form fields save on submit
   if (t.dataset.setting === 'muted') audio.muted = state.settings.muted = t.checked;
+  if (t.dataset.setting === 'wakeLock') {
+    if (t.checked) state.settings.wakeLock = true;
+    else delete state.settings.wakeLock;
+    void syncWake();
+  }
   if (t.dataset.setting === 'rolloverHour') {
     const next = Number(t.value);
     if (rolloverMovesBack(new Date(), state.settings.rolloverHour, next)) {
@@ -441,6 +521,14 @@ app.addEventListener('change', (e) => {
 
 // Another window (say a browser tab next to the installed app) saved: adopt it, or our next save would erase its checks.
 addEventListener('storage', (e) => {
+  if (e.key === FOCUS_KEY) {
+    // Started or ended in the other window: follow it, so only one window ever finishes it.
+    timer = parseTimer(e.newValue);
+    stopping = false;
+    void syncWake();
+    if (tab === 'quest') render();
+    return;
+  }
   if (e.key !== KEY || !e.newValue) return;
   try {
     state = parseState(e.newValue);
@@ -455,6 +543,9 @@ addEventListener('storage', (e) => {
 render();
 checkNewDay();
 warnRisk();
+tickFocus(); // a timer that ran out while the app was closed finishes now
+void syncWake();
+setInterval(tickFocus, 1000);
 
 // A new deploy installs itself on the next launch with internet; say so once.
 const BUILD_KEY = 'habit-quest-build';
@@ -469,9 +560,11 @@ setInterval(() => {
   if (tab === 'quest') render(); // time-based UI, e.g. the yesterday window closing
 }, 60_000);
 document.addEventListener('visibilitychange', () => {
+  void syncWake();
   if (document.visibilityState !== 'visible') return;
   checkNewDay();
   warnRisk();
+  tickFocus();
 });
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {}); // app still works online without it

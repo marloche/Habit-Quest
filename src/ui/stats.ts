@@ -1,6 +1,7 @@
 import { addDays, weekStart } from '../logic/day';
 import { expected, isActive, type Score } from '../logic/score';
 import type { HeroState } from '../logic/hero';
+import { focusStats, minutesText } from '../logic/focus';
 import { MOODS, moodLink, moodName } from '../logic/journal';
 import type { State } from '../logic/types';
 import { esc } from './html';
@@ -34,6 +35,7 @@ export function statsView(state: State, sc: Score, hs: HeroState, today: string)
     const m = state.journal[d]?.mood;
     return `<i class="m${m ?? 0}" title="${d}${m ? `: ${MOODS[m - 1].toLowerCase()}` : ''}"></i>`;
   });
+  const fs = focusStats(state.focus, today);
   const link = moodLink(state.habits, state.log, state.journal, today);
   const said = (a: typeof link.all) => (a ? `${moodName(a.avg)} (${a.days}d)` : '-');
   const moodLine = link.all || link.other
@@ -49,6 +51,9 @@ export function statsView(state: State, sc: Score, hs: HeroState, today: string)
       <div class="card"><b>${sc.perfect}d</b><span>PERFECT RUN</span></div>
       <div class="card"><b>${sc.bestPerfect}d</b><span>BEST RUN</span></div>
       <div class="card"><b>x${sc.momentum.toFixed(2)}</b><span>MOMENTUM</span></div>
+      <div class="card"><b>${minutesText(fs.today)}</b><span>FOCUS TODAY</span></div>
+      <div class="card"><b>${minutesText(fs.week)}</b><span>FOCUS WEEK</span></div>
+      <div class="card"><b>${minutesText(fs.total)}</b><span>FOCUS TOTAL</span></div>
     </div>
     <h3>LAST ${WEEKS} WEEKS</h3>
     <div class="heat" role="img" aria-label="Completion heatmap for the last ${WEEKS} weeks">${cells.join('')}</div>

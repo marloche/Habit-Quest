@@ -1,5 +1,6 @@
 import { daysBetween } from './logic/day';
 import { emptyWardrobe, SLOTS } from './logic/items';
+import { FOCUS_MAX } from './logic/focus';
 import { JOURNAL_MAX } from './logic/journal';
 import type { Habit, State } from './logic/types';
 
@@ -10,12 +11,13 @@ export const newId = () => Date.now().toString(36) + Math.random().toString(36).
 function fresh(today: string): State {
   const h = (name: string, icon: string, tiny?: string): Habit => ({ id: newId(), name, icon, tiny, schedule: { kind: 'daily' }, created: today });
   return {
-    v: 4,
+    v: 5,
     settings: { rolloverHour: 4, muted: false },
     habits: [h('Workout', 'dumbbell', '1 pushup'), h('Read 20 min', 'book', 'Read 1 page'), h('Drink water', 'drop')],
     log: {},
     wardrobe: emptyWardrobe(),
     journal: {},
+    focus: {},
   };
 }
 
@@ -46,7 +48,10 @@ const validJournal = (j: unknown) =>
 
 const validHabit = (h: any) =>
   /^[\w-]{1,40}$/.test(h?.id) && typeof h.name === 'string' && typeof h.icon === 'string' && isDay(h.created) &&
-  optional(h.archived, isDay) && optional(h.tiny, (t) => typeof t === 'string') && validSchedule(h.schedule);
+  optional(h.archived, isDay) && optional(h.tiny, (t) => typeof t === 'string') && validSchedule(h.schedule) &&
+  optional(h.focus, (m) => isInt(m, 1, FOCUS_MAX));
+
+const validFocus = (f: unknown) => entriesOk(f, (k, v) => isDay(k) && isInt(v, 0, 1440));
 
 // Trust boundary: imported files and old saves go through here. Anything the renderer reads must be checked,
 // because an invalid save is stored before the first render and would crash every launch after.
@@ -54,18 +59,22 @@ export function parseState(text: string): State {
   const x = JSON.parse(text);
   const s = x?.settings;
   const ok =
-    x && (x.v === 1 || x.v === 2 || (x.v === 3 && validWardrobe(x.wardrobe)) || (x.v === 4 && validWardrobe(x.wardrobe) && validJournal(x.journal))) &&
+    x && isInt(x.v, 1, 5) &&
+    (x.v < 3 || validWardrobe(x.wardrobe)) && (x.v < 4 || validJournal(x.journal)) && (x.v < 5 || validFocus(x.focus)) &&
     s && isInt(s.rolloverHour, 0, 23) && typeof s.muted === 'boolean' && optional(s.lastBackup, isDay) &&
+    optional(s.wakeLock, (w) => typeof w === 'boolean') &&
     optional(x.lastOpened, isDay) &&
     Array.isArray(x.habits) && x.habits.every(validHabit) &&
     x.log && typeof x.log === 'object' && !Array.isArray(x.log) &&
     Object.entries(x.log).every(([d, marks]) => isDay(d) && marks && typeof marks === 'object' &&
       Object.values(marks).every((m) => m === 'full' || m === 'tiny'));
   if (!ok) throw new Error('Not a Habit Quest save file');
-  // v1 -> v2 added planned quests (old data is valid as is); v2 -> v3 added the wardrobe; v3 -> v4 the journal.
+  // v1 -> v2 added planned quests (old data is valid as is); v2 -> v3 added the wardrobe; v3 -> v4 the journal;
+  // v4 -> v5 focus minutes (quest timers and the wake setting are optional fields).
   if (x.v < 3) x.wardrobe = emptyWardrobe();
   if (x.v < 4) x.journal = {};
-  x.v = 4;
+  if (x.v < 5) x.focus = {};
+  x.v = 5;
   return x as State;
 }
 

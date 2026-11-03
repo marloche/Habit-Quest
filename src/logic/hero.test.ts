@@ -8,7 +8,7 @@ import type { Habit, Log, Mark, State } from './types';
 
 const MON = '2026-11-02';
 const daily: Habit = { id: 'h', name: 'h', icon: 'star', schedule: { kind: 'daily' }, created: MON };
-const state = (log: Log, wardrobe = emptyWardrobe()): State => ({ v: 4, settings: { rolloverHour: 4, muted: false }, habits: [daily], log, wardrobe, journal: {} });
+const state = (log: Log, wardrobe = emptyWardrobe()): State => ({ v: 5, settings: { rolloverHour: 4, muted: false }, habits: [daily], log, wardrobe, journal: {}, focus: {} });
 
 describe('catalogue', () => {
   it('has unique ids and sells only shop items; chest finds and trophies are free', () => {

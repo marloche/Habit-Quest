@@ -4,7 +4,7 @@ import { emptyWardrobe } from './logic/items';
 import type { State } from './logic/types';
 
 describe('backupAge', () => {
-  const s = (log: object, lastBackup?: string) => ({ v: 4, settings: { rolloverHour: 4, muted: false, lastBackup }, habits: [], log, wardrobe: emptyWardrobe(), journal: {} }) as State;
+  const s = (log: object, lastBackup?: string) => ({ v: 5, settings: { rolloverHour: 4, muted: false, lastBackup }, habits: [], log, wardrobe: emptyWardrobe(), journal: {}, focus: {} }) as State;
   it('is undefined while there is nothing to back up', () => {
     expect(backupAge(s({}), '2026-11-03')).toBeUndefined();
   });
@@ -15,9 +15,9 @@ describe('backupAge', () => {
 });
 
 const good = {
-  v: 4,
-  settings: { rolloverHour: 4, muted: false },
-  habits: [{ id: 'abc-1', name: 'Read', icon: 'book', schedule: { kind: 'daily' }, created: '2026-11-01' }],
+  v: 5,
+  settings: { rolloverHour: 4, muted: false, wakeLock: true },
+  habits: [{ id: 'abc-1', name: 'Read', icon: 'book', schedule: { kind: 'daily' }, created: '2026-11-01', focus: 20 }],
   log: { '2026-11-01': { 'abc-1': 'full' } },
   wardrobe: {
     owned: { 'leaf-crown': { day: '2026-11-01', paid: 60 }, halo: { day: '2026-11-02', paid: 0 } },
@@ -25,6 +25,7 @@ const good = {
     opened: { 'b-2026-10-26': { day: '2026-11-02', item: 'halo' }, 'm-2026-11-01-abc-1': { day: '2026-11-02', gold: 80 } },
   },
   journal: { '2026-11-01': { mood: 4, text: 'Good run' }, '2026-11-02': { mood: 2 } },
+  focus: { '2026-11-01': 20 },
 };
 
 describe('parseState', () => {
@@ -58,13 +59,22 @@ describe('parseState', () => {
     expect(() => parseState(JSON.stringify(s))).not.toThrow();
     expect(() => parseState(JSON.stringify({ ...good, habits: [{ ...good.habits[0], schedule: { kind: 'once', day: 'friday' } }] }))).toThrow();
   });
-  it('migrates v1-v3 saves to v4 with an empty wardrobe and journal, touching nothing else', () => {
-    const { wardrobe, journal: _, ...old } = good;
-    const want = { ...old, v: 4, wardrobe: emptyWardrobe(), journal: {} };
+  it('migrates v1-v4 saves to v5 with an empty wardrobe, journal and focus, touching nothing else', () => {
+    const { wardrobe, journal, focus: _, ...old } = good;
+    const want = { ...old, v: 5, wardrobe: emptyWardrobe(), journal: {}, focus: {} };
     expect(parseState(JSON.stringify({ ...old, v: 1 }))).toEqual(want);
     expect(parseState(JSON.stringify({ ...old, v: 2 }))).toEqual(want);
     expect(parseState(JSON.stringify({ ...old, v: 3, wardrobe }))).toEqual({ ...want, wardrobe });
-    expect(() => parseState(JSON.stringify({ ...good, v: 5 }))).toThrow();
+    expect(parseState(JSON.stringify({ ...old, v: 4, wardrobe, journal }))).toEqual({ ...want, wardrobe, journal });
+    expect(() => parseState(JSON.stringify({ ...good, v: 6 }))).toThrow();
+  });
+  it('rejects broken focus minutes, quest timers and wake settings', () => {
+    expect(() => parseState(JSON.stringify({ ...good, focus: undefined }))).toThrow();
+    expect(() => parseState(JSON.stringify({ ...good, focus: { '2026-11-01': -1 } }))).toThrow();
+    expect(() => parseState(JSON.stringify({ ...good, focus: { '2026-11-01': 2000 } }))).toThrow();
+    expect(() => parseState(JSON.stringify({ ...good, habits: [{ ...good.habits[0], focus: 0 }] }))).toThrow();
+    expect(() => parseState(JSON.stringify({ ...good, habits: [{ ...good.habits[0], focus: 181 }] }))).toThrow();
+    expect(() => parseState(JSON.stringify({ ...good, settings: { ...good.settings, wakeLock: 'yes' } }))).toThrow();
   });
   it('rejects a broken journal', () => {
     const j = (journal: unknown) => JSON.stringify({ ...good, journal });

@@ -12,12 +12,13 @@ export type Habit = {
   schedule: Schedule;
   created: string; // day key
   archived?: string; // day key; not due from this day on
+  focus?: number; // focus timer length in minutes; finishing it checks the quest
 };
 
 export type Mark = 'full' | 'tiny';
 export type Log = Record<string, Record<string, Mark>>; // day key -> habit id -> mark
 
-export type Settings = { rolloverHour: number; muted: boolean; lastBackup?: string };
+export type Settings = { rolloverHour: number; muted: boolean; lastBackup?: string; wakeLock?: boolean };
 
 export type Slot = 'hat' | 'weapon' | 'cape' | 'pet';
 
@@ -32,4 +33,6 @@ export type Wardrobe = {
 export type Mood = 1 | 2 | 3 | 4 | 5; // awful, low, ok, good, great
 export type Journal = Record<string, { mood: Mood; text?: string }>; // day key -> entry
 
-export type State = { v: 4; settings: Settings; habits: Habit[]; log: Log; wardrobe: Wardrobe; journal: Journal; lastOpened?: string };
+export type Focus = Record<string, number>; // day key -> minutes focused
+
+export type State = { v: 5; settings: Settings; habits: Habit[]; log: Log; wardrobe: Wardrobe; journal: Journal; focus: Focus; lastOpened?: string };

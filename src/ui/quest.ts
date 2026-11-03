@@ -5,12 +5,14 @@ import { wornIds } from '../logic/items';
 import { JOURNAL_GOLD, MOODS } from '../logic/journal';
 import type { Habit, State } from '../logic/types';
 import { bossBar, goldText } from './hero';
-import { COIN, FLAME, hero, icon, moodFace, svg, tierOf } from '../sprites';
+import { clock, timeLeft, type Timer } from '../logic/focus';
+import { COIN, FLAME, hero, HOURGLASS, icon, moodFace, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
 
 // arming: "day:id" of a done quest waiting for a second tap to undo.
 // lateTouched: quests logged for yesterday this session, kept visible so a mistake can be undone.
-export type QuestUi = { arming?: string; lateTouched: Set<string> };
+// timer: the running focus timer; stopping: its STOP was tapped and it's asking what to log.
+export type QuestUi = { arming?: string; lateTouched: Set<string>; timer?: Timer; stopping?: boolean };
 
 // One quest on a day other than today's list: DONE/TINY, or a check that undoes on a second tap.
 export function dayRow(state: State, h: Habit, d: string, when: string, arming?: string, extra = '') {
@@ -33,6 +35,27 @@ export function moodRow(state: State, d: string) {
     return `<button class="mood${on ? ' on' : ''}" data-action="mood" data-day="${d}" data-mood="${i + 1}" aria-pressed="${on}" aria-label="Mood ${name.toLowerCase()}${on ? ', tap to clear' : ''}">${moodFace(i + 1, 32)}</button>`;
   });
   return `<div class="moods${cur ? ' picked' : ''}" role="group" aria-label="How was the day?">${faces.join('')}</div>`;
+}
+
+// The running focus timer, pinned under the HUD. main.ts updates .focus-time and .focus-fill every second.
+function focusCard(state: State, now: number, ui: QuestUi) {
+  const t = ui.timer;
+  const h = t && state.habits.find((x) => x.id === t.habit);
+  if (!t || !h) return '';
+  const pct = Math.round(((now - t.start) / (t.end - t.start)) * 100);
+  const controls = ui.stopping
+    ? `<p class="small">Stop early?</p>
+       <div class="focus-btns">
+         ${h.tiny && !state.log[t.day]?.[h.id] ? '<button class="btn small blue" data-action="focus-tiny">LOG TINY</button>' : ''}
+         <button class="btn small danger" data-action="focus-discard">DISCARD</button>
+         <button class="btn small" data-action="focus-keep">KEEP GOING</button>
+       </div>`
+    : '<button class="btn small ghost" data-action="focus-stop">STOP</button>';
+  return `<section class="focus-card" aria-label="Focus timer for ${esc(h.name)}">
+      <div class="focus-row">${svg(HOURGLASS, 24)}<span class="focus-name">FOCUS: ${esc(h.name.toUpperCase())}</span><b class="focus-time">${clock(timeLeft(t, now))}</b></div>
+      <div class="bar"><div class="focus-fill" style="width:${pct}%"></div></div>
+      ${controls}
+    </section>`;
 }
 
 function lateView(state: State, today: string, now: Date, ui: QuestUi) {
@@ -93,6 +116,7 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
         <span class="q-check">${mark ? CHECK : ''}</span>
       </button>
       ${h.tiny && !mark ? `<button class="q-tiny" data-action="mark" data-id="${h.id}" data-mark="tiny" aria-label="Tiny version: ${esc(h.tiny)}">TINY<small>${esc(h.tiny)}</small></button>` : ''}
+      ${h.focus && !mark && ui.timer?.habit !== h.id ? `<button class="q-focus" data-action="focus-start" data-id="${h.id}" aria-label="Start a ${h.focus} minute focus timer for ${esc(h.name)}">${svg(HOURGLASS, 16)}<small>${h.focus}m</small></button>` : ''}
     </li>`;
   });
 
@@ -107,6 +131,7 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
       </div>
     </header>
     ${bossBar(hs)}
+    ${focusCard(state, now.getTime(), ui)}
     ${lateView(state, today, now, ui)}
     <h2>${allDone ? 'ALL QUESTS DONE!' : "TODAY'S QUESTS"}</h2>
     <p class="date-line">${dateLine}</p>

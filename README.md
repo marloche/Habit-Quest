@@ -18,6 +18,7 @@ A pixel-RPG daily habit tracker. Check off quests and earn XP and gold, level up
 | Chests | One per boss win and per streak milestone: 50-150 gold, or (25%) a chest-only item |
 | Achievements | 10 tracks x 3 tiers (HERO > ACHIEVEMENTS), worked out from your history: +25 / +75 / +200 gold per tier. Unticking can lose a tier and its gold. Tier III of STREAK, PERFECT, CHECKS and BOSS SLAYER unlocks a trophy item, wearable only while the tier holds |
 | Journal | One mood (5 faces) + an optional line per day, in the CALENDAR day panel; the QUEST screen asks "how was today?" in the evening or once all quests are done. +2 gold per day with an entry; clearing the entry takes it back. Stats shows a 30-day mood strip and average mood on all-done days vs other days |
+| Focus timer | Give a quest a timer length in its editor (1-180 min) and an hourglass button appears. When it reaches 0 the quest is checked (full) for the day you started it, even if the phone was locked: it finishes when you come back. STOP asks: log the tiny version, discard, or keep going. Minutes focused show on STATS. SETUP can keep the screen on while a timer runs |
 | Gold | Spend it on cosmetics in the HERO tab. Balance = earned - paid; unticking past days can put it below zero (you keep your items) |
 | New day | starts at 4 AM by default (Setup tab), so late nights count for the day before |
 

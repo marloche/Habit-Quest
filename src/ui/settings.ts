@@ -14,6 +14,8 @@ export function settingsView(state: State, today: string) {
     </label>
     <p class="muted small">Checks before this hour count for the day before, so late nights still count.</p>
     <label class="toggle"><input type="checkbox" data-setting="muted" ${muted ? 'checked' : ''}> MUTE SOUNDS</label>
+    <label class="toggle"><input type="checkbox" data-setting="wakeLock" ${state.settings.wakeLock ? 'checked' : ''}> KEEP SCREEN ON WHILE FOCUSING</label>
+    <p class="muted small">Uses more battery. Without it, a locked phone can't play the end sound; the quest still gets checked when you come back.</p>
     <h3>BACKUP</h3>
     <p class="${stale ? 'hot' : 'muted'} small">Last backup: ${age === undefined ? 'never' : age === 0 ? 'today' : `${age} days ago`}</p>
     <p class="muted small">Your save lives only on this device. On iPhone the home-screen app keeps its own save, separate from Safari.</p>

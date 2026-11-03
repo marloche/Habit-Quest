@@ -1,3 +1,4 @@
+import { FOCUS_MAX } from '../logic/focus';
 import type { Habit } from '../logic/types';
 import { ICONS, icon } from '../sprites';
 import { ARROW, esc } from './html';
@@ -34,6 +35,7 @@ export function formView(h?: Habit) {
     <form class="habit-form">
       <label>NAME<input name="name" required maxlength="40" value="${esc(h?.name ?? '')}" placeholder="Workout"></label>
       <label>TINY VERSION <span class="muted">(optional)</span><input name="tiny" maxlength="40" value="${esc(h?.tiny ?? '')}" placeholder="1 pushup"></label>
+      <label>FOCUS TIMER <span class="muted">(minutes, optional)</span><input type="number" name="focus" min="1" max="${FOCUS_MAX}" value="${h?.focus ?? ''}" placeholder="20"></label>
       <fieldset><legend>ICON</legend><div class="icon-grid">${icons.join('')}</div></fieldset>
       <fieldset><legend>SCHEDULE</legend>
         <select name="kind" aria-label="Schedule">
