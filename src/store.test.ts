@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { backupAge, parseState } from './store';
+import { backupAge, fresh, parseState } from './store';
 import { emptyWardrobe } from './logic/items';
 import type { State } from './logic/types';
 
@@ -97,5 +97,14 @@ describe('parseState', () => {
     expect(() => parseState(JSON.stringify({ ...good, log: { yesterday: {} } }))).toThrow();
     expect(() => parseState('{"hello":"world"}')).toThrow();
     expect(() => parseState('not json')).toThrow();
+  });
+});
+
+describe('fresh', () => {
+  it('starts with no quests and keeps the settings passed in (NEW GAME), as a valid save', () => {
+    const s = fresh({ rolloverHour: 6, muted: true, wakeLock: true });
+    expect(s.habits).toEqual([]);
+    expect(s.settings).toEqual({ rolloverHour: 6, muted: true, wakeLock: true });
+    expect(parseState(JSON.stringify(s))).toEqual(s);
   });
 });

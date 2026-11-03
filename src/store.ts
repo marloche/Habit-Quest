@@ -2,18 +2,18 @@ import { daysBetween } from './logic/day';
 import { emptyWardrobe, SLOTS } from './logic/items';
 import { FOCUS_MAX } from './logic/focus';
 import { JOURNAL_MAX } from './logic/journal';
-import type { Habit, State } from './logic/types';
+import type { Settings, State } from './logic/types';
 
 export const KEY = 'habit-quest';
 
 export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
-function fresh(today: string): State {
-  const h = (name: string, icon: string, tiny?: string): Habit => ({ id: newId(), name, icon, tiny, schedule: { kind: 'daily' }, created: today });
+// A clean slate: no quests yet, so the app opens on the welcome goal picker. NEW GAME keeps your settings.
+export function fresh(settings: Settings = { rolloverHour: 4, muted: false }): State {
   return {
     v: 5,
-    settings: { rolloverHour: 4, muted: false },
-    habits: [h('Workout', 'dumbbell', '1 pushup'), h('Read 20 min', 'book', 'Read 1 page'), h('Drink water', 'drop')],
+    settings,
+    habits: [],
     log: {},
     wardrobe: emptyWardrobe(),
     journal: {},
@@ -78,15 +78,15 @@ export function parseState(text: string): State {
   return x as State;
 }
 
-export function load(today: string): State {
+export function load(): State {
   const raw = localStorage.getItem(KEY);
-  if (!raw) return fresh(today);
+  if (!raw) return fresh();
   try {
     return parseState(raw);
   } catch {
     // Never silently overwrite a save we can't read: park it for manual recovery.
     localStorage.setItem(`${KEY}-unreadable-${Date.now()}`, raw);
-    return fresh(today);
+    return fresh();
   }
 }
 

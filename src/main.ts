@@ -8,7 +8,7 @@ import { buyBlock, itemById, wornIds } from './logic/items';
 import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
 import { JOURNAL_GOLD, JOURNAL_MAX } from './logic/journal';
 import type { Mark, Mood, Schedule, Slot, State } from './logic/types';
-import { BACKUP_DAYS, KEY, backupAge, exportFile, load, newId, parseState, save } from './store';
+import { BACKUP_DAYS, KEY, backupAge, exportFile, fresh, load, newId, parseState, save } from './store';
 import { calendarView } from './ui/calendar';
 import { editListView, formView } from './ui/edit';
 import { heroView, type HeroUi } from './ui/hero';
@@ -17,12 +17,17 @@ import { nav } from './ui/html';
 import { questView } from './ui/quest';
 import { settingsView } from './ui/settings';
 import { statsView } from './ui/stats';
+import { picks, suggestView, type SuggestUi } from './ui/suggest';
+import { GOALS, goalsFromText, ideaToHabit, type Budget } from './logic/suggest';
 
-type Tab = 'quest' | 'calendar' | 'hero' | 'edit' | 'form' | 'stats' | 'settings';
+type Tab = 'quest' | 'calendar' | 'hero' | 'edit' | 'form' | 'suggest' | 'stats' | 'settings';
 
 const app = document.getElementById('app')!;
-let state: State = load(dayKey(new Date(), 4));
-let tab: Tab = 'quest';
+let state: State = load();
+const noQuests = () => !state.habits.some((h) => !h.archived && h.schedule.kind !== 'once');
+const newSuggest = (welcome: boolean): SuggestUi => ({ step: 'goals', goals: [], budget: 15, flip: new Set(), welcome });
+let sugg = newSuggest(noQuests());
+let tab: Tab = sugg.welcome ? 'suggest' : 'quest'; // a clean slate opens on the goal picker
 let editingId: string | undefined;
 let shownDay = '';
 let calDay = ''; // selected day on the calendar
@@ -48,10 +53,11 @@ function render() {
     hero: () => heroView(state, sc, hs, { view: heroTab, slot: shopSlot, buying }),
     edit: () => editListView(state.habits),
     form: () => formView(state.habits.find((h) => h.id === editingId)),
+    suggest: () => suggestView(state, sugg),
     stats: () => statsView(state, sc, hs, t),
     settings: () => settingsView(state, t),
   };
-  app.innerHTML = `<main>${views[tab]()}</main>${nav(tab === 'edit' || tab === 'form' ? 'quest' : tab)}`;
+  app.innerHTML = `<main>${views[tab]()}</main>${nav(tab === 'edit' || tab === 'form' || tab === 'suggest' ? 'quest' : tab)}`;
 }
 
 function go(to: Tab) {
@@ -384,6 +390,50 @@ async function syncWake() {
   } catch {} // unsupported or refused: the timer still works, just without the screen held on
 }
 
+function openSuggest(welcome = false) {
+  sugg = newSuggest(welcome);
+  go('suggest');
+}
+
+function toggleGoal(id: string) {
+  const g = sugg.goals;
+  sugg.goals = g.includes(id) ? g.filter((x) => x !== id) : [...g, id];
+  sugg.flip.clear(); // pre-ticks change with the goals
+  render();
+}
+
+// Typed intention: add the goals it names to the picked ones.
+function matchIntent(form: HTMLFormElement) {
+  const found = goalsFromText(String(new FormData(form).get('text') ?? ''));
+  if (!found.length) return toast('No match. Pick a goal card instead.');
+  sugg.goals = [...sugg.goals, ...found.filter((g) => !sugg.goals.includes(g))];
+  sugg.flip.clear();
+  render();
+  toast(`Matched: ${found.map((g) => GOALS.find((x) => x.id === g)!.name).join(', ')}`);
+}
+
+function addSuggested() {
+  const chosen = picks(state, sugg).filter((s) => s.on);
+  if (!chosen.length) return;
+  for (const { idea } of chosen) state.habits.push(ideaToHabit(idea, newId(), today()));
+  save(state);
+  sfx('milestone');
+  toast(`${chosen.length} quest${chosen.length === 1 ? '' : 's'} added. Good luck, hero!`);
+  go('quest');
+}
+
+// Wipes everything but settings. The typed word is the guard; the EXPORT button sits right above it.
+function newGame() {
+  const typed = prompt('NEW GAME wipes all quests, XP, gold, items, journal and focus minutes. Settings stay.\nExport a backup first if you might want them back.\n\nType RESET to start over.');
+  if (typed?.trim().toUpperCase() !== 'RESET') return toast('Nothing was reset.');
+  setTimer(undefined);
+  state = fresh(state.settings);
+  localStorage.removeItem(TIERS_KEY);
+  save(state);
+  shownDay = '';
+  openSuggest(true);
+}
+
 function pickDay(d: string) {
   calDay = d;
   calMonth = d.slice(0, 7);
@@ -463,6 +513,18 @@ app.addEventListener('click', (e) => {
     case 'focus-keep': stopping = false; return render();
     case 'focus-tiny': return endTimer('tiny');
     case 'focus-discard': return endTimer();
+    case 'suggest': return openSuggest();
+    case 'goal': return toggleGoal(el.dataset.goal!);
+    case 'budget': sugg.budget = Number(el.dataset.budget) as Budget; sugg.flip.clear(); return render();
+    case 'sugg-show': if (sugg.goals.length) sugg.step = 'pick'; render(); return scrollTo(0, 0);
+    case 'sugg-back': sugg.step = 'goals'; return render();
+    case 'sugg-toggle': {
+      const name = el.dataset.name!;
+      if (!sugg.flip.delete(name)) sugg.flip.add(name);
+      return render();
+    }
+    case 'sugg-add': return addSuggested();
+    case 'new-game': return newGame();
     case 'rename': return rename(id);
     case 'unplan': return unplan(id);
     case 'slot': shopSlot = el.dataset.slot as Slot; return render();
@@ -493,6 +555,7 @@ app.addEventListener('submit', (e) => {
   const form = e.target as HTMLFormElement;
   if (form.dataset.form === 'plan') plan(form);
   else if (form.dataset.form === 'journal') saveJournal(form);
+  else if (form.dataset.form === 'intent') matchIntent(form);
   else saveHabit(form);
 });
 

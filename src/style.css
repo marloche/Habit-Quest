@@ -61,7 +61,7 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
 .center { text-align: center; }
 
 /* Pixel frame: stepped corners instead of border-radius. */
-.hud, .quest, .btn, .card, .edit-row, .late-row, .hero-card, .item, .badge, .focus-card, input, select, .icon-pick, .day-pick span {
+.hud, .quest, .btn, .card, .edit-row, .late-row, .hero-card, .item, .badge, .focus-card, .goal, .sugg, input, select, .icon-pick, .day-pick span {
   background: var(--panel);
   border: 0;
   box-shadow:
@@ -123,7 +123,7 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
 .late-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin: 4px; }
 .late-row .q-name { flex: 1; font-size: 10px; overflow-wrap: anywhere; }
 .late-row.done { background: #1f3b38; }
-.btn.small.blue { background: var(--blue); color: var(--text); }
+.btn.blue { background: var(--blue); color: var(--text); }
 h2 + .date-line { margin: -4px 0 16px; font-size: 10px; color: var(--text); }
 .empty { color: var(--muted); text-align: center; padding: 24px 0; }
 
@@ -320,3 +320,18 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .float { transform: translate(-50%, -32px); }
 }
+
+/* Welcome and quest suggestions */
+.goal-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 12px 4px; }
+@media (max-width: 520px) {
+  .goal-grid { grid-template-columns: 1fr 1fr; }
+  .goal { grid-auto-flow: column; justify-content: start; align-items: center; padding: 8px 12px; }
+}
+.goal { display: grid; justify-items: center; gap: 8px; padding: 12px 4px; color: var(--muted); font: inherit; font-size: 8px; cursor: pointer; }
+.goal[aria-pressed='true'] { background: var(--blue); color: var(--gold); }
+.goal:active, .sugg:active { transform: translateY(2px); }
+.slot-tabs.three { grid-template-columns: repeat(3, 1fr); }
+.sugg-list { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.sugg { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; color: var(--text); font: inherit; text-align: left; cursor: pointer; opacity: .6; }
+.sugg.on { opacity: 1; background: #1f3b38; }
+.btn:disabled { opacity: .4; cursor: default; }

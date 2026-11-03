@@ -20,6 +20,7 @@ export function editListView(habits: Habit[]) {
     <h2>EDIT QUESTS</h2>
     <ul class="edit-list">${rows.join('')}</ul>
     <button class="btn wide" data-action="new">+ NEW QUEST</button>
+    <button class="btn wide blue" data-action="suggest">+ SUGGEST QUESTS</button>
     <button class="btn wide ghost" data-action="tab" data-tab="quest">DONE</button>`;
 }
 
