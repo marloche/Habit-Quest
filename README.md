@@ -8,6 +8,7 @@ A pixel-RPG daily habit tracker. Check off quests and earn XP and gold, level up
 |---|---|
 | Full check | 10 XP x momentum, 5 gold |
 | Tiny version | 5 XP x momentum, 2 gold, **keeps the streak** |
+| Planned quest (Calendar tab) | 10 XP x momentum, 5 gold on its day; missing one costs nothing |
 | Momentum | x1.0 to x2.0 = 1 + share of your scheduled checks done in the last 14 days |
 | Comeback | x1.5 on the first check after a miss |
 | Streak milestones | +50 XP at 7, +150 at 30, +500 at 100 |
@@ -15,7 +16,7 @@ A pixel-RPG daily habit tracker. Check off quests and earn XP and gold, level up
 | Weekly quests ("3x a week") | streak counts weeks that hit the quota; the first partial week never counts against you |
 | New day | starts at 4 AM by default (Setup tab), so late nights count for the day before |
 
-Everything is recalculated from your check-off history, so undoing a check removes exactly what it gave.
+Everything is recalculated from your check-off history, so undoing a check removes exactly what it gave. Any past day can be changed from the Calendar tab, and the scores follow.
 
 ## Develop
 
