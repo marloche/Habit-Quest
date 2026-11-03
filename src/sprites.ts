@@ -18,6 +18,14 @@ export const ICONS: Record<string, string[]> = {
   apple: ['....g...', '...g....', '.rrrrr..', 'rrwrrrr.', 'rwrrrrr.', 'rrrrrrr.', 'rrrrrrr.', '.rr.rr..'],
 };
 
+export const BOSS_ART: Record<string, string[]> = {
+  'Slime King': ['.y.y.y..', '.yyyyy..', '.gggggg.', 'gglggggg', 'gkggkggg', 'gggggggg', 'gggrrggg', '.GGGGGG.'],
+  Goblin: ['g......g', 'gg.gg.gg', '.gggggg.', '.grggrg.', '.gggggg.', '..gwwg..', '.SSSSSS.', '.S.SS.S.'],
+  Skeleton: ['..wwww..', '.wwwwww.', '.wkwwkw.', '.wwwwww.', '..wkkw..', '...ww...', '.wwwwww.', '.w.ww.w.'],
+  Wraith: ['..CCCC..', '.CCCCCC.', '.CkCCkC.', '.CCCCCC.', 'CCCkkCCC', 'CCCCCCCC', 'C.CC.CC.', '...C..C.'],
+  Dragon: ['r......r', 'rr....rr', '.rrrrrr.', 'rryrryrr', 'rrrrrrrr', '.rwrwrr.', '..rrrr..', '.rr..rr.'],
+};
+
 export const FLAME = ['...o....', '...oo...', '..ooy...', '..oyyo..', '.ooyyoo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..'];
 export const COIN = ['..yyyy..', '.yyoyyy.', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', '.yyoyyy.', '..yyyy..'];
 

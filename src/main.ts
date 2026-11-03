@@ -3,7 +3,7 @@ import { audio, sfx, unlock } from './audio';
 import { banner, floatText, shake, toast } from './fx';
 import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logic/day';
 import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/score';
-import { heroOf, type HeroState } from './logic/hero';
+import { BOSS_GOLD, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
 import type { Mark, Schedule, Slot, State } from './logic/types';
 import { BACKUP_DAYS, KEY, backupAge, exportFile, load, newId, parseState, save } from './store';
@@ -35,7 +35,7 @@ let hs: HeroState; // gold balance (and later boss and chests) of the last rende
 function render() {
   const t = today();
   const sc = (scored = score(state, t));
-  hs = heroOf(state, sc);
+  hs = heroOf(state, sc, t);
   const views: Record<Tab, () => string> = {
     quest: () => questView(state, sc, hs, t, new Date(), { arming, lateTouched }),
     calendar: () => calendarView(state, sc, t, { month: calMonth, day: calDay, arming }),
@@ -124,10 +124,15 @@ function mark(id: string, m: Mark, d = today()) {
     return;
   }
   const before = scored;
+  const bossBefore = hs.boss;
   const wasComplete = dayComplete(d);
   day[id] = m;
   commit();
   const after = scored;
+  const bossNow = hs.boss;
+  if (bossNow && bossNow.week === bossBefore?.week && bossNow.dmg > bossBefore.dmg) {
+    floatText(app.querySelector('.boss-bar'), `-${bossNow.dmg - bossBefore.dmg} HP`, 'hot');
+  }
   const a = after.awards[d][id];
   const row = app.querySelector(`[data-row="${key}"]`);
   row?.classList.add('pop');
@@ -145,6 +150,9 @@ function mark(id: string, m: Mark, d = today()) {
   }
   if (!wasComplete && dayComplete(d)) {
     banner({ title: 'PERFECT DAY!', sub: `${after.perfect}-day perfect run`, onShow: () => sfx('perfect') });
+  }
+  if (bossNow?.won && bossBefore && !bossBefore.won && bossNow.week === bossBefore.week) {
+    banner({ title: 'BOSS DEFEATED!', sub: `${bossNow.name} falls! +${BOSS_GOLD} G`, level: after.level, worn: wornIds(state.wardrobe), onShow: () => { shake(); sfx('levelup'); } });
   }
 }
 

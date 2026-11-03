@@ -1,8 +1,8 @@
-import type { HeroState } from '../logic/hero';
+import { BOSS_GOLD, type HeroState } from '../logic/hero';
 import { buyBlock, ITEMS, SLOTS, wornIds, type Item } from '../logic/items';
 import type { Score } from '../logic/score';
 import type { Slot, State } from '../logic/types';
-import { COIN, hero, nextTier, svg, tierOf } from '../sprites';
+import { BOSS_ART, COIN, hero, nextTier, svg, tierOf } from '../sprites';
 import { esc } from './html';
 
 // slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
@@ -11,6 +11,23 @@ export type HeroUi = { slot: Slot; buying?: string };
 const SLOT_NAMES: Record<Slot, string> = { hat: 'HAT', weapon: 'WEAPON', cape: 'CAPE', pet: 'PET' };
 
 export const goldText = (hs: HeroState) => `${hs.balance}${hs.balance < 0 ? ' (debt)' : ''}`;
+
+// The week's boss as an HP bar that empties as you check things off; big on the Hero tab, slim on the Quest screen.
+export function bossBar(hs: HeroState, big = false) {
+  const b = hs.boss;
+  if (!b) return '';
+  const left = b.hp - b.dmg;
+  const status = b.won ? 'DEFEATED!' : `${left} HP - ${b.daysLeft ? `${b.daysLeft}d left` : 'last day'}`;
+  const said = b.won ? `Week boss ${b.name} defeated` : `Week boss ${b.name}, ${left} of ${b.hp} HP left, ${b.daysLeft} days left`;
+  return `<div class="boss-bar${big ? ' big' : ''}${b.won ? ' won' : ''}" role="img" aria-label="${said}">
+      <span class="boss-art">${svg(BOSS_ART[b.name], big ? 48 : 24)}</span>
+      <div class="boss-main">
+        <div class="hud-row small"><span>${big ? 'WEEK BOSS: ' : ''}${b.name.toUpperCase()}</span><span class="${b.won ? 'gold' : ''}">${status}</span></div>
+        <div class="bar boss"><div style="width:${Math.round((left / b.hp) * 100)}%"></div></div>
+        ${big ? `<div class="small muted">${b.won ? `+${BOSS_GOLD} G earned.` : `Beat it by Sunday: +${BOSS_GOLD} G.`} Bosses beaten: ${hs.wins}</div>` : ''}
+      </div>
+    </div>`;
+}
 
 function itemCard(state: State, sc: Score, hs: HeroState, it: Item, ui: HeroUi) {
   const owned = !!state.wardrobe.owned[it.id];
@@ -43,6 +60,7 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
         <span class="muted small">${next ? `Next: ${next.title.toUpperCase()} at LV ${next.from}` : 'Highest tier!'}</span>
       </div>
     </div>
+    ${bossBar(hs, true)}
     <h3>WARDROBE</h3>
     <div class="slot-tabs" role="tablist">${tabs.join('')}</div>
     <div class="items">${ITEMS.filter((i) => i.slot === ui.slot).map((i) => itemCard(state, sc, hs, i, ui)).join('')}</div>`;

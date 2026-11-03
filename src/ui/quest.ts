@@ -3,7 +3,7 @@ import { atRisk, isActive, isDue, isPlanned, xpForLevel, type Score } from '../l
 import type { HeroState } from '../logic/hero';
 import { wornIds } from '../logic/items';
 import type { Habit, State } from '../logic/types';
-import { goldText } from './hero';
+import { bossBar, goldText } from './hero';
 import { COIN, FLAME, hero, icon, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
 
@@ -94,6 +94,7 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
         <div class="hud-row small"><span title="Share of your quests done in the last 14 days">x${sc.momentum.toFixed(2)} MOMENTUM</span><span>${svg(FLAME, 12)} ${sc.perfect}d</span></div>
       </div>
     </header>
+    ${bossBar(hs)}
     ${lateView(state, today, now, ui)}
     <h2>${allDone ? 'ALL QUESTS DONE!' : "TODAY'S QUESTS"}</h2>
     <p class="date-line">${dateLine}</p>

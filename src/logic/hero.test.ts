@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { heroOf } from './hero';
+import { addDays } from './day';
+import { BOSS_GOLD, BOSSES, bossOf, heroOf } from './hero';
 import { buyBlock, emptyWardrobe, itemById, ITEMS, wornIds } from './items';
 import { score } from './score';
-import { ITEM_ART, PAL } from '../sprites';
-import type { Habit, Log, State } from './types';
+import { BOSS_ART, ITEM_ART, PAL } from '../sprites';
+import type { Habit, Log, Mark, State } from './types';
 
 const MON = '2026-11-02';
 const daily: Habit = { id: 'h', name: 'h', icon: 'star', schedule: { kind: 'daily' }, created: MON };
@@ -52,6 +53,40 @@ describe('gold balance', () => {
     const w = emptyWardrobe();
     w.owned['wood-sword'] = { day: MON, paid: 50 };
     const s = state({ [MON]: { h: 'full' } }, w);
-    expect(heroOf(s, score(s, MON)).balance).toBe(5 - 50);
+    expect(heroOf(s, score(s, MON), MON).balance).toBe(5 - 50);
+  });
+});
+
+describe('weekly boss', () => {
+  const day = (n: number) => addDays(MON, n);
+  const week = (marks: Mark[]): Log => Object.fromEntries(marks.map((m, i) => [day(i), { h: m }]));
+  it('has 70% of the week as HP and falls with a few misses', () => {
+    const b = bossOf([daily], week(['full', 'full', 'full', 'full', 'full']), MON, day(6))!;
+    expect(b.hp).toBe(49);
+    expect(b.won).toBe(true);
+    expect(bossOf([daily], week(['full', 'full', 'full', 'full']), MON, day(6))!.won).toBe(false);
+  });
+  it('takes half damage from tiny checks and full damage from plans, which add no HP', () => {
+    const plan: Habit = { ...daily, id: 'p', schedule: { kind: 'once', day: day(1) } };
+    const b = bossOf([daily, plan], { ...week(['tiny', 'tiny']), [day(1)]: { h: 'tiny', p: 'full' } }, MON, day(1))!;
+    expect([b.hp, b.dmg, b.daysLeft]).toEqual([49, 20, 5]);
+  });
+  it('only counts days a quest existed, and skips empty weeks', () => {
+    expect(bossOf([{ ...daily, created: day(2) }], {}, MON, day(2))!.hp).toBe(35);
+    expect(bossOf([daily], {}, addDays(MON, -7), day(0))).toBeUndefined();
+  });
+  it('has art for every boss', () => {
+    expect(BOSSES.every((n) => BOSS_ART[n]?.length === 8)).toBe(true);
+  });
+  it('rotates the roster weekly', () => {
+    const names = [0, 7, 14].map((n) => bossOf([daily], {}, day(n), day(n))!.name);
+    expect(new Set(names).size).toBe(3);
+  });
+  it('pays 50 gold per win into the balance', () => {
+    const s = state(week(['full', 'full', 'full', 'full', 'full']));
+    const hs = heroOf(s, score(s, day(8)), day(8));
+    expect(hs.wins).toBe(1);
+    expect(hs.balance).toBe(25 + BOSS_GOLD);
+    expect(hs.boss!.week).toBe(day(7));
   });
 });
