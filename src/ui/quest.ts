@@ -1,12 +1,14 @@
 import { isActive, isDue, xpForLevel, type Score } from '../logic/score';
-import type { State } from '../logic/types';
+import type { Habit, State } from '../logic/types';
 import { COIN, FLAME, hero, icon, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
 
 export function questView(state: State, sc: Score, today: string, arming?: string) {
   const need = xpForLevel(sc.level + 1) - xpForLevel(sc.level);
   const have = sc.xp - xpForLevel(sc.level);
-  const habits = state.habits.filter((h) => isActive(h, today));
+  // Still-to-do quests first, then rest-day bonuses, then done ones; your order is kept within each group.
+  const rank = (h: Habit) => (state.log[today]?.[h.id] ? 2 : h.schedule.kind !== 'weekly' && !isDue(h, today) ? 1 : 0);
+  const habits = state.habits.filter((h) => isActive(h, today)).sort((a, b) => rank(a) - rank(b));
   const due = habits.filter((h) => isDue(h, today));
   const allDone = due.length > 0 && due.every((h) => state.log[today]?.[h.id]);
 
