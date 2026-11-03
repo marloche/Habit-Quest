@@ -4,7 +4,7 @@ import { banner, floatText, shake, toast } from './fx';
 import { dayKey } from './logic/day';
 import { isActive, isDue, score } from './logic/score';
 import type { Mark, Schedule, State } from './logic/types';
-import { exportFile, load, newId, parseState, save } from './store';
+import { KEY, exportFile, load, newId, parseState, save } from './store';
 import { editListView, formView } from './ui/edit';
 import { nav } from './ui/html';
 import { questView } from './ui/quest';
@@ -200,6 +200,18 @@ app.addEventListener('change', (e) => {
     checkNewDay();
   }
   commit();
+});
+
+// Another window (say a browser tab next to the installed app) saved: adopt it, or our next save would erase its checks.
+addEventListener('storage', (e) => {
+  if (e.key !== KEY || !e.newValue) return;
+  try {
+    state = parseState(e.newValue);
+  } catch {
+    return;
+  }
+  audio.muted = state.settings.muted;
+  if (tab !== 'form') render(); // don't wipe a half-typed quest
 });
 
 render();
