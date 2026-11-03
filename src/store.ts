@@ -15,18 +15,33 @@ function fresh(today: string): State {
 }
 
 const isDay = (x: unknown) => typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x);
+const isInt = (x: unknown, min: number, max: number) => Number.isInteger(x) && (x as number) >= min && (x as number) <= max;
+const optional = (x: unknown, check: (v: unknown) => boolean) => x === undefined || check(x);
 
-// Trust boundary: imported files and old saves go through here.
+function validSchedule(s: any) {
+  if (s?.kind === 'daily') return true;
+  if (s?.kind === 'days') return Array.isArray(s.days) && s.days.length > 0 && s.days.every((d: unknown) => isInt(d, 0, 6));
+  if (s?.kind === 'weekly') return isInt(s.times, 1, 7);
+  return false;
+}
+
+const validHabit = (h: any) =>
+  /^[\w-]{1,40}$/.test(h?.id) && typeof h.name === 'string' && typeof h.icon === 'string' && isDay(h.created) &&
+  optional(h.archived, isDay) && optional(h.tiny, (t) => typeof t === 'string') && validSchedule(h.schedule);
+
+// Trust boundary: imported files and old saves go through here. Anything the renderer reads must be checked,
+// because an invalid save is stored before the first render and would crash every launch after.
 export function parseState(text: string): State {
   const x = JSON.parse(text);
+  const s = x?.settings;
   const ok =
     x && x.v === 1 &&
-    x.settings && typeof x.settings.rolloverHour === 'number' &&
-    Array.isArray(x.habits) &&
-    x.habits.every((h: any) => /^[\w-]{1,40}$/.test(h.id) && typeof h.name === 'string' && isDay(h.created) &&
-      ['daily', 'days', 'weekly'].includes(h.schedule?.kind)) &&
-    x.log && typeof x.log === 'object' &&
-    Object.entries(x.log).every(([d, marks]) => isDay(d) && Object.values(marks as object).every((m) => m === 'full' || m === 'tiny'));
+    s && isInt(s.rolloverHour, 0, 23) && typeof s.muted === 'boolean' && optional(s.lastBackup, isDay) &&
+    optional(x.lastOpened, isDay) &&
+    Array.isArray(x.habits) && x.habits.every(validHabit) &&
+    x.log && typeof x.log === 'object' && !Array.isArray(x.log) &&
+    Object.entries(x.log).every(([d, marks]) => isDay(d) && marks && typeof marks === 'object' &&
+      Object.values(marks).every((m) => m === 'full' || m === 'tiny'));
   if (!ok) throw new Error('Not a Habit Quest save file');
   return x as State;
 }
