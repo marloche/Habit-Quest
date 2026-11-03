@@ -1,6 +1,9 @@
 import { addDays, dayKey, dayLabel, isEvening, lateCutoffLabel, lateWindowOpen, weekdayName } from '../logic/day';
 import { atRisk, isActive, isDue, isPlanned, xpForLevel, type Score } from '../logic/score';
+import type { HeroState } from '../logic/hero';
+import { wornIds } from '../logic/items';
 import type { Habit, State } from '../logic/types';
+import { goldText } from './hero';
 import { COIN, FLAME, hero, icon, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
 
@@ -34,7 +37,7 @@ function lateView(state: State, today: string, now: Date, ui: QuestUi) {
     </section>`;
 }
 
-export function questView(state: State, sc: Score, today: string, now: Date, ui: QuestUi) {
+export function questView(state: State, sc: Score, hs: HeroState, today: string, now: Date, ui: QuestUi) {
   // Between midnight and the rollover hour the calendar has moved on but the quest day hasn't.
   const lateNight = dayKey(now, 0) !== today;
   const dateLine = `${dayLabel(today)}${lateNight ? ` <span class="muted">(still ${weekdayName(today)} until ${state.settings.rolloverHour}:00 AM)</span>` : ''}`;
@@ -83,11 +86,11 @@ export function questView(state: State, sc: Score, today: string, now: Date, ui:
 
   return `
     <header class="hud">
-      <div class="hud-hero">${hero(sc.level, 72)}</div>
+      <div class="hud-hero">${hero(sc.level, 72, wornIds(state.wardrobe))}</div>
       <div class="hud-main">
         <div class="hud-row"><span>LV ${sc.level}</span><span class="muted">${tierOf(sc.level).title}</span></div>
         <div class="bar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="${need}" aria-valuenow="${have}"><div style="width:${Math.round(sc.progress * 100)}%"></div></div>
-        <div class="hud-row small"><span>${have}/${need} XP</span><span class="gold">${svg(COIN, 12)} ${sc.gold}</span></div>
+        <div class="hud-row small"><span>${have}/${need} XP</span><span class="gold${hs.balance < 0 ? ' debt' : ''}">${svg(COIN, 12)} ${goldText(hs)}</span></div>
         <div class="hud-row small"><span title="Share of your quests done in the last 14 days">x${sc.momentum.toFixed(2)} MOMENTUM</span><span>${svg(FLAME, 12)} ${sc.perfect}d</span></div>
       </div>
     </header>

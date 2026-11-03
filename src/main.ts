@@ -3,16 +3,19 @@ import { audio, sfx, unlock } from './audio';
 import { banner, floatText, shake, toast } from './fx';
 import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logic/day';
 import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/score';
-import type { Mark, Schedule, State } from './logic/types';
+import { heroOf, type HeroState } from './logic/hero';
+import { buyBlock, itemById, wornIds } from './logic/items';
+import type { Mark, Schedule, Slot, State } from './logic/types';
 import { BACKUP_DAYS, KEY, backupAge, exportFile, load, newId, parseState, save } from './store';
 import { calendarView } from './ui/calendar';
 import { editListView, formView } from './ui/edit';
+import { heroView } from './ui/hero';
 import { nav } from './ui/html';
 import { questView } from './ui/quest';
 import { settingsView } from './ui/settings';
 import { statsView } from './ui/stats';
 
-type Tab = 'quest' | 'calendar' | 'edit' | 'form' | 'stats' | 'settings';
+type Tab = 'quest' | 'calendar' | 'hero' | 'edit' | 'form' | 'stats' | 'settings';
 
 const app = document.getElementById('app')!;
 let state: State = load(dayKey(new Date(), 4));
@@ -21,21 +24,25 @@ let editingId: string | undefined;
 let shownDay = '';
 let calDay = ''; // selected day on the calendar
 let calMonth = '';
+let shopSlot: Slot = 'hat';
 audio.muted = state.settings.muted;
 
 const today = () => dayKey(new Date(), state.settings.rolloverHour);
 
 let scored: Score; // score of the last render, reused so a tap scores the log once
+let hs: HeroState; // gold balance (and later boss and chests) of the last render
 
 function render() {
   const t = today();
   const sc = (scored = score(state, t));
+  hs = heroOf(state, sc);
   const views: Record<Tab, () => string> = {
-    quest: () => questView(state, sc, t, new Date(), { arming, lateTouched }),
+    quest: () => questView(state, sc, hs, t, new Date(), { arming, lateTouched }),
     calendar: () => calendarView(state, sc, t, { month: calMonth, day: calDay, arming }),
+    hero: () => heroView(state, sc, hs, { slot: shopSlot, buying }),
     edit: () => editListView(state.habits),
     form: () => formView(state.habits.find((h) => h.id === editingId)),
-    stats: () => statsView(state, sc, t),
+    stats: () => statsView(state, sc, hs, t),
     settings: () => settingsView(state, t),
   };
   app.innerHTML = `<main>${views[tab]()}</main>${nav(tab === 'edit' || tab === 'form' ? 'quest' : tab)}`;
@@ -134,7 +141,7 @@ function mark(id: string, m: Mark, d = today()) {
     banner({ title: `${a.streak}-${after.habits[id].unit.toUpperCase()} STREAK!`, sub: `${name}: +${a.milestone} bonus XP`, onShow: shake });
   }
   if (after.level > before.level) {
-    banner({ title: 'LEVEL UP!', sub: `You reached level ${after.level}`, level: after.level, onShow: () => { shake(); sfx('levelup'); } });
+    banner({ title: 'LEVEL UP!', sub: `You reached level ${after.level}`, level: after.level, worn: wornIds(state.wardrobe), onShow: () => { shake(); sfx('levelup'); } });
   }
   if (!wasComplete && dayComplete(d)) {
     banner({ title: 'PERFECT DAY!', sub: `${after.perfect}-day perfect run`, onShow: () => sfx('perfect') });
@@ -178,6 +185,42 @@ function archive(id: string) {
   h.archived = today();
   save(state);
   go('edit');
+}
+
+let buying: string | undefined; // item waiting for a second tap to buy
+let buyTimer: ReturnType<typeof setTimeout>;
+
+// Owned: wear or take off. Otherwise buy, with the same two-tap guard as undo.
+function tapItem(id: string) {
+  const it = itemById(id);
+  if (!it) return;
+  const w = state.wardrobe;
+  if (w.owned[id]) {
+    if (w.worn[it.slot] === id) delete w.worn[it.slot];
+    else w.worn[it.slot] = id;
+    sfx('tiny');
+    return commit();
+  }
+  const block = buyBlock(it, scored.level, hs.balance, w);
+  if (block) {
+    sfx('undo');
+    return toast(block);
+  }
+  clearTimeout(buyTimer);
+  if (buying !== id) {
+    buying = id;
+    buyTimer = setTimeout(() => {
+      buying = undefined;
+      render();
+    }, 3000);
+    return render();
+  }
+  buying = undefined;
+  w.owned[id] = { day: today(), paid: it.price };
+  w.worn[it.slot] = id;
+  commit();
+  sfx('milestone');
+  banner({ title: 'NEW GEAR!', sub: `${it.name} equipped`, level: scored.level, worn: wornIds(w), onShow: shake });
 }
 
 function pickDay(d: string) {
@@ -254,10 +297,12 @@ app.addEventListener('click', (e) => {
     case 'cal-day': pickDay(el.dataset.day!); return render();
     case 'rename': return rename(id);
     case 'unplan': return unplan(id);
+    case 'slot': shopSlot = el.dataset.slot as Slot; return render();
+    case 'item': return tapItem(el.dataset.item!);
   }
 });
 
-// PC shortcuts: 1-9 toggles quest N in your order, Shift+1-9 its tiny version, Q/C/S/E switch screens.
+// PC shortcuts: 1-9 toggles quest N in your order, Shift+1-9 its tiny version, Q/C/H/S/E switch screens.
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || (e.target as Element).closest('input, select, textarea')) return;
   const n = /^Digit([1-9])$/.exec(e.code)?.[1];
@@ -268,7 +313,7 @@ document.addEventListener('keydown', (e) => {
     unlock();
     return mark(h.id, e.shiftKey && h.tiny ? 'tiny' : 'full');
   }
-  const to = ({ KeyQ: 'quest', KeyC: 'calendar', KeyS: 'stats', KeyE: 'edit' } as Record<string, Tab>)[e.code];
+  const to = ({ KeyQ: 'quest', KeyC: 'calendar', KeyH: 'hero', KeyS: 'stats', KeyE: 'edit' } as Record<string, Tab>)[e.code];
   if (to && !e.shiftKey) go(to);
 });
 

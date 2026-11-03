@@ -37,7 +37,7 @@ export function toast(text: string) {
   }, wait);
 }
 
-type Banner = { title: string; sub: string; level?: number; onShow?: () => void };
+type Banner = { title: string; sub: string; level?: number; worn?: string[]; onShow?: () => void };
 const queue: Banner[] = [];
 let showing = false;
 
@@ -54,7 +54,7 @@ function next() {
   const el = document.createElement('button');
   el.className = 'banner';
   el.setAttribute('aria-label', `${b.title}. ${b.sub}. Tap to close.`);
-  el.innerHTML = `${b.level ? `<div class="banner-hero">${hero(b.level, 128)}</div>` : ''}<div class="banner-title">${esc(b.title)}</div><div class="banner-sub">${esc(b.sub)}</div>`;
+  el.innerHTML = `${b.level ? `<div class="banner-hero">${hero(b.level, 128, b.worn)}</div>` : ''}<div class="banner-title">${esc(b.title)}</div><div class="banner-sub">${esc(b.sub)}</div>`;
   let done = false;
   const close = () => {
     if (done) return;

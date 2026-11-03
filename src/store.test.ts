@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { backupAge, parseState } from './store';
+import { emptyWardrobe } from './logic/items';
 import type { State } from './logic/types';
 
 describe('backupAge', () => {
-  const s = (log: object, lastBackup?: string) => ({ v: 2, settings: { rolloverHour: 4, muted: false, lastBackup }, habits: [], log }) as State;
+  const s = (log: object, lastBackup?: string) => ({ v: 3, settings: { rolloverHour: 4, muted: false, lastBackup }, habits: [], log, wardrobe: emptyWardrobe() }) as State;
   it('is undefined while there is nothing to back up', () => {
     expect(backupAge(s({}), '2026-11-03')).toBeUndefined();
   });
@@ -14,10 +15,15 @@ describe('backupAge', () => {
 });
 
 const good = {
-  v: 2,
+  v: 3,
   settings: { rolloverHour: 4, muted: false },
   habits: [{ id: 'abc-1', name: 'Read', icon: 'book', schedule: { kind: 'daily' }, created: '2026-11-01' }],
   log: { '2026-11-01': { 'abc-1': 'full' } },
+  wardrobe: {
+    owned: { 'leaf-crown': { day: '2026-11-01', paid: 60 }, halo: { day: '2026-11-02', paid: 0 } },
+    worn: { hat: 'leaf-crown' },
+    opened: { 'b-2026-10-26': { day: '2026-11-02', item: 'halo' }, 'm-2026-11-01-abc-1': { day: '2026-11-02', gold: 80 } },
+  },
 };
 
 describe('parseState', () => {
@@ -51,10 +57,20 @@ describe('parseState', () => {
     expect(() => parseState(JSON.stringify(s))).not.toThrow();
     expect(() => parseState(JSON.stringify({ ...good, habits: [{ ...good.habits[0], schedule: { kind: 'once', day: 'friday' } }] }))).toThrow();
   });
-  it('migrates a v1 save to v2 without touching anything else', () => {
-    const v1 = { ...good, v: 1 };
-    expect(parseState(JSON.stringify(v1))).toEqual(good);
-    expect(() => parseState(JSON.stringify({ ...good, v: 3 }))).toThrow();
+  it('migrates v1 and v2 saves to v3 with an empty wardrobe, touching nothing else', () => {
+    const { wardrobe: _, ...old } = good;
+    const want = { ...old, v: 3, wardrobe: emptyWardrobe() };
+    expect(parseState(JSON.stringify({ ...old, v: 1 }))).toEqual(want);
+    expect(parseState(JSON.stringify({ ...old, v: 2 }))).toEqual(want);
+    expect(() => parseState(JSON.stringify({ ...good, v: 4 }))).toThrow();
+  });
+  it('rejects a broken wardrobe', () => {
+    const w = (wardrobe: object) => JSON.stringify({ ...good, wardrobe: { ...good.wardrobe, ...wardrobe } });
+    expect(() => parseState(JSON.stringify({ ...good, wardrobe: undefined }))).toThrow();
+    expect(() => parseState(w({ owned: { cat: { day: '2026-11-01', paid: -5 } } }))).toThrow();
+    expect(() => parseState(w({ worn: { shoes: 'cat' } }))).toThrow();
+    expect(() => parseState(w({ worn: { hat: '"><b>' } }))).toThrow();
+    expect(() => parseState(w({ opened: { x: { day: 'today' } } }))).toThrow();
   });
   it('rejects unknown marks, bad dates and other files', () => {
     expect(() => parseState(JSON.stringify({ ...good, log: { '2026-11-01': { 'abc-1': 'cheat' } } }))).toThrow();

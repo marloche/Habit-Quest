@@ -1,11 +1,12 @@
 import { addDays, weekStart } from '../logic/day';
 import { expected, isActive, type Score } from '../logic/score';
+import type { HeroState } from '../logic/hero';
 import type { State } from '../logic/types';
 import { esc } from './html';
 
 const WEEKS = 16;
 
-export function statsView(state: State, sc: Score, today: string) {
+export function statsView(state: State, sc: Score, hs: HeroState, today: string) {
   const start = addDays(weekStart(today), -7 * (WEEKS - 1));
   const cells: string[] = [];
   for (let d = start; d < addDays(weekStart(today), 7); d = addDays(d, 1)) {
@@ -31,7 +32,7 @@ export function statsView(state: State, sc: Score, today: string) {
     <div class="cards">
       <div class="card"><b>${sc.level}</b><span>LEVEL</span></div>
       <div class="card"><b>${sc.xp}</b><span>TOTAL XP</span></div>
-      <div class="card"><b>${sc.gold}</b><span>GOLD</span></div>
+      <div class="card"><b>${hs.balance}</b><span>GOLD</span></div>
       <div class="card"><b>${sc.perfect}d</b><span>PERFECT RUN</span></div>
       <div class="card"><b>${sc.bestPerfect}d</b><span>BEST RUN</span></div>
       <div class="card"><b>x${sc.momentum.toFixed(2)}</b><span>MOMENTUM</span></div>

@@ -49,6 +49,35 @@ const TIERS = [
 ];
 
 export const tierOf = (level: number) => [...TIERS].reverse().find((t) => level >= t.from)!;
+export const nextTier = (level: number) => TIERS.find((t) => t.from > level);
+
+// Wardrobe art, drawn onto the hero at (x, y). Capes go behind the body; pets sit to the right (x 16-23).
+type Layer = { x: number; y: number; rows: string[]; behind?: true };
+const cape = (m: string, s: string, t: string): Layer => ({
+  x: 1, y: 7, behind: true,
+  rows: [`..${m.repeat(10)}..`, `.${m.repeat(12)}.`, `.${m.repeat(12)}.`, m.repeat(14), m.repeat(14),
+    `${m}${s}${m.repeat(10)}${s}${m}`, `${m}${s}${m.repeat(10)}${s}${m}`, `${t}${t}.${t.repeat(8)}.${t}${t}`],
+});
+export const ITEM_ART: Record<string, Layer> = {
+  'leaf-crown': { x: 4, y: 0, rows: ['.g.gg.g.', 'gGgGGgGg'] },
+  'wizard-hat': { x: 4, y: 0, rows: ['...bb...', '..bbyb..', 'bbbbbbbb'] },
+  'horned-helm': { x: 3, y: 0, rows: ['w........w', 'ww.SSSS.ww', '.wSssssSw.', '..SSSSSS..'] },
+  'gold-crown': { x: 4, y: 0, rows: ['y..yy..y', 'yyyyyyyy', 'yryyyyry'] },
+  halo: { x: 5, y: 0, rows: ['.CCCC.', 'C....C'] },
+  'wood-sword': { x: 13, y: 2, rows: ['.o.', '.o.', '.o.', '.o.', '.o.', 'kok', '.k.', '.k.'] },
+  staff: { x: 13, y: 1, rows: ['.c.', 'cCc', '.c.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.'] },
+  bow: { x: 13, y: 4, rows: ['.ow', 'o.w', 'o.w', 'o.w', 'o.w', 'o.w', '.ow'] },
+  'flame-blade': { x: 13, y: 1, rows: ['.o.', 'oyo', '.yo', 'oy.', '.yo', 'oy.', '.y.', 'kyk', '.k.', '.k.'] },
+  'crystal-staff': { x: 13, y: 1, rows: ['CwC', 'wCw', 'CwC', '.s.', '.s.', '.s.', '.s.', '.s.', '.s.', '.s.', '.s.', '.s.'] },
+  'red-cape': cape('r', 'p', 'p'),
+  'royal-cape': cape('b', 'n', 'y'),
+  'starry-cape': cape('n', 'w', 'C'),
+  'shadow-cape': cape('p', 'k', 'r'),
+  slime: { x: 16, y: 8, rows: ['........', '........', '...gg...', '..glgg..', '.gkggkg.', '.gggggg.', 'gggggggg', '.GGGGGG.'] },
+  cat: { x: 16, y: 8, rows: ['........', '.o....o.', '.oo..oo.', '.oooooo.', '.okooko.', '.oooooo.', '..oooo.o', '..o..oo.'] },
+  'baby-dragon': { x: 16, y: 8, rows: ['.....ll.', '....lgkl', '.y..gggl', 'yy.ggg..', '.yggggg.', '..gglgg.', '..gg.gg.', '..l...l.'] },
+  phoenix: { x: 16, y: 8, rows: ['...o....', '..oyo...', '.oykoo..', 'o.oyyoo.', '..ooyyo.', '.r.oyo..', 'r..ro...', '..r.r...'] },
+};
 
 export function svg(rows: string[], size: number, label = '', pal: Record<string, string> = PAL): string {
   let rects = '';
@@ -62,12 +91,22 @@ export function svg(rows: string[], size: number, label = '', pal: Record<string
     }
   });
   const a11y = label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"';
-  return `<svg ${a11y} viewBox="0 0 ${rows[0].length} ${rows.length}" width="${size}" height="${size}" shape-rendering="crispEdges">${rects}</svg>`;
+  // size is the height; wide art (a hero with a pet) keeps its pixels square.
+  return `<svg ${a11y} viewBox="0 0 ${rows[0].length} ${rows.length}" width="${(size * rows[0].length) / rows.length}" height="${size}" shape-rendering="crispEdges">${rects}</svg>`;
 }
 
 export const icon = (name: string, size = 24) => svg(ICONS[name] ?? ICONS.star, size);
 
-export function hero(level: number, size = 64) {
+export function hero(level: number, size = 64, worn: string[] = []) {
   const t = tierOf(level);
-  return svg(HERO, size, `Level ${level} ${t.title}`, { ...PAL, h: t.h, A: t.A, a: t.a });
+  const layers = worn.map((id) => ITEM_ART[id]).filter(Boolean);
+  const width = layers.some((l) => l.x + l.rows[0].length > 16) ? 24 : 16;
+  const grid = HERO.map((row) => row.padEnd(width, '.').split(''));
+  for (const l of layers)
+    l.rows.forEach((row, dy) =>
+      [...row].forEach((ch, dx) => {
+        const cell = grid[l.y + dy];
+        if (ch !== '.' && cell && (!l.behind || cell[l.x + dx] === '.')) cell[l.x + dx] = ch;
+      }));
+  return svg(grid.map((r) => r.join('')), size, `Level ${level} ${t.title}`, { ...PAL, h: t.h, A: t.A, a: t.a });
 }

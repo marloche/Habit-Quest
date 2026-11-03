@@ -19,4 +19,14 @@ export type Log = Record<string, Record<string, Mark>>; // day key -> habit id -
 
 export type Settings = { rolloverHour: number; muted: boolean; lastBackup?: string };
 
-export type State = { v: 2; settings: Settings; habits: Habit[]; log: Log; lastOpened?: string };
+export type Slot = 'hat' | 'weapon' | 'cape' | 'pet';
+
+// What you bought (and the price you paid, so retuning prices never rewrites the past),
+// what you wear, and which chests you've opened with what came out.
+export type Wardrobe = {
+  owned: Record<string, { day: string; paid: number }>;
+  worn: Partial<Record<Slot, string>>;
+  opened: Record<string, { day: string; gold?: number; item?: string }>;
+};
+
+export type State = { v: 3; settings: Settings; habits: Habit[]; log: Log; wardrobe: Wardrobe; lastOpened?: string };
