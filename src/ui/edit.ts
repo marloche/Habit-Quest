@@ -6,7 +6,7 @@ const DAYS: [number, string][] = [[1, 'M'], [2, 'T'], [3, 'W'], [4, 'T'], [5, 'F
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function editListView(habits: Habit[]) {
-  const active = habits.filter((h) => !h.archived);
+  const active = habits.filter((h) => !h.archived && h.schedule.kind !== 'once'); // plans live in the calendar
   const rows = active.map((h, i) => `
     <li class="edit-row">
       <span class="q-icon">${icon(h.icon, 24)}</span>

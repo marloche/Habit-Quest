@@ -8,7 +8,7 @@ export const newId = () => Date.now().toString(36) + Math.random().toString(36).
 function fresh(today: string): State {
   const h = (name: string, icon: string, tiny?: string): Habit => ({ id: newId(), name, icon, tiny, schedule: { kind: 'daily' }, created: today });
   return {
-    v: 1,
+    v: 2,
     settings: { rolloverHour: 4, muted: false },
     habits: [h('Workout', 'dumbbell', '1 pushup'), h('Read 20 min', 'book', 'Read 1 page'), h('Drink water', 'drop')],
     log: {},
@@ -23,6 +23,7 @@ function validSchedule(s: any) {
   if (s?.kind === 'daily') return true;
   if (s?.kind === 'days') return Array.isArray(s.days) && s.days.length > 0 && s.days.every((d: unknown) => isInt(d, 0, 6));
   if (s?.kind === 'weekly') return isInt(s.times, 1, 7);
+  if (s?.kind === 'once') return isDay(s.day);
   return false;
 }
 
@@ -36,7 +37,7 @@ export function parseState(text: string): State {
   const x = JSON.parse(text);
   const s = x?.settings;
   const ok =
-    x && x.v === 1 &&
+    x && (x.v === 1 || x.v === 2) &&
     s && isInt(s.rolloverHour, 0, 23) && typeof s.muted === 'boolean' && optional(s.lastBackup, isDay) &&
     optional(x.lastOpened, isDay) &&
     Array.isArray(x.habits) && x.habits.every(validHabit) &&
@@ -44,6 +45,7 @@ export function parseState(text: string): State {
     Object.entries(x.log).every(([d, marks]) => isDay(d) && marks && typeof marks === 'object' &&
       Object.values(marks).every((m) => m === 'full' || m === 'tiny'));
   if (!ok) throw new Error('Not a Habit Quest save file');
+  x.v = 2; // v1 -> v2 only added planned quests; v1 data is valid v2 as is
   return x as State;
 }
 

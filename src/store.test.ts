@@ -3,7 +3,7 @@ import { backupAge, parseState } from './store';
 import type { State } from './logic/types';
 
 describe('backupAge', () => {
-  const s = (log: object, lastBackup?: string) => ({ v: 1, settings: { rolloverHour: 4, muted: false, lastBackup }, habits: [], log }) as State;
+  const s = (log: object, lastBackup?: string) => ({ v: 2, settings: { rolloverHour: 4, muted: false, lastBackup }, habits: [], log }) as State;
   it('is undefined while there is nothing to back up', () => {
     expect(backupAge(s({}), '2026-11-03')).toBeUndefined();
   });
@@ -14,7 +14,7 @@ describe('backupAge', () => {
 });
 
 const good = {
-  v: 1,
+  v: 2,
   settings: { rolloverHour: 4, muted: false },
   habits: [{ id: 'abc-1', name: 'Read', icon: 'book', schedule: { kind: 'daily' }, created: '2026-11-01' }],
   log: { '2026-11-01': { 'abc-1': 'full' } },
@@ -45,9 +45,16 @@ describe('parseState', () => {
     const habits = [
       { ...good.habits[0], id: 'a', schedule: { kind: 'days', days: [0, 6] }, tiny: '1 page', archived: '2026-11-02' },
       { ...good.habits[0], id: 'b', schedule: { kind: 'weekly', times: 3 } },
+      { ...good.habits[0], id: 'c', schedule: { kind: 'once', day: '2026-11-06' } },
     ];
     const s = { ...good, habits, lastOpened: '2026-11-02', settings: { ...good.settings, lastBackup: '2026-11-01' } };
     expect(() => parseState(JSON.stringify(s))).not.toThrow();
+    expect(() => parseState(JSON.stringify({ ...good, habits: [{ ...good.habits[0], schedule: { kind: 'once', day: 'friday' } }] }))).toThrow();
+  });
+  it('migrates a v1 save to v2 without touching anything else', () => {
+    const v1 = { ...good, v: 1 };
+    expect(parseState(JSON.stringify(v1))).toEqual(good);
+    expect(() => parseState(JSON.stringify({ ...good, v: 3 }))).toThrow();
   });
   it('rejects unknown marks, bad dates and other files', () => {
     expect(() => parseState(JSON.stringify({ ...good, log: { '2026-11-01': { 'abc-1': 'cheat' } } }))).toThrow();

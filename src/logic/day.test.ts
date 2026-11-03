@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dayKey, dayLabel, isEvening, lateCutoffLabel, lateWindowOpen, rolloverMovesBack, weekStart, weekday } from './day';
+import { addDays, addMonths, dayKey, dayLabel, isEvening, lateCutoffLabel, lateWindowOpen, monthDays, monthLabel, rolloverMovesBack, weekStart, weekday } from './day';
+
+describe('months', () => {
+  it('step across year ends', () => {
+    expect(addMonths('2026-12', 1)).toBe('2027-01');
+    expect(addMonths('2026-01', -1)).toBe('2025-12');
+    expect(monthLabel('2026-11')).toBe('NOV 2026');
+  });
+  it('fill whole Monday-Sunday weeks', () => {
+    const nov = monthDays('2026-11'); // starts on a Sunday, ends on a Monday
+    expect([nov[0], nov.at(-1), nov.length]).toEqual(['2026-10-26', '2026-12-06', 42]);
+    const feb = monthDays('2027-02'); // exactly four weeks, Monday to Sunday
+    expect([feb[0], feb.at(-1), feb.length]).toEqual(['2027-02-01', '2027-02-28', 28]);
+  });
+});
 
 describe('isEvening', () => {
   it('runs from 6 PM until the rollover', () => {

@@ -171,6 +171,34 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .stat-table th[scope='row'], .stat-table thead th:first-child { text-align: left; overflow-wrap: anywhere; }
 .stat-table thead th { color: var(--muted); }
 
+/* Calendar */
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin: 8px 4px; }
+.cal-head b { font-size: 12px; font-weight: normal; }
+.cal-head .prev svg { transform: rotate(-90deg); }
+.cal-head .next svg { transform: rotate(90deg); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-grid > span { font-size: 8px; color: var(--muted); text-align: center; padding: 4px 0; }
+.cal-day {
+  position: relative; min-height: 44px; border: 0; background: var(--panel); color: var(--text);
+  font: inherit; font-size: 10px; cursor: pointer;
+}
+.cal-day.rest, .cal-day.future { background: #262b44; }
+.cal-day.some, .cal-key .some { background: #257179; }
+.cal-day.all, .cal-key .all { background: var(--gold); color: var(--bg); }
+.cal-key .none { background: var(--panel); }
+.cal-day.other { opacity: .45; }
+.cal-day.today { box-shadow: inset 0 0 0 3px var(--accent-2); }
+.cal-day[aria-pressed='true'] { outline: 3px solid var(--hot); outline-offset: 1px; z-index: 1; }
+.cal-day i { position: absolute; top: 2px; right: 3px; font-style: normal; font-size: 8px; color: var(--hot-text); }
+.cal-day.all i { color: var(--danger); }
+.cal-key { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 8px; color: var(--muted); margin: 12px 4px; }
+.cal-key i { width: 10px; height: 10px; display: inline-block; }
+.cal-key span { color: var(--hot-text); }
+.cal-panel h3 { color: var(--gold); }
+.cal-sum { font-size: 8px; margin: 8px 4px; }
+.plan-form { display: flex; gap: 8px; align-items: center; margin: 12px 4px 0; }
+.plan-form input { flex: 1; min-width: 0; }
+
 /* Bottom tabs */
 .tabs {
   position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center;

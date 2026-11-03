@@ -20,7 +20,7 @@ export function statsView(state: State, sc: Score, today: string) {
     cells.push(`<i class="h-${lvl}" title="${d}: ${got} done"></i>`);
   }
 
-  const rows = state.habits.filter((h) => !h.archived).map((h) => {
+  const rows = state.habits.filter((h) => !h.archived && h.schedule.kind !== 'once').map((h) => {
     const st = sc.habits[h.id];
     const u = st.unit === 'week' ? 'w' : 'd';
     return `<tr><th scope="row">${esc(h.name)}</th><td>${st.streak}${u}</td><td>${st.best}${u}</td><td>${st.full}/${st.tiny}</td></tr>`;

@@ -1,23 +1,26 @@
 import './style.css';
 import { audio, sfx, unlock } from './audio';
 import { banner, floatText, shake, toast } from './fx';
-import { addDays, dayKey, isEvening, lateWindowOpen, rolloverMovesBack } from './logic/day';
-import { atRisk, isActive, isDue, score, type Score } from './logic/score';
+import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logic/day';
+import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/score';
 import type { Mark, Schedule, State } from './logic/types';
 import { BACKUP_DAYS, KEY, backupAge, exportFile, load, newId, parseState, save } from './store';
+import { calendarView } from './ui/calendar';
 import { editListView, formView } from './ui/edit';
 import { nav } from './ui/html';
 import { questView } from './ui/quest';
 import { settingsView } from './ui/settings';
 import { statsView } from './ui/stats';
 
-type Tab = 'quest' | 'edit' | 'form' | 'stats' | 'settings';
+type Tab = 'quest' | 'calendar' | 'edit' | 'form' | 'stats' | 'settings';
 
 const app = document.getElementById('app')!;
 let state: State = load(dayKey(new Date(), 4));
 let tab: Tab = 'quest';
 let editingId: string | undefined;
 let shownDay = '';
+let calDay = ''; // selected day on the calendar
+let calMonth = '';
 audio.muted = state.settings.muted;
 
 const today = () => dayKey(new Date(), state.settings.rolloverHour);
@@ -29,6 +32,7 @@ function render() {
   const sc = (scored = score(state, t));
   const views: Record<Tab, () => string> = {
     quest: () => questView(state, sc, t, new Date(), { arming, lateTouched }),
+    calendar: () => calendarView(state, sc, t, { month: calMonth, day: calDay, arming }),
     edit: () => editListView(state.habits),
     form: () => formView(state.habits.find((h) => h.id === editingId)),
     stats: () => statsView(state, sc, t),
@@ -38,6 +42,7 @@ function render() {
 }
 
 function go(to: Tab) {
+  if (to === 'calendar' && tab !== 'calendar') pickDay(today());
   tab = to;
   render();
   scrollTo(0, 0);
@@ -89,9 +94,9 @@ const lateTouched = new Set<string>();
 
 function mark(id: string, m: Mark, d = today()) {
   const t = today();
-  // The DOM says which day; only today, or yesterday inside the late window, may be changed.
-  if (d !== t && !(d === addDays(t, -1) && lateWindowOpen(new Date(), state.settings.rolloverHour))) return render();
-  if (d !== t) lateTouched.add(id);
+  // Any past day can be changed from the calendar (your call: fully editable); the future can't be done yet.
+  if (d > t) return render();
+  if (d === addDays(t, -1)) lateTouched.add(id);
   const key = `${d}:${id}`;
   const day = (state.log[d] ??= {});
   if (day[id]) {
@@ -140,7 +145,7 @@ function move(id: string, dir: number) {
   const list = state.habits;
   const i = list.findIndex((h) => h.id === id);
   let j = i + dir;
-  while (list[j]?.archived) j += dir;
+  while (list[j] && (list[j].archived || isPlanned(list[j]))) j += dir; // swap with the next quest you can see
   if (!list[j]) return;
   [list[i], list[j]] = [list[j], list[i]];
   commit();
@@ -173,6 +178,35 @@ function archive(id: string) {
   h.archived = today();
   save(state);
   go('edit');
+}
+
+function pickDay(d: string) {
+  calDay = d;
+  calMonth = d.slice(0, 7);
+}
+
+function plan(form: HTMLFormElement) {
+  const name = String(new FormData(form).get('name') ?? '').trim();
+  const day = form.dataset.day ?? '';
+  if (!name || day < today()) return;
+  state.habits.push({ id: newId(), name, icon: 'star', schedule: { kind: 'once', day }, created: today() });
+  commit();
+  sfx('tiny');
+}
+
+function rename(id: string) {
+  const h = state.habits.find((x) => x.id === id);
+  const name = h && prompt('Rename planned quest', h.name)?.trim().slice(0, 40);
+  if (!h || !name) return;
+  h.name = name;
+  commit();
+}
+
+function unplan(id: string) {
+  const i = state.habits.findIndex((h) => h.id === id);
+  if (i < 0 || !confirm(`Delete "${state.habits[i].name}"?`)) return;
+  state.habits.splice(i, 1);
+  commit();
 }
 
 async function doExport() {
@@ -216,10 +250,14 @@ app.addEventListener('click', (e) => {
     case 'move': return move(id, Number(el.dataset.dir));
     case 'archive': return archive(id);
     case 'export': return void doExport();
+    case 'cal-month': calMonth = addMonths(calMonth, Number(el.dataset.dir)); return render();
+    case 'cal-day': pickDay(el.dataset.day!); return render();
+    case 'rename': return rename(id);
+    case 'unplan': return unplan(id);
   }
 });
 
-// PC shortcuts: 1-9 toggles quest N in your order, Shift+1-9 its tiny version, Q/S/E switch screens.
+// PC shortcuts: 1-9 toggles quest N in your order, Shift+1-9 its tiny version, Q/C/S/E switch screens.
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || (e.target as Element).closest('input, select, textarea')) return;
   const n = /^Digit([1-9])$/.exec(e.code)?.[1];
@@ -230,13 +268,15 @@ document.addEventListener('keydown', (e) => {
     unlock();
     return mark(h.id, e.shiftKey && h.tiny ? 'tiny' : 'full');
   }
-  const to = ({ KeyQ: 'quest', KeyS: 'stats', KeyE: 'edit' } as Record<string, Tab>)[e.code];
+  const to = ({ KeyQ: 'quest', KeyC: 'calendar', KeyS: 'stats', KeyE: 'edit' } as Record<string, Tab>)[e.code];
   if (to && !e.shiftKey) go(to);
 });
 
 app.addEventListener('submit', (e) => {
   e.preventDefault();
-  saveHabit(e.target as HTMLFormElement);
+  const form = e.target as HTMLFormElement;
+  if (form.dataset.form === 'plan') plan(form);
+  else saveHabit(form);
 });
 
 app.addEventListener('change', (e) => {
@@ -277,7 +317,8 @@ warnRisk();
 const BUILD_KEY = 'habit-quest-build';
 const seenBuild = localStorage.getItem(BUILD_KEY);
 if (seenBuild !== __BUILD__) {
-  if (seenBuild) toast(`Updated! New version from ${__BUILD__} UTC.`);
+  // An older copy still open elsewhere can't read newer saves and could overwrite them on its next tap.
+  if (seenBuild) toast(`Updated! New version from ${__BUILD__} UTC. Close any other open Habit Quest windows.`);
   localStorage.setItem(BUILD_KEY, __BUILD__);
 }
 setInterval(() => {

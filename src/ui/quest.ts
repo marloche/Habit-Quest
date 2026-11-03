@@ -1,5 +1,5 @@
 import { addDays, dayKey, dayLabel, isEvening, lateCutoffLabel, lateWindowOpen, weekdayName } from '../logic/day';
-import { atRisk, isActive, isDue, xpForLevel, type Score } from '../logic/score';
+import { atRisk, isActive, isDue, isPlanned, xpForLevel, type Score } from '../logic/score';
 import type { Habit, State } from '../logic/types';
 import { COIN, FLAME, hero, icon, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
@@ -8,23 +8,26 @@ import { CHECK, esc } from './html';
 // lateTouched: quests logged for yesterday this session, kept visible so a mistake can be undone.
 export type QuestUi = { arming?: string; lateTouched: Set<string> };
 
+// One quest on a day other than today's list: DONE/TINY, or a check that undoes on a second tap.
+export function dayRow(state: State, h: Habit, d: string, when: string, arming?: string, extra = '') {
+  const mark = state.log[d]?.[h.id];
+  const key = `${d}:${h.id}`;
+  const armed = arming === key;
+  const name = esc(h.name);
+  const buttons = mark
+    ? `<button class="btn small${armed ? ' danger' : ' ghost'}" data-action="mark" data-day="${d}" data-id="${h.id}" data-mark="${mark}" aria-label="${name}, logged for ${when}. Tap ${armed ? 'again' : 'twice'} to undo">${armed ? 'UNDO?' : CHECK}</button>`
+    : `<button class="btn small" data-action="mark" data-day="${d}" data-id="${h.id}" data-mark="full" aria-label="Log ${name} for ${when}">DONE</button>` +
+      (h.tiny ? `<button class="btn small blue" data-action="mark" data-day="${d}" data-id="${h.id}" data-mark="tiny" aria-label="Log tiny version for ${when}: ${esc(h.tiny)}">TINY</button>` : '');
+  return `<li class="late-row${mark ? ' done' : ''}" data-row="${key}"><span class="q-icon">${icon(h.icon, 24)}</span><span class="q-name">${name}${isPlanned(h) ? ' <span class="muted">*</span>' : ''}</span>${extra}${buttons}</li>`;
+}
+
 function lateView(state: State, today: string, now: Date, ui: QuestUi) {
   const r = state.settings.rolloverHour;
   if (!lateWindowOpen(now, r)) return '';
   const y = addDays(today, -1);
-  const late = state.habits.filter((h) => isActive(h, y) && (isDue(h, y) || h.schedule.kind === 'weekly'));
+  const late = state.habits.filter((h) => isActive(h, y) && (h.schedule.kind !== 'days' || isDue(h, y)));
   if (!late.some((h) => !state.log[y]?.[h.id] || ui.lateTouched.has(h.id))) return '';
-  const rows = late.map((h) => {
-    const mark = state.log[y]?.[h.id];
-    const key = `${y}:${h.id}`;
-    const armed = ui.arming === key;
-    const name = esc(h.name);
-    const buttons = mark
-      ? `<button class="btn small${armed ? ' danger' : ' ghost'}" data-action="mark" data-day="${y}" data-id="${h.id}" data-mark="${mark}" aria-label="${name}, logged for yesterday. Tap ${armed ? 'again' : 'twice'} to undo">${armed ? 'UNDO?' : CHECK}</button>`
-      : `<button class="btn small" data-action="mark" data-day="${y}" data-id="${h.id}" data-mark="full" aria-label="Log ${name} for yesterday">DONE</button>` +
-        (h.tiny ? `<button class="btn small blue" data-action="mark" data-day="${y}" data-id="${h.id}" data-mark="tiny" aria-label="Log tiny version for yesterday: ${esc(h.tiny)}">TINY</button>` : '');
-    return `<li class="late-row${mark ? ' done' : ''}" data-row="${key}"><span class="q-icon">${icon(h.icon, 24)}</span><span class="q-name">${name}</span>${buttons}</li>`;
-  });
+  const rows = late.map((h) => dayRow(state, h, y, 'yesterday', ui.arming));
   return `<section class="late" aria-label="Log forgotten quests for yesterday">
       <h3>FORGOT YESTERDAY? <span class="muted">open until ${lateCutoffLabel(r)}</span></h3>
       <ul class="late-list">${rows.join('')}</ul>
@@ -38,7 +41,8 @@ export function questView(state: State, sc: Score, today: string, now: Date, ui:
   const need = xpForLevel(sc.level + 1) - xpForLevel(sc.level);
   const have = sc.xp - xpForLevel(sc.level);
   // Still-to-do quests first, then rest-day bonuses, then done ones; your order is kept within each group.
-  const rank = (h: Habit) => (state.log[today]?.[h.id] ? 2 : h.schedule.kind !== 'weekly' && !isDue(h, today) ? 1 : 0);
+  const restDay = (h: Habit) => h.schedule.kind !== 'weekly' && !isPlanned(h) && !isDue(h, today);
+  const rank = (h: Habit) => (state.log[today]?.[h.id] ? 2 : restDay(h) ? 1 : 0);
   const listed = state.habits.filter((h) => isActive(h, today));
   const habits = [...listed].sort((a, b) => rank(a) - rank(b));
   // Keyboard numbers follow your order, not the sorted one, so a quest keeps its key after you check it.
@@ -52,7 +56,7 @@ export function questView(state: State, sc: Score, today: string, now: Date, ui:
     const mark = state.log[today]?.[h.id];
     const award = sc.awards[today]?.[h.id];
     const weekly = h.schedule.kind === 'weekly' ? h.schedule.times : 0;
-    const rest = !weekly && !isDue(h, today);
+    const rest = restDay(h);
     const armed = mark && ui.arming === `${today}:${h.id}`;
     const key = keyOf(h);
     let meta = '';
@@ -61,6 +65,7 @@ export function questView(state: State, sc: Score, today: string, now: Date, ui:
     else if (risky.has(h.id)) meta = `<span class="hot">STREAK AT RISK${h.tiny ? ' - TINY COUNTS' : ''}</span>`;
     else if (st.comebackReady) meta = '<span class="hot">COMEBACK x1.5</span>';
     else if (rest) meta = 'Rest day - bonus XP';
+    else if (isPlanned(h)) meta = 'Planned for today';
     if (weekly) meta = `${st.weekCount}/${weekly} this week ${meta}`;
     const streak = st.streak ? `<span class="streak">${svg(FLAME, 16)}${st.streak}${st.unit === 'week' ? 'w' : ''}</span>` : '';
     const label = `${h.name}${armed ? ', tap again to undo' : mark ? ', done. Tap twice to undo' : ''}`;

@@ -16,12 +16,16 @@ export function levelOf(xp: number) {
   return { level, progress: (xp - floor) / (xpForLevel(level + 1) - floor) };
 }
 
-export const isActive = (h: Habit, day: string) => day >= h.created && (!h.archived || day < h.archived);
+export const isPlanned = (h: Habit) => h.schedule.kind === 'once';
+
+export const isActive = (h: Habit, day: string) =>
+  h.schedule.kind === 'once' ? day === h.schedule.day : day >= h.created && (!h.archived || day < h.archived);
 
 // Expected completions on a day in sevenths, so weekly quotas (times/7 a day) stay exact integers.
 function expected7(h: Habit, day: string): number {
   if (!isActive(h, day)) return 0;
   const s = h.schedule;
+  if (s.kind === 'once') return 0; // plans slip: a planned quest pays out, but missing one never drags momentum
   if (s.kind === 'daily') return 7;
   if (s.kind === 'days') return s.days.includes(weekday(day)) ? 7 : 0;
   return s.times;
@@ -57,6 +61,17 @@ export function momentumAt(habits: Habit[], log: Log, day: string): number {
     });
   }
   return momentumOf(want7, got);
+}
+
+// Quests that belong on a day's checklist: due ones, that day's plans, and any weekly quest checked that day.
+export const onDay = (h: Habit, log: Log, day: string) =>
+  isActive(h, day) && (isDue(h, day) || isPlanned(h) || (h.schedule.kind === 'weekly' && !!log[day]?.[h.id]));
+
+export function daySummary(habits: Habit[], log: Log, day: string) {
+  const list = habits.filter((h) => onDay(h, log, day));
+  const done = list.filter((h) => log[day]?.[h.id]).length;
+  const status = !list.length ? 'rest' : done === list.length ? 'all' : done ? 'some' : 'none';
+  return { total: list.length, done, status } as const;
 }
 
 export const RISK_STREAK = 3;

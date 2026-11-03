@@ -40,4 +40,19 @@ export const isEvening = (now: Date, rolloverHour: number) => now.getHours() >= 
 // A later rollover can turn "today" back into yesterday, which would reopen yesterday's quests.
 export const rolloverMovesBack = (now: Date, from: number, to: number) => dayKey(now, to) < dayKey(now, from);
 
+// Months are 'YYYY-MM'.
+export const addMonths = (m: string, n: number) => {
+  const [y, mo] = m.split('-').map(Number);
+  return new Date(Date.UTC(y, mo - 1 + n, 1)).toISOString().slice(0, 7);
+};
+export const monthLabel = (m: string) => `${MONTHS[Number(m.slice(5)) - 1]} ${m.slice(0, 4)}`;
+
+// Whole Monday-to-Sunday weeks covering the month, for a calendar grid.
+export function monthDays(m: string): string[] {
+  const end = addDays(weekStart(addDays(`${addMonths(m, 1)}-01`, -1)), 7);
+  const days: string[] = [];
+  for (let d = weekStart(`${m}-01`); d < end; d = addDays(d, 1)) days.push(d);
+  return days;
+}
+
 export const daysBetween = (a: string, b: string) => Math.round((toUTC(b) - toUTC(a)) / 864e5);

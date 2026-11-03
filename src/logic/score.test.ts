@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './day';
-import { atRisk, COMEBACK, levelOf, momentumAt, score, XP, xpForLevel } from './score';
+import { atRisk, COMEBACK, daySummary, levelOf, momentumAt, score, XP, xpForLevel } from './score';
 import type { Habit, Log, Mark, Schedule, State } from './types';
 
 const MON = '2026-11-02';
 const habit = (schedule: Schedule = { kind: 'daily' }, created = MON, id = 'h'): Habit => ({ id, name: id, icon: 'star', schedule, created });
 const logOf = (days: string[], id = 'h', mark: Mark = 'full'): Log => Object.fromEntries(days.map((d) => [d, { [id]: mark }]));
-const state = (habits: Habit[], log: Log): State => ({ v: 1, settings: { rolloverHour: 4, muted: false }, habits, log });
+const state = (habits: Habit[], log: Log): State => ({ v: 2, settings: { rolloverHour: 4, muted: false }, habits, log });
 const day = (n: number) => addDays(MON, n);
 
 describe('levels', () => {
@@ -169,5 +169,34 @@ describe('archived habits', () => {
   it('keep the XP of a quest archived the day it was made', () => {
     const h = { ...habit(), archived: day(0) };
     expect(score(state([h], logOf([day(0)])), day(0)).xp).toBe(10);
+  });
+});
+
+describe('planned quests', () => {
+  const plan = (d: string, id = 'p') => habit({ kind: 'once', day: d }, MON, id);
+  it('pay out on their day only, with no streak', () => {
+    const s = score(state([plan(day(2))], { [day(2)]: { p: 'full' }, [day(3)]: { p: 'full' } }), day(3));
+    expect(s.awards[day(2)].p.xp).toBe(XP.full);
+    expect(s.awards[day(3)]).toBeUndefined();
+    expect(s.habits.p.streak).toBe(0);
+  });
+  it('never lower momentum or break a perfect day when missed', () => {
+    const daily = habit();
+    const done = logOf([day(0), day(1), day(2)]);
+    const without = score(state([daily], done), day(3));
+    const withMiss = score(state([daily, plan(day(1))], done), day(3));
+    expect(withMiss.momentum).toBe(without.momentum);
+    expect(withMiss.perfect).toBe(without.perfect);
+    expect(withMiss.habits.p.comebackReady).toBe(false);
+  });
+});
+
+describe('daySummary', () => {
+  it('counts due quests, that day\'s plans and weekly checks', () => {
+    const habits = [habit(), habit({ kind: 'weekly', times: 2 }, MON, 'w'), habit({ kind: 'once', day: day(1) }, MON, 'p')];
+    expect(daySummary(habits, {}, day(0))).toEqual({ total: 1, done: 0, status: 'none' });
+    expect(daySummary(habits, { [day(1)]: { h: 'full' } }, day(1))).toEqual({ total: 2, done: 1, status: 'some' });
+    expect(daySummary(habits, { [day(2)]: { h: 'tiny', w: 'full' } }, day(2))).toEqual({ total: 2, done: 2, status: 'all' });
+    expect(daySummary(habits, {}, addDays(MON, -1)).status).toBe('rest');
   });
 });
