@@ -36,6 +36,15 @@ html, body {
 
 svg { display: block; image-rendering: pixelated; }
 
+/* iPhone: a quick second tap must undo/check, not zoom; a long press must not select text.
+   Kept off labels that wrap text inputs: Safari can refuse typing inside user-select: none. */
+button, .quest, .icon-pick, .day-pick {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 main {
   max-width: 480px;
   margin: 0 auto;
