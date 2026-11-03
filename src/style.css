@@ -118,14 +118,14 @@ h2 + .date-line { margin: -4px 0 16px; font-size: 10px; color: var(--text); }
 }
 .btn:active { transform: translateY(2px); }
 .btn.wide { width: calc(100% - 8px); }
-.btn.small { margin: 0; padding: 8px 10px; min-height: 36px; font-size: 8px; }
+.btn.small { flex: none; margin: 0; padding: 8px 10px; min-height: 44px; min-width: 44px; font-size: 8px; } /* Apple's 44pt tap target */
 .btn.ghost { background: var(--panel); color: var(--text); }
 .btn.danger { background: var(--danger); color: var(--text); }
 .btn:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 4px solid var(--gold); outline-offset: 4px; }
 
 .edit-row { display: flex; align-items: center; gap: 8px; padding: 10px; margin: 4px; }
 .edit-row .q-name { flex: 1; }
-.icon-btn { width: 36px; height: 36px; display: grid; place-content: center; background: var(--panel); border: 0; cursor: pointer; }
+.icon-btn { width: 44px; height: 44px; flex: none; display: grid; place-content: center; background: var(--panel); border: 0; cursor: pointer; }
 .icon-btn:disabled { opacity: .3; }
 .icon-btn.down svg { transform: rotate(180deg); }
 
