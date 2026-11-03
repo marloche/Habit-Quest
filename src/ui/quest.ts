@@ -1,5 +1,5 @@
-import { addDays, dayKey, dayLabel, lateCutoffLabel, lateWindowOpen, weekdayName } from '../logic/day';
-import { isActive, isDue, xpForLevel, type Score } from '../logic/score';
+import { addDays, dayKey, dayLabel, isEvening, lateCutoffLabel, lateWindowOpen, weekdayName } from '../logic/day';
+import { atRisk, isActive, isDue, xpForLevel, type Score } from '../logic/score';
 import type { Habit, State } from '../logic/types';
 import { COIN, FLAME, hero, icon, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
@@ -42,6 +42,7 @@ export function questView(state: State, sc: Score, today: string, now: Date, ui:
   const habits = state.habits.filter((h) => isActive(h, today)).sort((a, b) => rank(a) - rank(b));
   const due = habits.filter((h) => isDue(h, today));
   const allDone = due.length > 0 && due.every((h) => state.log[today]?.[h.id]);
+  const risky = new Set(isEvening(now, state.settings.rolloverHour) ? atRisk(state, sc, today).map((h) => h.id) : []);
 
   const rows = habits.map((h) => {
     const st = sc.habits[h.id];
@@ -53,6 +54,7 @@ export function questView(state: State, sc: Score, today: string, now: Date, ui:
     let meta = '';
     if (armed) meta = '<span class="hot">TAP AGAIN TO UNDO</span>';
     else if (mark && award) meta = `+${award.xp} XP${mark === 'tiny' ? ' (tiny)' : ''}`;
+    else if (risky.has(h.id)) meta = `<span class="hot">STREAK AT RISK${h.tiny ? ' - TINY COUNTS' : ''}</span>`;
     else if (st.comebackReady) meta = '<span class="hot">COMEBACK x1.5</span>';
     else if (rest) meta = 'Rest day - bonus XP';
     if (weekly) meta = `${st.weekCount}/${weekly} this week ${meta}`;

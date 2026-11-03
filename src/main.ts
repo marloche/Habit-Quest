@@ -1,8 +1,8 @@
 import './style.css';
 import { audio, sfx, unlock } from './audio';
 import { banner, floatText, shake, toast } from './fx';
-import { addDays, dayKey, lateWindowOpen, rolloverMovesBack } from './logic/day';
-import { isActive, isDue, score, type Score } from './logic/score';
+import { addDays, dayKey, isEvening, lateWindowOpen, rolloverMovesBack } from './logic/day';
+import { atRisk, isActive, isDue, score, type Score } from './logic/score';
 import type { Mark, Schedule, State } from './logic/types';
 import { BACKUP_DAYS, KEY, backupAge, exportFile, load, newId, parseState, save } from './store';
 import { editListView, formView } from './ui/edit';
@@ -63,6 +63,19 @@ function checkNewDay() {
     const age = backupAge(state, t) ?? 0;
     if (age > BACKUP_DAYS) toast(age === Infinity ? 'Your save has never been backed up. SETUP > EXPORT SAVE.' : `No backup for ${age} days. SETUP > EXPORT SAVE.`);
   }
+}
+
+let riskToastDay = '';
+
+// Evening nudge on opening the app, once a day, while a real streak is still unprotected.
+function warnRisk() {
+  const t = today();
+  if (riskToastDay === t || !isEvening(new Date(), state.settings.rolloverHour)) return;
+  const risky = atRisk(state, scored, t);
+  if (!risky.length) return;
+  riskToastDay = t;
+  const names = risky.map((h) => h.name).join(', ');
+  toast(`${risky.length === 1 ? 'Streak' : `${risky.length} streaks`} at risk tonight: ${names}. Even the tiny version counts!`);
 }
 
 const dayComplete = (t: string) => {
@@ -243,11 +256,16 @@ addEventListener('storage', (e) => {
 
 render();
 checkNewDay();
+warnRisk();
 setInterval(() => {
   checkNewDay();
   if (tab === 'quest') render(); // time-based UI, e.g. the yesterday window closing
 }, 60_000);
-document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && checkNewDay());
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  checkNewDay();
+  warnRisk();
+});
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {}); // app still works online without it
 void navigator.storage?.persist?.();

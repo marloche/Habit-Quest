@@ -34,6 +34,9 @@ export function lateCutoffLabel(rolloverHour: number): string {
   return `${h % 12 || 12}:00 ${h < 12 ? 'AM' : 'PM'}`;
 }
 
+// From 6 PM until the day rolls over: late enough that an unfinished quest is a real risk.
+export const isEvening = (now: Date, rolloverHour: number) => now.getHours() >= 18 || now.getHours() < rolloverHour;
+
 // A later rollover can turn "today" back into yesterday, which would reopen yesterday's quests.
 export const rolloverMovesBack = (now: Date, from: number, to: number) => dayKey(now, to) < dayKey(now, from);
 

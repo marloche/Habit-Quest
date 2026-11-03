@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dayKey, dayLabel, lateCutoffLabel, lateWindowOpen, rolloverMovesBack, weekStart, weekday } from './day';
+import { addDays, dayKey, dayLabel, isEvening, lateCutoffLabel, lateWindowOpen, rolloverMovesBack, weekStart, weekday } from './day';
+
+describe('isEvening', () => {
+  it('runs from 6 PM until the rollover', () => {
+    expect(isEvening(new Date(2026, 10, 3, 17, 59), 4)).toBe(false);
+    expect(isEvening(new Date(2026, 10, 3, 18, 0), 4)).toBe(true);
+    expect(isEvening(new Date(2026, 10, 4, 3, 0), 4)).toBe(true);
+    expect(isEvening(new Date(2026, 10, 4, 4, 0), 4)).toBe(false);
+  });
+});
 
 describe('late window for yesterday', () => {
   it('is open from the rollover until 8 hours later', () => {

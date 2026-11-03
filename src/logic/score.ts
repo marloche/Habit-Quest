@@ -59,6 +59,12 @@ export function momentumAt(habits: Habit[], log: Log, day: string): number {
   return momentumOf(want7, got);
 }
 
+export const RISK_STREAK = 3;
+
+// Quests due today, not done yet, carrying a streak worth protecting.
+export const atRisk = (state: State, sc: Score, today: string) =>
+  state.habits.filter((h) => isDue(h, today) && !state.log[today]?.[h.id] && sc.habits[h.id].streak >= RISK_STREAK);
+
 export type Award = { xp: number; gold: number; comeback: boolean; milestone: number; streak: number };
 export type HabitStats = {
   streak: number;

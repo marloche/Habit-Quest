@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './day';
-import { COMEBACK, levelOf, momentumAt, score, XP, xpForLevel } from './score';
+import { atRisk, COMEBACK, levelOf, momentumAt, score, XP, xpForLevel } from './score';
 import type { Habit, Log, Mark, Schedule, State } from './types';
 
 const MON = '2026-11-02';
@@ -117,6 +117,22 @@ describe('N times per week', () => {
     const s = score(state([late], logOf([day(5), day(7), day(8), day(9)])), day(9));
     expect(s.habits.h.streak).toBe(1);
     expect(s.awards[day(7)].h.comeback).toBe(false);
+  });
+});
+
+describe('atRisk', () => {
+  it('lists due, unfinished quests with a 3+ streak', () => {
+    const a = habit(undefined, MON, 'a'); // 3-day streak, not done today -> at risk
+    const b = habit(undefined, MON, 'b'); // 2-day streak -> not yet
+    const c = habit(undefined, MON, 'c'); // done today -> safe
+    const log: Log = {
+      [day(0)]: { a: 'full', c: 'full' },
+      [day(1)]: { a: 'full', b: 'full', c: 'full' },
+      [day(2)]: { a: 'full', b: 'full', c: 'full' },
+      [day(3)]: { c: 'full' },
+    };
+    const st = state([a, b, c], log);
+    expect(atRisk(st, score(st, day(3)), day(3)).map((h) => h.id)).toEqual(['a']);
   });
 });
 
