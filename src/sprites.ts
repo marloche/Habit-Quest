@@ -28,7 +28,19 @@ export const BOSS_ART: Record<string, string[]> = {
 
 export const CHEST = ['........', '.oooooo.', 'oooooooo', 'yyyyyyyy', 'oooyyooo', 'oooyyooo', 'oooooooo', '.oooooo.'];
 
-export const FLAME = ['...o....', '...oo...', '..ooy...', '..oyyo..', '.ooyyoo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..'];
+// Mood faces 1-5 (awful to great); 'm' is the mood's own color.
+export const MOOD_COLOR = ['#b13e53', '#ef7d57', '#ffcd75', '#a7f070', '#38b764'];
+const face = (a: string, b: string) => ['..mmmm..', '.mmmmmm.', 'mmkmmkmm', 'mmmmmmmm', a, b, '.mmmmmm.', '..mmmm..'];
+const FACES = [
+  face('mmkkkkmm', 'mkmmmmkm'),
+  face('mmmkkmmm', 'mmkmmkmm'),
+  face('mmmmmmmm', 'mmkkkkmm'),
+  face('mmkmmkmm', 'mmmkkmmm'),
+  face('mkmmmmkm', 'mmkkkkmm'),
+];
+export const moodFace = (mood: number, size = 24) => svg(FACES[mood - 1], size, '', { ...PAL, m: MOOD_COLOR[mood - 1] });
+
+export const FLAME =['...o....', '...oo...', '..ooy...', '..oyyo..', '.ooyyoo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..'];
 export const COIN = ['..yyyy..', '.yyoyyy.', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', '.yyoyyy.', '..yyyy..'];
 
 // h = hair/helmet, A/a = armor and its shade; swapped per level tier so the hero visibly grows.

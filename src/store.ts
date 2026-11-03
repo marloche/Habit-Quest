@@ -1,5 +1,6 @@
 import { daysBetween } from './logic/day';
 import { emptyWardrobe, SLOTS } from './logic/items';
+import { JOURNAL_MAX } from './logic/journal';
 import type { Habit, State } from './logic/types';
 
 export const KEY = 'habit-quest';
@@ -9,11 +10,12 @@ export const newId = () => Date.now().toString(36) + Math.random().toString(36).
 function fresh(today: string): State {
   const h = (name: string, icon: string, tiny?: string): Habit => ({ id: newId(), name, icon, tiny, schedule: { kind: 'daily' }, created: today });
   return {
-    v: 3,
+    v: 4,
     settings: { rolloverHour: 4, muted: false },
     habits: [h('Workout', 'dumbbell', '1 pushup'), h('Read 20 min', 'book', 'Read 1 page'), h('Drink water', 'drop')],
     log: {},
     wardrobe: emptyWardrobe(),
+    journal: {},
   };
 }
 
@@ -39,6 +41,9 @@ const validWardrobe = (w: any) =>
   entriesOk(w.worn, (k, v) => (SLOTS as string[]).includes(k) && isId(v)) &&
   entriesOk(w.opened, (k, v) => isId(k) && isRecord(v) && isDay(v.day) && optional(v.gold, (g) => isInt(g, 0, 1e6)) && optional(v.item, isId));
 
+const validJournal = (j: unknown) =>
+  entriesOk(j, (k, v) => isDay(k) && isRecord(v) && isInt(v.mood, 1, 5) && optional(v.text, (t) => typeof t === 'string' && t.length <= JOURNAL_MAX));
+
 const validHabit = (h: any) =>
   /^[\w-]{1,40}$/.test(h?.id) && typeof h.name === 'string' && typeof h.icon === 'string' && isDay(h.created) &&
   optional(h.archived, isDay) && optional(h.tiny, (t) => typeof t === 'string') && validSchedule(h.schedule);
@@ -49,7 +54,7 @@ export function parseState(text: string): State {
   const x = JSON.parse(text);
   const s = x?.settings;
   const ok =
-    x && (x.v === 1 || x.v === 2 || (x.v === 3 && validWardrobe(x.wardrobe))) &&
+    x && (x.v === 1 || x.v === 2 || (x.v === 3 && validWardrobe(x.wardrobe)) || (x.v === 4 && validWardrobe(x.wardrobe) && validJournal(x.journal))) &&
     s && isInt(s.rolloverHour, 0, 23) && typeof s.muted === 'boolean' && optional(s.lastBackup, isDay) &&
     optional(x.lastOpened, isDay) &&
     Array.isArray(x.habits) && x.habits.every(validHabit) &&
@@ -57,9 +62,10 @@ export function parseState(text: string): State {
     Object.entries(x.log).every(([d, marks]) => isDay(d) && marks && typeof marks === 'object' &&
       Object.values(marks).every((m) => m === 'full' || m === 'tiny'));
   if (!ok) throw new Error('Not a Habit Quest save file');
-  // v1 -> v2 added planned quests (old data is valid as is); v2 -> v3 added the wardrobe.
+  // v1 -> v2 added planned quests (old data is valid as is); v2 -> v3 added the wardrobe; v3 -> v4 the journal.
   if (x.v < 3) x.wardrobe = emptyWardrobe();
-  x.v = 3;
+  if (x.v < 4) x.journal = {};
+  x.v = 4;
   return x as State;
 }
 

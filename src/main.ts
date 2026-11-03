@@ -5,7 +5,8 @@ import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logi
 import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/score';
 import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
-import type { Mark, Schedule, Slot, State } from './logic/types';
+import { JOURNAL_GOLD, JOURNAL_MAX } from './logic/journal';
+import type { Mark, Mood, Schedule, Slot, State } from './logic/types';
 import { BACKUP_DAYS, KEY, backupAge, exportFile, load, newId, parseState, save } from './store';
 import { calendarView } from './ui/calendar';
 import { editListView, formView } from './ui/edit';
@@ -25,6 +26,7 @@ let editingId: string | undefined;
 let shownDay = '';
 let calDay = ''; // selected day on the calendar
 let calMonth = '';
+let calMood = false; // calendar grid colored by mood instead of quests
 let shopSlot: Slot = 'hat';
 let heroTab: HeroUi['view'] = 'wardrobe';
 audio.muted = state.settings.muted;
@@ -41,7 +43,7 @@ function render() {
   announceTiers();
   const views: Record<Tab, () => string> = {
     quest: () => questView(state, sc, hs, t, new Date(), { arming, lateTouched }),
-    calendar: () => calendarView(state, sc, t, { month: calMonth, day: calDay, arming }),
+    calendar: () => calendarView(state, sc, t, { month: calMonth, day: calDay, mood: calMood, arming }),
     hero: () => heroView(state, sc, hs, { view: heroTab, slot: shopSlot, buying }),
     edit: () => editListView(state.habits),
     form: () => formView(state.habits.find((h) => h.id === editingId)),
@@ -282,6 +284,36 @@ function openChest(id: string) {
   } else banner({ title: 'CHEST OPENED!', sub: `+${loot.gold} G` });
 }
 
+// Tap a face to set the day's mood; tap the lit one again to clear the entry.
+function setMood(d: string, mood: Mood) {
+  if (d > today()) return;
+  const cur = state.journal[d];
+  if (cur?.mood === mood) {
+    if (cur.text && !confirm('Delete this journal entry, line included?')) return;
+    delete state.journal[d];
+    commit();
+    return sfx('undo');
+  }
+  state.journal[d] = { ...cur, mood };
+  commit();
+  sfx('tiny');
+  if (cur) return;
+  const face = app.querySelector(`[data-action="mood"][data-day="${d}"][data-mood="${mood}"]`);
+  if (face) floatText(face, `+${JOURNAL_GOLD} G`, 'gold');
+  else toast(`Mood saved: +${JOURNAL_GOLD} G. Add a line in CALENDAR.`); // the Quest prompt hides once answered
+}
+
+function saveJournal(form: HTMLFormElement) {
+  const e = state.journal[form.dataset.day ?? ''];
+  if (!e) return toast('Pick a mood first.');
+  const text = String(new FormData(form).get('text') ?? '').trim().slice(0, JOURNAL_MAX);
+  if (text) e.text = text;
+  else delete e.text;
+  commit();
+  sfx('tiny');
+  toast('Journal saved.');
+}
+
 function pickDay(d: string) {
   calDay = d;
   calMonth = d.slice(0, 7);
@@ -354,6 +386,8 @@ app.addEventListener('click', (e) => {
     case 'export': return void doExport();
     case 'cal-month': calMonth = addMonths(calMonth, Number(el.dataset.dir)); return render();
     case 'cal-day': pickDay(el.dataset.day!); return render();
+    case 'cal-view': calMood = !!el.dataset.mood; return render();
+    case 'mood': return setMood(el.dataset.day!, Number(el.dataset.mood) as Mood);
     case 'rename': return rename(id);
     case 'unplan': return unplan(id);
     case 'slot': shopSlot = el.dataset.slot as Slot; return render();
@@ -383,6 +417,7 @@ app.addEventListener('submit', (e) => {
   e.preventDefault();
   const form = e.target as HTMLFormElement;
   if (form.dataset.form === 'plan') plan(form);
+  else if (form.dataset.form === 'journal') saveJournal(form);
   else saveHabit(form);
 });
 

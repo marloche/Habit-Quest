@@ -9,7 +9,7 @@ const MON = '2026-11-02';
 const day = (n: number) => addDays(MON, n);
 const daily: Habit = { id: 'h', name: 'h', icon: 'star', schedule: { kind: 'daily' }, created: MON };
 const plan: Habit = { id: 'p', name: 'p', icon: 'star', schedule: { kind: 'once', day: day(1) }, created: MON };
-const state = (log: Log, habits = [daily]): State => ({ v: 3, settings: { rolloverHour: 4, muted: false }, habits, log, wardrobe: emptyWardrobe() });
+const state = (log: Log, habits = [daily]): State => ({ v: 4, settings: { rolloverHour: 4, muted: false }, habits, log, wardrobe: emptyWardrobe(), journal: {} });
 
 describe('achievement tracks', () => {
   it('have rising tiers, and every trophy is a real trophy item', () => {

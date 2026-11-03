@@ -196,6 +196,26 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .cal-key span { color: var(--hot-text); }
 .cal-panel h3 { color: var(--gold); }
 .cal-sum { font-size: 8px; margin: 8px 4px; }
+.cal-day.m0 { background: var(--panel); }
+.cal-day.m1 { background: #b13e53; }
+.cal-day.m2 { background: #ef7d57; color: var(--bg); }
+.cal-day.m3 { background: #ffcd75; color: var(--bg); }
+.cal-day.m4 { background: #a7f070; color: var(--bg); }
+.cal-day.m5 { background: #38b764; color: var(--bg); }
+.cal-key svg { vertical-align: middle; margin-right: 2px; }
+
+/* Journal */
+.j-head { margin-top: 16px; color: var(--gold); }
+.moods { display: flex; justify-content: space-between; gap: 4px; margin: 8px 4px; }
+.mood { flex: 1; min-height: 48px; display: grid; place-items: center; background: var(--panel); border: 0; cursor: pointer; }
+.moods.picked .mood:not(.on) { opacity: .45; }
+.mood.on { opacity: 1; box-shadow: inset 0 0 0 3px var(--gold); }
+.mood:active { transform: translateY(2px); }
+.mood-ask p { margin: 0 4px; }
+.mood-strip { display: grid; grid-template-columns: repeat(30, 1fr); gap: 2px; margin-bottom: 8px; }
+.mood-strip i { aspect-ratio: 1 / 2; background: var(--panel); }
+.mood-strip .m1 { background: #b13e53; } .mood-strip .m2 { background: #ef7d57; } .mood-strip .m3 { background: #ffcd75; }
+.mood-strip .m4 { background: #a7f070; } .mood-strip .m5 { background: #38b764; }
 .plan-form { display: flex; gap: 8px; align-items: center; margin: 12px 4px 0; }
 .plan-form input { flex: 1; min-width: 0; }
 

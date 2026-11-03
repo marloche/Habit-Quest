@@ -1,12 +1,14 @@
 import { dayLabel, monthDays, monthLabel } from '../logic/day';
 import { daySummary, isActive, isDue, isPlanned, type Score } from '../logic/score';
+import { JOURNAL_MAX, MOODS } from '../logic/journal';
 import type { Habit, State } from '../logic/types';
-import { icon } from '../sprites';
+import { icon, moodFace } from '../sprites';
 import { ARROW, esc } from './html';
-import { dayRow } from './quest';
+import { dayRow, moodRow } from './quest';
 
-// month: 'YYYY-MM' shown in the grid; day: the selected day; arming: "day:id" waiting for a second tap to undo.
-export type CalUi = { month: string; day: string; arming?: string };
+// month: 'YYYY-MM' shown in the grid; day: the selected day; mood: color the grid by mood instead of quests;
+// arming: "day:id" waiting for a second tap to undo.
+export type CalUi = { month: string; day: string; mood: boolean; arming?: string };
 
 const SAID = { all: 'all done', some: 'some done', none: 'none done', rest: 'nothing due' };
 const WEEK = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
@@ -38,6 +40,14 @@ function dayPanel(state: State, sc: Score, today: string, ui: CalUi) {
       `<li class="late-row"><span class="q-icon">${icon(h.icon, 24)}</span><span class="q-name">${esc(h.name)} <span class="muted">*</span></span>${planButtons(state, h, d)}</li>`);
     body = `<p class="cal-sum muted">Due: ${due.join(', ') || 'nothing'}</p>${plans.length ? `<ul class="late-list">${plans.join('')}</ul>` : ''}`;
   }
+  const entry = state.journal[d];
+  const journal = d > today ? '' : `
+    <p class="cal-sum j-head">JOURNAL${entry ? '' : ' <span class="muted">- pick a mood first</span>'}</p>
+    ${moodRow(state, d)}
+    <form class="plan-form" data-form="journal" data-day="${d}">
+      <input name="text" maxlength="${JOURNAL_MAX}" value="${esc(entry?.text ?? '')}" placeholder="One line about the day" aria-label="Journal line for ${dayLabel(d)}">
+      <button class="btn small" type="submit">SAVE</button>
+    </form>`;
   const form = d < today ? '' : `
     <form class="plan-form" data-form="plan" data-day="${d}">
       <input name="name" required maxlength="40" placeholder="e.g. Dentist 3pm" aria-label="Plan a quest for ${dayLabel(d)}">
@@ -45,16 +55,17 @@ function dayPanel(state: State, sc: Score, today: string, ui: CalUi) {
     </form>`;
   return `<section class="cal-panel" aria-live="polite">
       <h3>${dayLabel(d)}${d === today ? ' <span class="muted">(TODAY)</span>' : ''}</h3>
-      ${body}${form}
+      ${body}${journal}${form}
     </section>`;
 }
 
 export function calendarView(state: State, sc: Score, today: string, ui: CalUi) {
   const cells = monthDays(ui.month).map((d) => {
     const sum = d > today ? undefined : daySummary(state.habits, state.log, d);
+    const mood = d > today ? undefined : state.journal[d]?.mood;
     const plans = plansOn(state, d).length;
-    const cls = ['cal-day', sum?.status ?? 'future', d.slice(0, 7) !== ui.month && 'other', d === today && 'today'].filter(Boolean).join(' ');
-    const label = `${dayLabel(d)}${sum ? `, ${SAID[sum.status]}` : ''}${plans ? `, ${plans} planned` : ''}`;
+    const cls = ['cal-day', ui.mood ? (sum ? `m${mood ?? 0}` : 'future') : sum?.status ?? 'future', d.slice(0, 7) !== ui.month && 'other', d === today && 'today'].filter(Boolean).join(' ');
+    const label = `${dayLabel(d)}${sum ? `, ${SAID[sum.status]}` : ''}${mood ? `, mood ${MOODS[mood - 1].toLowerCase()}` : ''}${plans ? `, ${plans} planned` : ''}`;
     return `<button class="${cls}" data-action="cal-day" data-day="${d}" aria-label="${label}" aria-pressed="${d === ui.day}">${Number(d.slice(8))}${plans ? '<i>*</i>' : ''}</button>`;
   });
   return `
@@ -64,7 +75,13 @@ export function calendarView(state: State, sc: Score, today: string, ui: CalUi) 
       <b>${monthLabel(ui.month)}</b>
       <button class="icon-btn next" data-action="cal-month" data-dir="1" aria-label="Next month">${ARROW}</button>
     </div>
+    <div class="slot-tabs two" role="tablist">
+      <button role="tab" data-action="cal-view" data-mood="" aria-selected="${!ui.mood}">QUESTS</button>
+      <button role="tab" data-action="cal-view" data-mood="1" aria-selected="${ui.mood}">MOOD</button>
+    </div>
     <div class="cal-grid">${WEEK.map((w) => `<span aria-hidden="true">${w}</span>`).join('')}${cells.join('')}</div>
-    <p class="cal-key" aria-hidden="true"><i class="all"></i>all <i class="some"></i>some <i class="none"></i>none <span>*</span> planned</p>
+    <p class="cal-key" aria-hidden="true">${ui.mood
+      ? MOODS.map((m, i) => `${moodFace(i + 1, 10)}${m.toLowerCase()}`).join(' ')
+      : '<i class="all"></i>all <i class="some"></i>some <i class="none"></i>none <span>*</span> planned'}</p>
     ${dayPanel(state, sc, today, ui)}`;
 }

@@ -7,7 +7,7 @@ import type { Habit, Log, Mark, Schedule, State } from './types';
 const MON = '2026-11-02';
 const habit = (schedule: Schedule = { kind: 'daily' }, created = MON, id = 'h'): Habit => ({ id, name: id, icon: 'star', schedule, created });
 const logOf = (days: string[], id = 'h', mark: Mark = 'full'): Log => Object.fromEntries(days.map((d) => [d, { [id]: mark }]));
-const state = (habits: Habit[], log: Log): State => ({ v: 3, settings: { rolloverHour: 4, muted: false }, habits, log, wardrobe: emptyWardrobe() });
+const state = (habits: Habit[], log: Log): State => ({ v: 4, settings: { rolloverHour: 4, muted: false }, habits, log, wardrobe: emptyWardrobe(), journal: {} });
 const day = (n: number) => addDays(MON, n);
 
 describe('levels', () => {

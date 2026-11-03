@@ -1,10 +1,12 @@
 import { addDays, weekStart } from '../logic/day';
 import { expected, isActive, type Score } from '../logic/score';
 import type { HeroState } from '../logic/hero';
+import { MOODS, moodLink, moodName } from '../logic/journal';
 import type { State } from '../logic/types';
 import { esc } from './html';
 
 const WEEKS = 16;
+const MOOD_DAYS = 30;
 
 export function statsView(state: State, sc: Score, hs: HeroState, today: string) {
   const start = addDays(weekStart(today), -7 * (WEEKS - 1));
@@ -27,6 +29,17 @@ export function statsView(state: State, sc: Score, hs: HeroState, today: string)
     return `<tr><th scope="row">${esc(h.name)}</th><td>${st.streak}${u}</td><td>${st.best}${u}</td><td>${st.full}/${st.tiny}</td></tr>`;
   });
 
+  const moods = Array.from({ length: MOOD_DAYS }, (_, i) => {
+    const d = addDays(today, i - MOOD_DAYS + 1);
+    const m = state.journal[d]?.mood;
+    return `<i class="m${m ?? 0}" title="${d}${m ? `: ${MOODS[m - 1].toLowerCase()}` : ''}"></i>`;
+  });
+  const link = moodLink(state.habits, state.log, state.journal, today);
+  const said = (a: typeof link.all) => (a ? `${moodName(a.avg)} (${a.days}d)` : '-');
+  const moodLine = link.all || link.other
+    ? `<p class="small">Avg mood on all-done days: <b>${said(link.all)}</b>. Other days: <b>${said(link.other)}</b>.</p>`
+    : '<p class="small muted">No journal entries yet. Pick a face on the Quest screen tonight.</p>';
+
   return `
     <h2>STATS</h2>
     <div class="cards">
@@ -39,6 +52,9 @@ export function statsView(state: State, sc: Score, hs: HeroState, today: string)
     </div>
     <h3>LAST ${WEEKS} WEEKS</h3>
     <div class="heat" role="img" aria-label="Completion heatmap for the last ${WEEKS} weeks">${cells.join('')}</div>
+    <h3>MOOD, LAST ${MOOD_DAYS} DAYS</h3>
+    <div class="mood-strip" role="img" aria-label="Mood for each of the last ${MOOD_DAYS} days">${moods.join('')}</div>
+    ${moodLine}
     <h3>QUESTS</h3>
     <table class="stat-table">
       <thead><tr><th scope="col">QUEST</th><th scope="col">NOW</th><th scope="col">BEST</th><th scope="col">FULL/TINY</th></tr></thead>

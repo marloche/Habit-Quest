@@ -29,4 +29,7 @@ export type Wardrobe = {
   opened: Record<string, { day: string; gold?: number; item?: string }>;
 };
 
-export type State = { v: 3; settings: Settings; habits: Habit[]; log: Log; wardrobe: Wardrobe; lastOpened?: string };
+export type Mood = 1 | 2 | 3 | 4 | 5; // awful, low, ok, good, great
+export type Journal = Record<string, { mood: Mood; text?: string }>; // day key -> entry
+
+export type State = { v: 4; settings: Settings; habits: Habit[]; log: Log; wardrobe: Wardrobe; journal: Journal; lastOpened?: string };

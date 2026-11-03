@@ -2,9 +2,10 @@ import { addDays, dayKey, dayLabel, isEvening, lateCutoffLabel, lateWindowOpen, 
 import { atRisk, isActive, isDue, isPlanned, xpForLevel, type Score } from '../logic/score';
 import type { HeroState } from '../logic/hero';
 import { wornIds } from '../logic/items';
+import { JOURNAL_GOLD, MOODS } from '../logic/journal';
 import type { Habit, State } from '../logic/types';
 import { bossBar, goldText } from './hero';
-import { COIN, FLAME, hero, icon, svg, tierOf } from '../sprites';
+import { COIN, FLAME, hero, icon, moodFace, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
 
 // arming: "day:id" of a done quest waiting for a second tap to undo.
@@ -22,6 +23,16 @@ export function dayRow(state: State, h: Habit, d: string, when: string, arming?:
     : `<button class="btn small" data-action="mark" data-day="${d}" data-id="${h.id}" data-mark="full" aria-label="Log ${name} for ${when}">DONE</button>` +
       (h.tiny ? `<button class="btn small blue" data-action="mark" data-day="${d}" data-id="${h.id}" data-mark="tiny" aria-label="Log tiny version for ${when}: ${esc(h.tiny)}">TINY</button>` : '');
   return `<li class="late-row${mark ? ' done' : ''}" data-row="${key}"><span class="q-icon">${icon(h.icon, 24)}</span><span class="q-name">${name}${isPlanned(h) ? ' <span class="muted">*</span>' : ''}</span>${extra}${buttons}</li>`;
+}
+
+// Five mood faces for a day's journal; tapping the lit one clears the entry.
+export function moodRow(state: State, d: string) {
+  const cur = state.journal[d]?.mood;
+  const faces = MOODS.map((name, i) => {
+    const on = cur === i + 1;
+    return `<button class="mood${on ? ' on' : ''}" data-action="mood" data-day="${d}" data-mood="${i + 1}" aria-pressed="${on}" aria-label="Mood ${name.toLowerCase()}${on ? ', tap to clear' : ''}">${moodFace(i + 1, 32)}</button>`;
+  });
+  return `<div class="moods${cur ? ' picked' : ''}" role="group" aria-label="How was the day?">${faces.join('')}</div>`;
 }
 
 function lateView(state: State, today: string, now: Date, ui: QuestUi) {
@@ -52,6 +63,7 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
   const keyOf = (h: Habit) => (listed.indexOf(h) < 9 ? listed.indexOf(h) + 1 : 0);
   const due = habits.filter((h) => isDue(h, today));
   const allDone = due.length > 0 && due.every((h) => state.log[today]?.[h.id]);
+  const askMood = !state.journal[today] && (allDone || isEvening(now, state.settings.rolloverHour));
   const risky = new Set(isEvening(now, state.settings.rolloverHour) ? atRisk(state, sc, today).map((h) => h.id) : []);
 
   const rows = habits.map((h) => {
@@ -99,5 +111,6 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
     <h2>${allDone ? 'ALL QUESTS DONE!' : "TODAY'S QUESTS"}</h2>
     <p class="date-line">${dateLine}</p>
     ${habits.length ? `<ul class="quests">${rows.join('')}</ul>` : '<p class="empty">No quests yet. Every hero needs one.</p>'}
+    ${askMood ? `<section class="mood-ask"><h3>HOW WAS TODAY?</h3>${moodRow(state, today)}<p class="small muted">+${JOURNAL_GOLD} G. Add a line in CALENDAR.</p></section>` : ''}
     <button class="btn wide" data-action="tab" data-tab="edit">+ EDIT QUESTS</button>`;
 }

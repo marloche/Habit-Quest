@@ -2,6 +2,7 @@ import { addDays, daysBetween, weekStart } from './day';
 import { expected, isActive, type Score } from './score';
 import { progressOf, tierGold, trackValues, trophiesOf, type Progress } from './achievements';
 import { ITEMS } from './items';
+import { journalGold } from './journal';
 import type { Habit, Log, Mark, State, Wardrobe } from './types';
 
 // Weekly boss: HP is 70% of the week's expected checks x 10, so a few misses still win. Losing costs nothing.
@@ -75,7 +76,7 @@ export function heroOf(state: State, sc: Score, today: string): HeroState {
   const { opened, owned } = state.wardrobe;
   const chestGold = earnedChests.reduce((n, c) => n + (opened[c.id]?.gold ?? 0), 0);
   const achievements = progressOf(trackValues(state, sc, wins));
-  const earned = sc.gold + wins * BOSS_GOLD + chestGold + tierGold(achievements);
+  const earned = sc.gold + wins * BOSS_GOLD + chestGold + tierGold(achievements) + journalGold(state.journal, today);
   const spent = Object.values(owned).reduce((n, o) => n + o.paid, 0);
   return {
     earned, spent, balance: earned - spent, wins, boss, chests: earnedChests.filter((c) => !opened[c.id]),
