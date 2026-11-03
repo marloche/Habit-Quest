@@ -9,7 +9,8 @@ import type { Mark, Schedule, Slot, State } from './logic/types';
 import { BACKUP_DAYS, KEY, backupAge, exportFile, load, newId, parseState, save } from './store';
 import { calendarView } from './ui/calendar';
 import { editListView, formView } from './ui/edit';
-import { heroView } from './ui/hero';
+import { heroView, type HeroUi } from './ui/hero';
+import { TIER_GOLD } from './logic/achievements';
 import { nav } from './ui/html';
 import { questView } from './ui/quest';
 import { settingsView } from './ui/settings';
@@ -25,6 +26,7 @@ let shownDay = '';
 let calDay = ''; // selected day on the calendar
 let calMonth = '';
 let shopSlot: Slot = 'hat';
+let heroTab: HeroUi['view'] = 'wardrobe';
 audio.muted = state.settings.muted;
 
 const today = () => dayKey(new Date(), state.settings.rolloverHour);
@@ -36,10 +38,11 @@ function render() {
   const t = today();
   const sc = (scored = score(state, t));
   hs = heroOf(state, sc, t);
+  announceTiers();
   const views: Record<Tab, () => string> = {
     quest: () => questView(state, sc, hs, t, new Date(), { arming, lateTouched }),
     calendar: () => calendarView(state, sc, t, { month: calMonth, day: calDay, arming }),
-    hero: () => heroView(state, sc, hs, { slot: shopSlot, buying }),
+    hero: () => heroView(state, sc, hs, { view: heroTab, slot: shopSlot, buying }),
     edit: () => editListView(state.habits),
     form: () => formView(state.habits.find((h) => h.id === editingId)),
     stats: () => statsView(state, sc, hs, t),
@@ -53,6 +56,39 @@ function go(to: Tab) {
   tab = to;
   render();
   scrollTo(0, 0);
+}
+
+// Achievement tiers already announced, kept so a reload doesn't repeat them. A lost tier drops back, so earning it again cheers again.
+const TIERS_KEY = 'habit-quest-achievements';
+let quietTiers = false; // set when another window saved: it already cheered
+const ROMAN = ['I', 'II', 'III'];
+
+function announceTiers() {
+  let seen: Record<string, number> = {};
+  try {
+    seen = JSON.parse(localStorage.getItem(TIERS_KEY) ?? '{}');
+  } catch {} // a broken note just means we cheer again
+  const now = Object.fromEntries(hs.achievements.map((p) => [p.track.id, p.tier]));
+  const ups = hs.achievements.filter((p) => p.tier > (seen[p.track.id] ?? 0));
+  if (JSON.stringify(now) !== JSON.stringify(seen)) localStorage.setItem(TIERS_KEY, JSON.stringify(now));
+  const quiet = quietTiers;
+  quietTiers = false;
+  if (quiet || !ups.length) return;
+  // Many at once means a first launch or a loaded save: one line instead of a pile of banners.
+  if (ups.length > 2) return toast(`${ups.length} achievements unlocked from your history! See HERO > ACHIEVEMENTS.`);
+  setTimeout(() => // after the check's own banners
+    ups.forEach((p) => {
+      const trophy = p.tier === 3 && p.track.trophy ? ` and the ${itemById(p.track.trophy)!.name}` : '';
+      banner({ title: 'ACHIEVEMENT!', sub: `${p.track.name} ${ROMAN[p.tier - 1]}: +${TIER_GOLD[p.tier - 1]} G${trophy}`, onShow: () => sfx('perfect') });
+    }));
+}
+
+function tapBadge(id: string) {
+  const p = hs.achievements.find((x) => x.track.id === id);
+  if (!p) return;
+  const t = p.track;
+  const trophy = t.trophy ? ` Tier III wins the ${itemById(t.trophy)!.name}.` : '';
+  toast(`${t.name}: ${t.tiers.join(' / ')} ${t.unit}. You have ${p.value}.${trophy}`);
 }
 
 function commit() {
@@ -147,13 +183,13 @@ function mark(id: string, m: Mark, d = today()) {
     banner({ title: `${a.streak}-${after.habits[id].unit.toUpperCase()} STREAK!`, sub: `${name}: +${a.milestone} bonus XP and a chest`, onShow: shake });
   }
   if (after.level > before.level) {
-    banner({ title: 'LEVEL UP!', sub: `You reached level ${after.level}`, level: after.level, worn: wornIds(state.wardrobe), onShow: () => { shake(); sfx('levelup'); } });
+    banner({ title: 'LEVEL UP!', sub: `You reached level ${after.level}`, level: after.level, worn: wornIds(state.wardrobe, hs.trophies), onShow: () => { shake(); sfx('levelup'); } });
   }
   if (!wasComplete && dayComplete(d)) {
     banner({ title: 'PERFECT DAY!', sub: `${after.perfect}-day perfect run`, onShow: () => sfx('perfect') });
   }
   if (bossNow?.won && bossBefore && !bossBefore.won && bossNow.week === bossBefore.week) {
-    banner({ title: 'BOSS DEFEATED!', sub: `${bossNow.name} falls! +${BOSS_GOLD} G and a chest`, level: after.level, worn: wornIds(state.wardrobe), onShow: () => { shake(); sfx('levelup'); } });
+    banner({ title: 'BOSS DEFEATED!', sub: `${bossNow.name} falls! +${BOSS_GOLD} G and a chest`, level: after.level, worn: wornIds(state.wardrobe, hs.trophies), onShow: () => { shake(); sfx('levelup'); } });
   }
   if (hs.chests.length > chestsBefore) toast('You earned a chest! Open it on the HERO tab.');
 }
@@ -205,7 +241,7 @@ function tapItem(id: string) {
   const it = itemById(id);
   if (!it) return;
   const w = state.wardrobe;
-  if (w.owned[id]) {
+  if (w.owned[id] || hs.trophies.includes(id)) {
     if (w.worn[it.slot] === id) delete w.worn[it.slot];
     else w.worn[it.slot] = id;
     sfx('tiny');
@@ -230,7 +266,7 @@ function tapItem(id: string) {
   w.worn[it.slot] = id;
   commit();
   sfx('milestone');
-  banner({ title: 'NEW GEAR!', sub: `${it.name} equipped`, level: scored.level, worn: wornIds(w), onShow: shake });
+  banner({ title: 'NEW GEAR!', sub: `${it.name} equipped`, level: scored.level, worn: wornIds(w, hs.trophies), onShow: shake });
 }
 
 function openChest(id: string) {
@@ -321,6 +357,8 @@ app.addEventListener('click', (e) => {
     case 'rename': return rename(id);
     case 'unplan': return unplan(id);
     case 'slot': shopSlot = el.dataset.slot as Slot; return render();
+    case 'hero-view': heroTab = el.dataset.view as HeroUi['view']; return render();
+    case 'badge': return tapBadge(el.dataset.track!);
     case 'item': return tapItem(el.dataset.item!);
     case 'open-chest': return openChest(el.dataset.chest!);
   }
@@ -374,6 +412,7 @@ addEventListener('storage', (e) => {
   } catch {
     return;
   }
+  quietTiers = true;
   audio.muted = state.settings.muted;
   if (tab !== 'form') render(); // don't wipe a half-typed quest
 });

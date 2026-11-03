@@ -2,11 +2,12 @@ import { BOSS_GOLD, type HeroState } from '../logic/hero';
 import { buyBlock, ITEMS, SLOTS, wornIds, type Item } from '../logic/items';
 import type { Score } from '../logic/score';
 import type { Slot, State } from '../logic/types';
-import { BOSS_ART, CHEST, COIN, hero, nextTier, svg, tierOf } from '../sprites';
+import type { Progress } from '../logic/achievements';
+import { BOSS_ART, CHEST, COIN, FLAME, hero, ICONS, nextTier, PAL, svg, tierOf } from '../sprites';
 import { esc } from './html';
 
-// slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
-export type HeroUi = { slot: Slot; buying?: string };
+// view: wardrobe or achievements; slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
+export type HeroUi = { view: 'wardrobe' | 'achievements'; slot: Slot; buying?: string };
 
 const SLOT_NAMES: Record<Slot, string> = { hat: 'HAT', weapon: 'WEAPON', cape: 'CAPE', pet: 'PET' };
 
@@ -29,14 +30,35 @@ export function bossBar(hs: HeroState, big = false) {
     </div>`;
 }
 
+const TRACK_ART: Record<string, string[]> = {
+  streak: FLAME, perfect: ICONS.star, checks: ICONS.pen, tiny: ICONS.leaf, comeback: ICONS.heart,
+  boss: BOSS_ART['Slime King'], level: ICONS.sword, planner: ICONS.moon, collector: COIN, treasure: CHEST,
+};
+const DIM = { ...PAL, y: PAL.S }; // an unearned star
+
+function badge(p: Progress) {
+  const t = p.track;
+  const next = t.tiers[p.tier]; // undefined once tier III is reached
+  const stars = [0, 1, 2].map((i) => svg(ICONS.star, 10, '', i < p.tier ? PAL : DIM)).join('');
+  const pct = next ? Math.min(100, Math.round((p.value / next) * 100)) : 100;
+  const said = `${t.name}, tier ${p.tier} of 3, ${p.value} ${t.unit}${next ? `, next tier at ${next}` : ''}`;
+  return `<button class="badge${p.tier ? '' : ' none'}${p.tier === 3 ? ' max' : ''}" data-action="badge" data-track="${t.id}" aria-label="${said}">
+      <span class="badge-art">${svg(TRACK_ART[t.id], 32)}</span>
+      <span class="badge-name">${t.name}</span>
+      <span class="badge-stars">${stars}</span>
+      <span class="bar"><div style="width:${pct}%"></div></span>
+      <span class="badge-count">${next ? `${p.value}/${next}` : 'MAX'}</span>
+    </button>`;
+}
+
 function itemCard(state: State, sc: Score, hs: HeroState, it: Item, ui: HeroUi) {
-  const owned = !!state.wardrobe.owned[it.id];
-  const worn = state.wardrobe.worn[it.slot] === it.id;
+  const owned = !!state.wardrobe.owned[it.id] || hs.trophies.includes(it.id);
+  const worn = owned && state.wardrobe.worn[it.slot] === it.id;
   const block = owned ? '' : buyBlock(it, sc.level, hs.balance, state.wardrobe);
   const arming = ui.buying === it.id;
   const hidden = it.chest && !owned; // chest finds stay a surprise
   const name = hidden ? '???' : it.name;
-  const status = worn ? 'WORN' : owned ? 'OWNED' : arming ? `BUY ${it.price} G?` : it.chest ? 'CHEST' : it.level && sc.level < it.level ? `LV ${it.level}` : `${it.price} G`;
+  const status = worn ? 'WORN' : owned ? 'OWNED' : arming ? `BUY ${it.price} G?` : it.chest ? 'CHEST' : it.trophy ? 'TROPHY' : it.level && sc.level < it.level ? `LV ${it.level}` : `${it.price} G`;
   const said = worn ? 'worn, tap to take off' : owned ? 'owned, tap to wear' : arming ? `tap again to buy for ${it.price} gold` : block || `${it.price} gold, tap to buy`;
   const cls = ['item', worn && 'worn', arming && 'arming', block && 'locked'].filter(Boolean).join(' ');
   return `<button class="${cls}" data-action="item" data-item="${it.id}" aria-label="${esc(`${name}, ${said}`)}">
@@ -49,11 +71,12 @@ function itemCard(state: State, sc: Score, hs: HeroState, it: Item, ui: HeroUi) 
 export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
   const t = tierOf(sc.level);
   const next = nextTier(sc.level);
+  const stars = hs.achievements.reduce((n, p) => n + p.tier, 0);
   const tabs = SLOTS.map((s) => `<button role="tab" data-action="slot" data-slot="${s}" aria-selected="${s === ui.slot}">${SLOT_NAMES[s]}</button>`);
   return `
     <h2>HERO</h2>
     <div class="hero-card">
-      <div class="hero-big">${hero(sc.level, 128, wornIds(state.wardrobe))}</div>
+      <div class="hero-big">${hero(sc.level, 128, wornIds(state.wardrobe, hs.trophies))}</div>
       <div class="hero-info">
         <b>LV ${sc.level} ${t.title.toUpperCase()}</b>
         <span class="gold${hs.balance < 0 ? ' debt' : ''}">${svg(COIN, 12)} ${goldText(hs)} G</span>
@@ -63,7 +86,12 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
     ${bossBar(hs, true)}
     ${hs.chests.length ? `<button class="btn wide chest-btn" data-action="open-chest" data-chest="${hs.chests[0].id}">
       ${svg(CHEST, 32)}<span>OPEN CHEST${hs.chests.length > 1 ? ` (${hs.chests.length})` : ''}<small>${esc(hs.chests[0].why)}</small></span></button>` : ''}
-    <h3>WARDROBE</h3>
-    <div class="slot-tabs" role="tablist">${tabs.join('')}</div>
-    <div class="items">${ITEMS.filter((i) => i.slot === ui.slot).map((i) => itemCard(state, sc, hs, i, ui)).join('')}</div>`;
+    <div class="slot-tabs two" role="tablist">
+      <button role="tab" data-action="hero-view" data-view="wardrobe" aria-selected="${ui.view === 'wardrobe'}">WARDROBE</button>
+      <button role="tab" data-action="hero-view" data-view="achievements" aria-selected="${ui.view === 'achievements'}">ACHIEVEMENTS ${stars}/${hs.achievements.length * 3}</button>
+    </div>
+    ${ui.view === 'achievements'
+      ? `<div class="badges">${hs.achievements.map(badge).join('')}</div>`
+      : `<div class="slot-tabs" role="tablist">${tabs.join('')}</div>
+         <div class="items">${ITEMS.filter((i) => i.slot === ui.slot).map((i) => itemCard(state, sc, hs, i, ui)).join('')}</div>`}`;
 }

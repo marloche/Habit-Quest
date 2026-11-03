@@ -1,5 +1,6 @@
 import { addDays, daysBetween, weekStart } from './day';
 import { expected, isActive, type Score } from './score';
+import { progressOf, tierGold, trackValues, trophiesOf, type Progress } from './achievements';
 import { ITEMS } from './items';
 import type { Habit, Log, Mark, State, Wardrobe } from './types';
 
@@ -46,9 +47,12 @@ export function chestLoot(id: string, w: Wardrobe): { gold?: number; item?: stri
   return { gold: 50 + Math.floor(roll(`${id}:gold`) * 101) };
 }
 
-export type HeroState = { earned: number; spent: number; balance: number; wins: number; boss?: Boss; chests: Chest[] };
+export type HeroState = {
+  earned: number; spent: number; balance: number; wins: number; boss?: Boss; chests: Chest[];
+  achievements: Progress[]; trophies: string[];
+};
 
-// Gold you can spend: checks + boss wins + opened chests, minus what you paid. It can go negative if you untick
+// Gold you can spend: checks + boss wins + opened chests + achievement tiers, minus what you paid. It can go negative if you untick
 // past days after buying; you keep your items and can't buy until it's positive again. A chest that's no longer
 // earned (its milestone was unticked) stops paying its gold, but an item it gave stays.
 export function heroOf(state: State, sc: Score, today: string): HeroState {
@@ -70,7 +74,11 @@ export function heroOf(state: State, sc: Score, today: string): HeroState {
 
   const { opened, owned } = state.wardrobe;
   const chestGold = earnedChests.reduce((n, c) => n + (opened[c.id]?.gold ?? 0), 0);
-  const earned = sc.gold + wins * BOSS_GOLD + chestGold;
+  const achievements = progressOf(trackValues(state, sc, wins));
+  const earned = sc.gold + wins * BOSS_GOLD + chestGold + tierGold(achievements);
   const spent = Object.values(owned).reduce((n, o) => n + o.paid, 0);
-  return { earned, spent, balance: earned - spent, wins, boss, chests: earnedChests.filter((c) => !opened[c.id]) };
+  return {
+    earned, spent, balance: earned - spent, wins, boss, chests: earnedChests.filter((c) => !opened[c.id]),
+    achievements, trophies: trophiesOf(achievements),
+  };
 }

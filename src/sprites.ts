@@ -86,6 +86,10 @@ export const ITEM_ART: Record<string, Layer> = {
   slime: { x: 16, y: 8, rows: ['........', '........', '...gg...', '..glgg..', '.gkggkg.', '.gggggg.', 'gggggggg', '.GGGGGG.'] },
   cat: { x: 16, y: 8, rows: ['........', '.o....o.', '.oo..oo.', '.oooooo.', '.okooko.', '.oooooo.', '..oooo.o', '..o..oo.'] },
   'baby-dragon': { x: 16, y: 8, rows: ['.....ll.', '....lgkl', '.y..gggl', 'yy.ggg..', '.yggggg.', '..gglgg.', '..gg.gg.', '..l...l.'] },
+  'flame-crown': { x: 4, y: 0, rows: ['.o..o..o', 'oyooyooy', 'yyyyyyyy'] },
+  dragonslayer: { x: 13, y: 0, rows: ['.w.', '.w.', 'wCw', '.w.', '.w.', '.w.', '.w.', 'ryr', '.r.', '.r.', '.y.'] },
+  'champion-cape': cape('w', 'y', 'y'),
+  'wise-owl': { x: 16, y: 8, rows: ['........', '.s....s.', '.ssssss.', '.ykssyk.', '.ssooss.', '.swwwws.', '.swwwws.', '..o..o..'] },
   phoenix: { x: 16, y: 8, rows: ['...o....', '..oyo...', '.oykoo..', 'o.oyyoo.', '..ooyyo.', '.r.oyo..', 'r..ro...', '..r.r...'] },
 };
 

@@ -61,7 +61,7 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
 .center { text-align: center; }
 
 /* Pixel frame: stepped corners instead of border-radius. */
-.hud, .quest, .btn, .card, .edit-row, .late-row, .hero-card, .item, input, select, .icon-pick, .day-pick span {
+.hud, .quest, .btn, .card, .edit-row, .late-row, .hero-card, .item, .badge, input, select, .icon-pick, .day-pick span {
   background: var(--panel);
   border: 0;
   box-shadow:
@@ -230,6 +230,16 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .item-status { font-size: 8px; color: var(--gold); }
 .item.worn .item-status { color: var(--accent-2); }
 .item.arming .item-status { color: var(--hot-text); }
+.slot-tabs.two { grid-template-columns: 1fr 1fr; }
+.badges { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 4px; }
+.badge { display: grid; justify-items: center; gap: 8px; padding: 12px 8px; color: var(--text); font: inherit; cursor: pointer; }
+.badge:active { transform: translateY(2px); }
+.badge.none .badge-art { filter: grayscale(1); opacity: .5; }
+.badge.max { --edge: var(--gold); }
+.badge-name { font-size: 8px; text-align: center; }
+.badge-stars { display: flex; gap: 4px; }
+.badge .bar { width: 100%; }
+.badge-count { font-size: 8px; color: var(--muted); }
 
 /* Bottom tabs */
 .tabs {

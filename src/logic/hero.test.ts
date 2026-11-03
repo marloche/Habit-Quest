@@ -11,10 +11,10 @@ const daily: Habit = { id: 'h', name: 'h', icon: 'star', schedule: { kind: 'dail
 const state = (log: Log, wardrobe = emptyWardrobe()): State => ({ v: 3, settings: { rolloverHour: 4, muted: false }, habits: [daily], log, wardrobe });
 
 describe('catalogue', () => {
-  it('has unique ids and sells only non-chest items', () => {
+  it('has unique ids and sells only shop items; chest finds and trophies are free', () => {
     expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
-    expect(ITEMS.filter((i) => i.chest).every((i) => i.price === 0)).toBe(true);
-    expect(ITEMS.filter((i) => !i.chest).every((i) => i.price > 0)).toBe(true);
+    expect(ITEMS.filter((i) => i.chest || i.trophy).every((i) => i.price === 0)).toBe(true);
+    expect(ITEMS.filter((i) => !i.chest && !i.trophy).every((i) => i.price > 0)).toBe(true);
   });
 });
 
@@ -61,7 +61,13 @@ describe('buying', () => {
     expect(buyBlock(leaf, 1, 999, w)).toBe('owned');
   });
   it('skips worn ids the catalogue no longer has', () => {
-    expect(wornIds({ ...emptyWardrobe(), worn: { hat: 'leaf-crown', pet: 'unicorn' } })).toEqual(['leaf-crown']);
+    expect(wornIds({ ...emptyWardrobe(), worn: { hat: 'leaf-crown', pet: 'unicorn' } }, [])).toEqual(['leaf-crown']);
+  });
+  it('shows a worn trophy only while it is earned', () => {
+    const w = { ...emptyWardrobe(), worn: { hat: 'flame-crown' as const } };
+    expect(wornIds(w, [])).toEqual([]);
+    expect(wornIds(w, ['flame-crown'])).toEqual(['flame-crown']);
+    expect(buyBlock(itemById('flame-crown')!, 99, 9999, w)).toBe('Trophy: reach STREAK tier III.');
   });
 });
 
@@ -108,15 +114,15 @@ describe('weekly boss', () => {
     w.opened[`b-${MON}`] = { day: day(6), gold: 100 };
     hs = heroOf(s, score(s, day(6)), day(6));
     expect(hs.chests.map((c) => c.why)).toEqual(['7-day streak']);
-    expect(hs.balance).toBe(35 + BOSS_GOLD + 100);
-    s = state({}, w); // untick the whole week: the win and its chest gold are gone
-    expect(heroOf(s, score(s, day(6)), day(6)).balance).toBe(0);
+    expect(hs.balance).toBe(35 + BOSS_GOLD + 100 + 4 * 25); // tier I of streak, perfect, boss and treasure
+    s = state({}, w); // untick the whole week: the win and its chest gold are gone; opening it still counts for TREASURE
+    expect(heroOf(s, score(s, day(6)), day(6)).balance).toBe(25);
   });
   it('pays 50 gold per win into the balance', () => {
     const s = state(week(['full', 'full', 'full', 'full', 'full']));
     const hs = heroOf(s, score(s, day(8)), day(8));
     expect(hs.wins).toBe(1);
-    expect(hs.balance).toBe(25 + BOSS_GOLD);
+    expect(hs.balance).toBe(25 + BOSS_GOLD + 2 * 25); // tier I of boss and perfect
     expect(hs.boss!.week).toBe(day(7));
   });
 });

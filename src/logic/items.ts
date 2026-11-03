@@ -1,7 +1,8 @@
 import type { Slot, Wardrobe } from './types';
 
 // level: locked until then. chest: never sold, only found in chests.
-export type Item = { id: string; slot: Slot; name: string; price: number; level?: number; chest?: true };
+// trophy: never sold; wearable while that achievement track sits at tier III.
+export type Item = { id: string; slot: Slot; name: string; price: number; level?: number; chest?: true; trophy?: string };
 
 export const SLOTS: Slot[] = ['hat', 'weapon', 'cape', 'pet'];
 
@@ -24,6 +25,10 @@ export const ITEMS: Item[] = [
   { id: 'cat', slot: 'pet', name: 'Cat', price: 450 },
   { id: 'baby-dragon', slot: 'pet', name: 'Baby dragon', price: 800, level: 10 },
   { id: 'phoenix', slot: 'pet', name: 'Phoenix', price: 0, chest: true },
+  { id: 'flame-crown', slot: 'hat', name: 'Flame crown', price: 0, trophy: 'STREAK' },
+  { id: 'dragonslayer', slot: 'weapon', name: 'Dragonslayer', price: 0, trophy: 'BOSS SLAYER' },
+  { id: 'champion-cape', slot: 'cape', name: 'Champion cape', price: 0, trophy: 'PERFECT' },
+  { id: 'wise-owl', slot: 'pet', name: 'Wise owl', price: 0, trophy: 'CHECKS' },
 ];
 
 export const itemById = (id: string) => ITEMS.find((i) => i.id === id);
@@ -34,10 +39,12 @@ export const emptyWardrobe = (): Wardrobe => ({ owned: {}, worn: {}, opened: {} 
 export function buyBlock(item: Item, level: number, balance: number, w: Wardrobe): string {
   if (w.owned[item.id]) return 'owned';
   if (item.chest) return 'Found only in chests.';
+  if (item.trophy) return `Trophy: reach ${item.trophy} tier III.`;
   if (item.level && level < item.level) return `Reach level ${item.level} first.`;
   if (balance < item.price) return `Need ${item.price - balance} more gold.`;
   return '';
 }
 
-// Worn items that still exist in the catalogue, in drawing order.
-export const wornIds = (w: Wardrobe) => SLOTS.map((s) => w.worn[s]).filter((id): id is string => !!id && !!itemById(id));
+// Worn items that still exist in the catalogue, in drawing order; a trophy shows only while it's earned.
+export const wornIds = (w: Wardrobe, trophies: string[]) =>
+  SLOTS.map((s) => w.worn[s]).filter((id): id is string => !!id && !!itemById(id) && (!itemById(id)!.trophy || trophies.includes(id)));
