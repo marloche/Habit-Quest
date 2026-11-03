@@ -47,7 +47,7 @@ Notes:
 - The home-screen app keeps **its own save**, separate from the Safari tab. Use the home-screen app.
 - Sounds start after your first tap (an iOS rule). If the ring/silent switch is on silent, iOS mutes web audio.
 - Back up from **Setup → Export save** (on iPhone this opens the share sheet → Save to Files). Restore with **Import save**.
-- Updates: after a new deploy, open the app twice. The first launch fetches the update and the second uses it.
+- Updates: after a new deploy, the next launch with internet loads the new version and shows an "Updated!" message. Offline launches keep the last version. The build time is at the bottom of Setup.
 
 ## Install on Windows
 

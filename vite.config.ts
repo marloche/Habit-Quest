@@ -1,6 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 
+// One stamp per build: names the offline cache and tells the app it was updated.
+const BUILD = new Date().toISOString().slice(0, 16).replace('T', ' ');
+
 // Emits sw.js with the exact list of built files, so the app works offline after one visit.
 function serviceWorker(): Plugin {
   return {
@@ -12,7 +15,7 @@ function serviceWorker(): Plugin {
         .map((f) => `${f.parentPath.replace(/\\/g, '/').replace(/^public\/?/, '')}/${f.name}`.replace(/^\//, ''));
       const assets = [...Object.keys(bundle).filter((f) => f !== 'index.html'), ...pub];
       const source = readFileSync('sw.js', 'utf8')
-        .replace('__VERSION__', Date.now().toString(36))
+        .replace('__VERSION__', BUILD)
         .replace('__ASSETS__', JSON.stringify(assets));
       this.emitFile({ type: 'asset', fileName: 'sw.js', source });
     },
@@ -22,4 +25,5 @@ function serviceWorker(): Plugin {
 export default defineConfig({
   base: './', // relative paths work on GitHub Pages under /<repo>/ and locally
   plugins: [serviceWorker()],
+  define: { __BUILD__: JSON.stringify(BUILD) },
 });

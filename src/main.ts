@@ -257,6 +257,14 @@ addEventListener('storage', (e) => {
 render();
 checkNewDay();
 warnRisk();
+
+// A new deploy installs itself on the next launch with internet; say so once.
+const BUILD_KEY = 'habit-quest-build';
+const seenBuild = localStorage.getItem(BUILD_KEY);
+if (seenBuild !== __BUILD__) {
+  if (seenBuild) toast(`Updated! New version from ${__BUILD__} UTC.`);
+  localStorage.setItem(BUILD_KEY, __BUILD__);
+}
 setInterval(() => {
   checkNewDay();
   if (tab === 'quest') render(); // time-based UI, e.g. the yesterday window closing

@@ -19,5 +19,5 @@ export function settingsView(state: State, today: string) {
     <p class="muted small">Your save lives only on this device. On iPhone the home-screen app keeps its own save, separate from Safari.</p>
     <button class="btn wide" data-action="export">EXPORT SAVE</button>
     <label class="btn wide">IMPORT SAVE<input type="file" accept=".json,application/json" data-action="import" hidden></label>
-    <p class="muted small center">Habit Quest v0.1</p>`;
+    <p class="muted small center">Habit Quest v0.1 - build ${__BUILD__} UTC</p>`;
 }
