@@ -70,12 +70,14 @@ No push server is needed. The OS opens the app for you.
 
 Don't use **Open URLs** for this: Shortcuts can't open a home-screen web app, so the link opens Safari, where your save is separate.
 
-**Windows (open at login):**
-1. Install the app from Chrome or Edge (above).
-2. Press `Win + R`, type `shell:startup`, Enter.
-3. Right-click the installed app's shortcut in the Start menu → **Open file location**, and copy that shortcut into the Startup folder.
+**Windows (auto-open):** run once, from this folder:
 
-Or use Task Scheduler for a fixed time: **Create Basic Task → Daily → Start a program** → your browser's exe with the app URL as the argument.
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1          # daily check at 09:30
+powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1 -At 08:00
+```
+
+It registers a Task Scheduler task, **Habit Quest auto-open**, for your user (no admin). The task runs `scripts/open-habit-quest.ps1` at sign-in, on unlock, on wake from sleep and daily at the set time. The script opens the app only if no window titled exactly "Habit Quest" is open. It uses the installed app's Start-menu shortcut if there is one; otherwise it opens a Chrome app window, which shares the same save. To remove it: `Unregister-ScheduledTask -TaskName 'Habit Quest auto-open' -Confirm:$false`.
 
 **Later:** real web push works on iOS 16.4+ for home-screen apps, but it needs a small server to send the pushes. Not built.
 
