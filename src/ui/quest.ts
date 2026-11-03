@@ -3,7 +3,7 @@ import type { State } from '../logic/types';
 import { COIN, FLAME, hero, icon, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
 
-export function questView(state: State, sc: Score, today: string) {
+export function questView(state: State, sc: Score, today: string, arming?: string) {
   const need = xpForLevel(sc.level + 1) - xpForLevel(sc.level);
   const have = sc.xp - xpForLevel(sc.level);
   const habits = state.habits.filter((h) => isActive(h, today));
@@ -16,14 +16,16 @@ export function questView(state: State, sc: Score, today: string) {
     const award = sc.awards[today]?.[h.id];
     const weekly = h.schedule.kind === 'weekly' ? h.schedule.times : 0;
     const rest = !weekly && !isDue(h, today);
+    const armed = mark && arming === h.id;
     let meta = '';
-    if (mark && award) meta = `+${award.xp} XP${mark === 'tiny' ? ' (tiny)' : ''}`;
+    if (armed) meta = '<span class="hot">TAP AGAIN TO UNDO</span>';
+    else if (mark && award) meta = `+${award.xp} XP${mark === 'tiny' ? ' (tiny)' : ''}`;
     else if (st.comebackReady) meta = '<span class="hot">COMEBACK x1.5</span>';
     else if (rest) meta = 'Rest day - bonus XP';
     if (weekly) meta = `${st.weekCount}/${weekly} this week ${meta}`;
     const streak = st.streak ? `<span class="streak">${svg(FLAME, 16)}${st.streak}${st.unit === 'week' ? 'w' : ''}</span>` : '';
-    const label = `${h.name}${mark ? ', done. Tap to undo' : ''}`;
-    return `<li class="quest${mark ? ' done' : ''}${rest ? ' rest' : ''}" data-row="${h.id}">
+    const label = `${h.name}${armed ? ', tap again to undo' : mark ? ', done. Tap twice to undo' : ''}`;
+    return `<li class="quest${mark ? ' done' : ''}${armed ? ' arming' : ''}${rest ? ' rest' : ''}" data-row="${h.id}">
       <button class="q-main" data-action="mark" data-id="${h.id}" data-mark="full" aria-pressed="${!!mark}" aria-label="${esc(label)}">
         <span class="q-icon">${icon(h.icon, 32)}</span>
         <span class="q-text"><span class="q-name">${esc(h.name)}</span><span class="q-meta">${meta}</span></span>

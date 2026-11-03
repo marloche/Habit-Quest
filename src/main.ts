@@ -28,7 +28,7 @@ function render() {
   const t = today();
   const sc = (scored = score(state, t));
   const views: Record<Tab, () => string> = {
-    quest: () => questView(state, sc, t),
+    quest: () => questView(state, sc, t, arming),
     edit: () => editListView(state.habits),
     form: () => formView(state.habits.find((h) => h.id === editingId)),
     stats: () => statsView(state, sc, t),
@@ -67,10 +67,23 @@ const dayComplete = (t: string) => {
   return due.length > 0 && due.every((h) => state.log[t]?.[h.id]);
 };
 
+let arming: string | undefined; // done quest waiting for a second tap to undo
+let armTimer: ReturnType<typeof setTimeout>;
+
 function mark(id: string, m: Mark) {
   const t = today();
   const day = (state.log[t] ??= {});
   if (day[id]) {
+    clearTimeout(armTimer);
+    if (arming !== id) {
+      arming = id;
+      armTimer = setTimeout(() => {
+        arming = undefined;
+        render();
+      }, 3000);
+      return render();
+    }
+    arming = undefined;
     delete day[id];
     if (!Object.keys(day).length) delete state.log[t];
     commit();

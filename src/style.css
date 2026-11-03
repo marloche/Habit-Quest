@@ -72,6 +72,7 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
 .quests, .edit-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
 .quest { display: flex; margin: 4px; }
 .quest.done { background: #1f3b38; }
+.quest.arming { --edge: var(--hot); }
 .quest.rest { opacity: .7; }
 .q-main {
   flex: 1; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 12px;
