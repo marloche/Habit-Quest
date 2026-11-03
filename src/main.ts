@@ -3,7 +3,7 @@ import { audio, sfx, unlock } from './audio';
 import { banner, floatText, shake, toast } from './fx';
 import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logic/day';
 import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/score';
-import { BOSS_GOLD, heroOf, type HeroState } from './logic/hero';
+import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
 import type { Mark, Schedule, Slot, State } from './logic/types';
 import { BACKUP_DAYS, KEY, backupAge, exportFile, load, newId, parseState, save } from './store';
@@ -125,6 +125,7 @@ function mark(id: string, m: Mark, d = today()) {
   }
   const before = scored;
   const bossBefore = hs.boss;
+  const chestsBefore = hs.chests.length;
   const wasComplete = dayComplete(d);
   day[id] = m;
   commit();
@@ -143,7 +144,7 @@ function mark(id: string, m: Mark, d = today()) {
 
   if (a.milestone) {
     const name = state.habits.find((h) => h.id === id)!.name;
-    banner({ title: `${a.streak}-${after.habits[id].unit.toUpperCase()} STREAK!`, sub: `${name}: +${a.milestone} bonus XP`, onShow: shake });
+    banner({ title: `${a.streak}-${after.habits[id].unit.toUpperCase()} STREAK!`, sub: `${name}: +${a.milestone} bonus XP and a chest`, onShow: shake });
   }
   if (after.level > before.level) {
     banner({ title: 'LEVEL UP!', sub: `You reached level ${after.level}`, level: after.level, worn: wornIds(state.wardrobe), onShow: () => { shake(); sfx('levelup'); } });
@@ -152,8 +153,9 @@ function mark(id: string, m: Mark, d = today()) {
     banner({ title: 'PERFECT DAY!', sub: `${after.perfect}-day perfect run`, onShow: () => sfx('perfect') });
   }
   if (bossNow?.won && bossBefore && !bossBefore.won && bossNow.week === bossBefore.week) {
-    banner({ title: 'BOSS DEFEATED!', sub: `${bossNow.name} falls! +${BOSS_GOLD} G`, level: after.level, worn: wornIds(state.wardrobe), onShow: () => { shake(); sfx('levelup'); } });
+    banner({ title: 'BOSS DEFEATED!', sub: `${bossNow.name} falls! +${BOSS_GOLD} G and a chest`, level: after.level, worn: wornIds(state.wardrobe), onShow: () => { shake(); sfx('levelup'); } });
   }
+  if (hs.chests.length > chestsBefore) toast('You earned a chest! Open it on the HERO tab.');
 }
 
 function move(id: string, dir: number) {
@@ -229,6 +231,19 @@ function tapItem(id: string) {
   commit();
   sfx('milestone');
   banner({ title: 'NEW GEAR!', sub: `${it.name} equipped`, level: scored.level, worn: wornIds(w), onShow: shake });
+}
+
+function openChest(id: string) {
+  if (!hs.chests.some((c) => c.id === id)) return;
+  const w = state.wardrobe;
+  const loot = chestLoot(id, w);
+  w.opened[id] = { day: today(), ...loot };
+  if (loot.item) w.owned[loot.item] = { day: today(), paid: 0 };
+  commit();
+  sfx(loot.item ? 'levelup' : 'milestone');
+  if (loot.item) {
+    banner({ title: 'RARE FIND!', sub: `${itemById(loot.item)!.name}! Tap it in the wardrobe to wear it`, level: scored.level, worn: [loot.item], onShow: shake });
+  } else banner({ title: 'CHEST OPENED!', sub: `+${loot.gold} G` });
 }
 
 function pickDay(d: string) {
@@ -307,6 +322,7 @@ app.addEventListener('click', (e) => {
     case 'unplan': return unplan(id);
     case 'slot': shopSlot = el.dataset.slot as Slot; return render();
     case 'item': return tapItem(el.dataset.item!);
+    case 'open-chest': return openChest(el.dataset.chest!);
   }
 });
 

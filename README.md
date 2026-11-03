@@ -14,6 +14,9 @@ A pixel-RPG daily habit tracker. Check off quests and earn XP and gold, level up
 | Streak milestones | +50 XP at 7, +150 at 30, +500 at 100 |
 | Levels | level L needs 25·L·(L−1) total XP |
 | Weekly quests ("3x a week") | streak counts weeks that hit the quota; the first partial week never counts against you |
+| Weekly boss | HP = 70% of the week's expected checks x 10; full/planned hit 10, tiny 5. Win by Sunday: +50 gold and a chest. Losing costs nothing |
+| Chests | One per boss win and per streak milestone: 50-150 gold, or (25%) a chest-only item |
+| Gold | Spend it on cosmetics in the HERO tab. Balance = earned - paid; unticking past days can put it below zero (you keep your items) |
 | New day | starts at 4 AM by default (Setup tab), so late nights count for the day before |
 
 Everything is recalculated from your check-off history, so undoing a check removes exactly what it gave. Any past day can be changed from the Calendar tab, and the scores follow.

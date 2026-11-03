@@ -2,7 +2,7 @@ import { BOSS_GOLD, type HeroState } from '../logic/hero';
 import { buyBlock, ITEMS, SLOTS, wornIds, type Item } from '../logic/items';
 import type { Score } from '../logic/score';
 import type { Slot, State } from '../logic/types';
-import { BOSS_ART, COIN, hero, nextTier, svg, tierOf } from '../sprites';
+import { BOSS_ART, CHEST, COIN, hero, nextTier, svg, tierOf } from '../sprites';
 import { esc } from './html';
 
 // slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
@@ -24,7 +24,7 @@ export function bossBar(hs: HeroState, big = false) {
       <div class="boss-main">
         <div class="hud-row small"><span>${big ? 'WEEK BOSS: ' : ''}${b.name.toUpperCase()}</span><span class="${b.won ? 'gold' : ''}">${status}</span></div>
         <div class="bar boss"><div style="width:${Math.round((left / b.hp) * 100)}%"></div></div>
-        ${big ? `<div class="small muted">${b.won ? `+${BOSS_GOLD} G earned.` : `Beat it by Sunday: +${BOSS_GOLD} G.`} Bosses beaten: ${hs.wins}</div>` : ''}
+        ${big ? `<div class="small muted">${b.won ? `+${BOSS_GOLD} G and a chest earned.` : `Beat it by Sunday: +${BOSS_GOLD} G and a chest.`} Bosses beaten: ${hs.wins}</div>` : ''}
       </div>
     </div>`;
 }
@@ -61,6 +61,8 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
       </div>
     </div>
     ${bossBar(hs, true)}
+    ${hs.chests.length ? `<button class="btn wide chest-btn" data-action="open-chest" data-chest="${hs.chests[0].id}">
+      ${svg(CHEST, 32)}<span>OPEN CHEST${hs.chests.length > 1 ? ` (${hs.chests.length})` : ''}<small>${esc(hs.chests[0].why)}</small></span></button>` : ''}
     <h3>WARDROBE</h3>
     <div class="slot-tabs" role="tablist">${tabs.join('')}</div>
     <div class="items">${ITEMS.filter((i) => i.slot === ui.slot).map((i) => itemCard(state, sc, hs, i, ui)).join('')}</div>`;

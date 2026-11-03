@@ -26,6 +26,8 @@ export const BOSS_ART: Record<string, string[]> = {
   Dragon: ['r......r', 'rr....rr', '.rrrrrr.', 'rryrryrr', 'rrrrrrrr', '.rwrwrr.', '..rrrr..', '.rr..rr.'],
 };
 
+export const CHEST = ['........', '.oooooo.', 'oooooooo', 'yyyyyyyy', 'oooyyooo', 'oooyyooo', 'oooooooo', '.oooooo.'];
+
 export const FLAME = ['...o....', '...oo...', '..ooy...', '..oyyo..', '.ooyyoo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..'];
 export const COIN = ['..yyyy..', '.yyoyyy.', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', '.yyoyyy.', '..yyyy..'];
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './day';
-import { BOSS_GOLD, BOSSES, bossOf, heroOf } from './hero';
+import { BOSS_GOLD, BOSSES, bossOf, chestLoot, heroOf } from './hero';
 import { buyBlock, emptyWardrobe, itemById, ITEMS, wornIds } from './items';
 import { score } from './score';
 import { BOSS_ART, ITEM_ART, PAL } from '../sprites';
@@ -15,6 +15,23 @@ describe('catalogue', () => {
     expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
     expect(ITEMS.filter((i) => i.chest).every((i) => i.price === 0)).toBe(true);
     expect(ITEMS.filter((i) => !i.chest).every((i) => i.price > 0)).toBe(true);
+  });
+});
+
+describe('chest loot', () => {
+  it('is fixed per chest, 50-150 gold or a chest item about a quarter of the time', () => {
+    const w = emptyWardrobe();
+    expect(chestLoot('b-2026-11-02', w)).toEqual(chestLoot('b-2026-11-02', w));
+    const loot = Array.from({ length: 2000 }, (_, i) => chestLoot(`m-${i}`, w));
+    const items = loot.filter((l) => l.item).length / loot.length;
+    expect(items).toBeGreaterThan(0.2);
+    expect(items).toBeLessThan(0.3);
+    expect(loot.every((l) => (l.item ? itemById(l.item)!.chest : l.gold! >= 50 && l.gold! <= 150))).toBe(true);
+  });
+  it('gives only gold once every chest item is owned', () => {
+    const w = emptyWardrobe();
+    for (const i of ITEMS.filter((x) => x.chest)) w.owned[i.id] = { day: MON, paid: 0 };
+    expect(Array.from({ length: 200 }, (_, i) => chestLoot(`c${i}`, w)).every((l) => l.gold)).toBe(true);
   });
 });
 
@@ -81,6 +98,19 @@ describe('weekly boss', () => {
   it('rotates the roster weekly', () => {
     const names = [0, 7, 14].map((n) => bossOf([daily], {}, day(n), day(n))!.name);
     expect(new Set(names).size).toBe(3);
+  });
+  it('gives a chest per win and per streak milestone; opened ones pay out while still earned', () => {
+    const marks = week(['full', 'full', 'full', 'full', 'full', 'full', 'full']); // a win and a 7-day milestone
+    const w = emptyWardrobe();
+    let s = state(marks, w);
+    let hs = heroOf(s, score(s, day(6)), day(6));
+    expect(hs.chests.map((c) => c.id).sort()).toEqual([`b-${MON}`, `m-${day(6)}-h`]);
+    w.opened[`b-${MON}`] = { day: day(6), gold: 100 };
+    hs = heroOf(s, score(s, day(6)), day(6));
+    expect(hs.chests.map((c) => c.why)).toEqual(['7-day streak']);
+    expect(hs.balance).toBe(35 + BOSS_GOLD + 100);
+    s = state({}, w); // untick the whole week: the win and its chest gold are gone
+    expect(heroOf(s, score(s, day(6)), day(6)).balance).toBe(0);
   });
   it('pays 50 gold per win into the balance', () => {
     const s = state(week(['full', 'full', 'full', 'full', 'full']));
