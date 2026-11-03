@@ -1,9 +1,13 @@
+import { dayKey, dayLabel, weekdayName } from '../logic/day';
 import { isActive, isDue, xpForLevel, type Score } from '../logic/score';
 import type { Habit, State } from '../logic/types';
 import { COIN, FLAME, hero, icon, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
 
-export function questView(state: State, sc: Score, today: string, arming?: string) {
+export function questView(state: State, sc: Score, today: string, now: Date, arming?: string) {
+  // Between midnight and the rollover hour the calendar has moved on but the quest day hasn't.
+  const lateNight = dayKey(now, 0) !== today;
+  const dateLine = `${dayLabel(today)}${lateNight ? ` <span class="muted">(still ${weekdayName(today)} until ${state.settings.rolloverHour}:00 AM)</span>` : ''}`;
   const need = xpForLevel(sc.level + 1) - xpForLevel(sc.level);
   const have = sc.xp - xpForLevel(sc.level);
   // Still-to-do quests first, then rest-day bonuses, then done ones; your order is kept within each group.
@@ -49,6 +53,7 @@ export function questView(state: State, sc: Score, today: string, arming?: strin
       </div>
     </header>
     <h2>${allDone ? 'ALL QUESTS DONE!' : "TODAY'S QUESTS"}</h2>
+    <p class="date-line">${dateLine}</p>
     ${habits.length ? `<ul class="quests">${rows.join('')}</ul>` : '<p class="empty">No quests yet. Every hero needs one.</p>'}
     <button class="btn wide" data-action="tab" data-tab="edit">+ EDIT QUESTS</button>`;
 }

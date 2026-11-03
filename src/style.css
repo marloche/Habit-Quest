@@ -100,6 +100,7 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
   border-left: 4px solid var(--edge); background: var(--blue); color: var(--text); font: inherit; font-size: 10px; cursor: pointer;
 }
 .q-tiny small { font-size: 6px; max-width: 72px; overflow-wrap: anywhere; text-align: center; color: #c8d6ff; }
+h2 + .date-line { margin: -4px 0 16px; font-size: 10px; color: var(--text); }
 .empty { color: var(--muted); text-align: center; padding: 24px 0; }
 
 /* Buttons and forms */

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dayKey, rolloverMovesBack, weekStart, weekday } from './day';
+import { addDays, dayKey, dayLabel, rolloverMovesBack, weekStart, weekday } from './day';
+
+describe('dayLabel', () => {
+  it('formats a day key for the header', () => {
+    expect(dayLabel('2026-11-03')).toBe('TUE NOV 3');
+    expect(dayLabel('2027-01-01')).toBe('FRI JAN 1');
+  });
+});
 
 describe('rolloverMovesBack', () => {
   it('blocks a change that would reopen yesterday', () => {

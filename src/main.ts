@@ -28,7 +28,7 @@ function render() {
   const t = today();
   const sc = (scored = score(state, t));
   const views: Record<Tab, () => string> = {
-    quest: () => questView(state, sc, t, arming),
+    quest: () => questView(state, sc, t, new Date(), arming),
     edit: () => editListView(state.habits),
     form: () => formView(state.habits.find((h) => h.id === editingId)),
     stats: () => statsView(state, sc, t),
