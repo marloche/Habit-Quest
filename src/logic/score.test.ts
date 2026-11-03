@@ -120,4 +120,14 @@ describe('archived habits', () => {
     expect(s.habits.h.comebackReady).toBe(false);
     expect(s.xp).toBeGreaterThan(0);
   });
+  it("keep the XP of a check made on the archive day", () => {
+    const h = { ...habit(), archived: day(1) };
+    const s = score(state([h], logOf([day(0), day(1)])), day(1));
+    expect(s.awards[day(1)].h.xp).toBeGreaterThan(0);
+    expect(s.xp).toBe(s.awards[day(0)].h.xp + s.awards[day(1)].h.xp);
+  });
+  it('keep the XP of a quest archived the day it was made', () => {
+    const h = { ...habit(), archived: day(0) };
+    expect(score(state([h], logOf([day(0)])), day(0)).xp).toBe(10);
+  });
 });

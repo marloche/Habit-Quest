@@ -92,9 +92,10 @@ export function score(state: State, today: string): Score {
     let doneCount = 0;
 
     for (const h of habits) {
-      if (!isActive(h, d)) continue;
-      const st = stats[h.id];
       const mark = log[d]?.[h.id];
+      // A check made on the archive day itself still pays out; the quest just isn't due that day.
+      if (!isActive(h, d) && !(mark && d === h.archived && d >= h.created)) continue;
+      const st = stats[h.id];
       let milestone = 0;
 
       if (h.schedule.kind === 'weekly') {
