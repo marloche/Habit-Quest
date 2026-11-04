@@ -430,7 +430,8 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
   flex: 1; max-width: 160px; min-height: 56px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 10px; cursor: pointer;
 }
 .tabs button[aria-current] { color: var(--gold); text-shadow: 2px 2px 0 var(--danger); }
-@media (max-width: 420px) { .tabs button { font-size: 8px; } } /* five labels fit a phone */
+/* Six labels on a phone: each tab as wide as its label plus an even share of the rest (HERO stays over 44px). */
+@media (max-width: 420px) { .tabs button { font-size: 8px; flex: 1 1 auto; padding: 0 2px; } }
 
 /* Effects */
 #fx { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
@@ -619,3 +620,4 @@ button.ch-box { width: 44px; height: 44px; cursor: pointer; }
 .icon-grid.colors { grid-template-columns: repeat(8, 1fr); margin-top: 8px; }
 .color-pick { min-height: 44px; }
 .color-pick span { display: block; width: 20px; height: 20px; box-shadow: 0 0 0 2px var(--bg); }
+.mq.none { box-shadow: 0 0 0 4px var(--gold), inset 0 0 0 2px #ffcd7544; }

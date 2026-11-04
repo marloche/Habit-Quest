@@ -147,6 +147,5 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
     <p class="date-line">${dateLine}</p>
     ${habits.length ? `<ul class="quests">${rows.join('')}</ul>` : '<p class="empty">No quests yet. Every hero needs one.</p><button class="btn wide blue" data-action="suggest">SUGGEST QUESTS</button>'}
     ${askMood ? `<section class="mood-ask"><h3>HOW WAS TODAY?</h3>${moodRow(state, today)}<p class="small muted">+${JOURNAL_GOLD} G. Add a line in CALENDAR.</p></section>` : ''}
-    <button class="btn wide" data-action="tab" data-tab="edit">+ EDIT QUESTS</button>
-    ${strip ? '' : '<button class="btn wide ghost" data-action="tab" data-tab="epics">EPIC QUESTS</button>'}`;
+    <button class="btn wide" data-action="tab" data-tab="edit">+ EDIT QUESTS</button>`;
 }

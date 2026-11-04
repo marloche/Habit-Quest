@@ -27,7 +27,8 @@ import { epicFormView, epicIdeasView, epicsView, listOf, type EpicUi } from './u
 import { LADDER } from './bosses';
 
 type Tab = 'quest' | 'calendar' | 'hero' | 'edit' | 'form' | 'suggest' | 'stats' | 'settings' | 'epics' | 'epic-form' | 'epic-ideas';
-const UNDER_QUEST: Tab[] = ['edit', 'form', 'suggest', 'epics', 'epic-form', 'epic-ideas']; // screens reached from QUEST, which stays lit
+const UNDER_QUEST: Tab[] = ['edit', 'form', 'suggest']; // screens reached from QUEST, which stays lit
+const UNDER_EPICS: Tab[] = ['epic-form', 'epic-ideas'];
 
 const app = document.getElementById('app')!;
 let state: State = load();
@@ -70,7 +71,7 @@ function render() {
     'epic-form': () => epicFormView(epicDraft, state.habits, !state.epics.some((e) => e.id === epicDraft?.id), epicAddQuest),
     'epic-ideas': () => epicIdeasView(),
   };
-  app.innerHTML = `<main>${views[tab]()}</main>${nav((UNDER_QUEST.includes(tab) ? 'quest' : tab) as NavTab)}`;
+  app.innerHTML = `<main>${views[tab]()}</main>${nav((UNDER_QUEST.includes(tab) ? 'quest' : UNDER_EPICS.includes(tab) ? 'epics' : tab) as NavTab)}`;
   applyScene();
 }
 
@@ -870,7 +871,7 @@ app.addEventListener('click', (e) => {
   }
 });
 
-// PC shortcuts: 1-9 toggles quest N in your order, Shift+1-9 its tiny version, Q/C/H/S/E switch screens.
+// PC shortcuts: 1-9 toggles quest N in your order, Shift+1-9 its tiny version, Q/C/G/H/S/E switch screens.
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || (e.target as Element).closest('input, select, textarea')) return;
   const n = /^Digit([1-9])$/.exec(e.code)?.[1];
@@ -881,7 +882,7 @@ document.addEventListener('keydown', (e) => {
     unlock();
     return mark(h.id, e.shiftKey && h.tiny ? 'tiny' : 'full');
   }
-  const to = ({ KeyQ: 'quest', KeyC: 'calendar', KeyH: 'hero', KeyS: 'stats', KeyE: 'edit' } as Record<string, Tab>)[e.code];
+  const to = ({ KeyQ: 'quest', KeyC: 'calendar', KeyG: 'epics', KeyH: 'hero', KeyS: 'stats', KeyE: 'edit' } as Record<string, Tab>)[e.code];
   if (to && !e.shiftKey) go(to);
 });
 

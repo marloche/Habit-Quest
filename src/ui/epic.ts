@@ -27,9 +27,19 @@ const nextChapter = (e: Epic, p: EpicProgress) => p.reached.findIndex((d) => !d)
 export const listOf = (e: Epic, p: EpicProgress): EpicUi['list'] => (p.finished || e.status === 'retired' ? 'hall' : e.status === 'inn' ? 'inn' : 'active');
 
 // The main quest on the QUEST screen, under the boss bar; tapping it opens EPIC QUESTS.
+// Always there, so goals stay in sight: with no epic on the road it invites you to start one.
 export function epicStrip(state: State) {
   const e = mainEpic(state.epics, state.log);
-  if (!e) return '';
+  if (!e) {
+    const inn = state.epics.filter((x) => listOf(x, epicProgress(x, state.log)) === 'inn').length;
+    const title = state.epics.length ? 'NO EPIC ON THE ROAD' : 'START YOUR FIRST EPIC QUEST';
+    const sub = state.epics.length ? `${inn ? `${inn} resting at the INN. ` : ''}Pick up a long goal again.` : 'A long goal, told as a journey.';
+    return `<button class="mq none" data-action="tab" data-tab="epics" aria-label="${title}. Open epic quests">
+        ${crest('star', 's', 40)}
+        <span class="mq-main"><span class="small gold">MAIN QUEST</span><span class="mq-name">${title}</span><span class="small muted">${sub}</span></span>
+        <span class="mq-go" aria-hidden="true">&gt;</span>
+      </button>`;
+  }
   const p = epicProgress(e, state.log);
   const n = nextChapter(e, p);
   const side = state.epics.filter((x) => x !== e && listOf(x, epicProgress(x, state.log)) === 'active').length;
