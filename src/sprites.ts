@@ -1,3 +1,6 @@
+import { CLASSIC, HAIRS, OUTFITS, SKINS } from './logic/look';
+import type { Look } from './logic/types';
+
 // Pixel art as rows of palette letters ('.' = transparent), rendered to crisp SVG.
 export const PAL: Record<string, string> = {
   k: '#1a1c2c', p: '#5d275d', r: '#b13e53', o: '#ef7d57', y: '#ffcd75', l: '#a7f070', g: '#38b764', G: '#257179',
@@ -47,15 +50,18 @@ export const HOURGLASS = ['oooooooo', '.CyyyyC.', '..CyyC..', '...CC...', '...CC
 
 export const FLAME = ['...o....', '...oo...', '..ooy...', '..oyyo..', '.ooyyoo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..'];
 
-// h = hair/helmet, A/a = armor and its shade; swapped per level tier so the hero visibly grows.
-export const HERO = [
-  '......kkkk......',
-  '.....khhhhk.....',
-  '....khhhhhhk....',
-  '....kffffffk....',
-  '....kfkffkfk....',
-  '....kffffffk....',
-  '.....kffffk.....',
+// f = skin, h = hair, A/a = outfit and its shade: all come from your look. Head rows 0-6 per hair style (STYLES order).
+const SHORT = ['......kkkk......', '.....khhhhk.....', '....khhhhhhk....'];
+const FACE = ['....kffffffk....', '....kfkffkfk....', '....kffffffk....', '.....kffffk.....'];
+export const HEADS = [
+  [...SHORT, ...FACE],
+  [...SHORT, '...khffffffhk...', '...khfkffkfhk...', '...khffffffhk...', '...khhffffhhk...'],
+  [SHORT[0], SHORT[1], '....khhhhhhkk...', '....kffffffkhk..', '....kfkffkfkhk..', '....kffffffk.hk.', '.....kffffk..k..'],
+  ['....hh.h..hh....', '...khhhhhhhhk...', '..hkhhhhhhhhkh..', ...FACE], // uneven tips, or blonde reads as a crown
+  ['......khhk......', SHORT[1], SHORT[2], ...FACE],
+  ['................', SHORT[0], '....kkffffkk....', ...FACE],
+];
+export const BODY = [
   '....kAAAAAAk....',
   '...kfAAaaAAfk...',
   '...kfAAAAAAfk...',
@@ -67,11 +73,14 @@ export const HERO = [
   '................',
 ];
 
-const TIERS = [
-  { from: 1, title: 'Squire', h: '#ef7d57', A: '#38b764', a: '#257179' },
-  { from: 5, title: 'Knight', h: '#94b0c2', A: '#3b5dc9', a: '#29366f' },
-  { from: 10, title: 'Champion', h: '#ffcd75', A: '#b13e53', a: '#5d275d' },
-  { from: 20, title: 'Legend', h: '#ffcd75', A: '#73eff7', a: '#41a6f6' },
+// Your colors stay yours; each tier adds trim on top so the hero still visibly grows.
+const pads = (a: string, b: string): Layer => ({ x: 3, y: 7, rows: [`${a}${b}......${b}${a}`] });
+const BELT: Layer = { x: 5, y: 11, rows: ['yyooyy'] };
+const TIERS: { from: number; title: string; trim: Layer[] }[] = [
+  { from: 1, title: 'Squire', trim: [] },
+  { from: 5, title: 'Knight', trim: [pads('S', 's')] },
+  { from: 10, title: 'Champion', trim: [pads('o', 'y'), BELT] },
+  { from: 20, title: 'Legend', trim: [pads('y', 'C'), BELT, { x: 6, y: 4, rows: ['C..C'] }] },
 ];
 
 export const tierOf = (level: number) => [...TIERS].reverse().find((t) => level >= t.from)!;
@@ -127,16 +136,18 @@ export function svg(rows: string[], size: number, label = '', pal: Record<string
 
 export const icon = (name: string, size = 24) => svg(ICONS[name] ?? ICONS.star, size);
 
-export function hero(level: number, size = 64, worn: string[] = []) {
+export function hero(level: number, size = 64, worn: string[] = [], look: Look = CLASSIC) {
   const t = tierOf(level);
   const layers = worn.map((id) => ITEM_ART[id]).filter(Boolean);
   const width = layers.some((l) => l.x + l.rows[0].length > 16) ? 24 : 16;
-  const grid = HERO.map((row) => row.padEnd(width, '.').split(''));
-  for (const l of layers)
+  const grid = [...HEADS[look.style], ...BODY].map((row) => row.padEnd(width, '.').split(''));
+  const outfit = OUTFITS[look.outfit];
+  const pal = { ...PAL, f: SKINS[look.skin].c, h: HAIRS[look.hair].c, A: outfit.c, a: outfit.d! };
+  for (const l of [...t.trim, ...layers])
     l.rows.forEach((row, dy) =>
       [...row].forEach((ch, dx) => {
         const cell = grid[l.y + dy];
         if (ch !== '.' && cell && (!l.behind || cell[l.x + dx] === '.')) cell[l.x + dx] = ch;
       }));
-  return svg(grid.map((r) => r.join('')), size, `Level ${level} ${t.title}`, { ...PAL, h: t.h, A: t.A, a: t.a });
+  return svg(grid.map((r) => r.join('')), size, `Level ${level} ${t.title}`, pal);
 }

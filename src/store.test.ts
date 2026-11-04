@@ -108,3 +108,18 @@ describe('fresh', () => {
     expect(parseState(JSON.stringify(s))).toEqual(s);
   });
 });
+
+describe('hero look in the save', () => {
+  const base = fresh();
+  it('is optional: a v5 save without one loads unchanged', () => {
+    expect(parseState(JSON.stringify(base)).look).toBeUndefined();
+  });
+  it('survives export and import', () => {
+    const s = { ...base, look: { skin: 5, style: 3, hair: 7, outfit: 6 } };
+    expect(parseState(JSON.stringify(s, null, 1)).look).toEqual(s.look);
+  });
+  it('rejects a look with a part out of range or missing', () => {
+    expect(() => parseState(JSON.stringify({ ...base, look: { skin: 9, style: 0, hair: 0, outfit: 0 } }))).toThrow();
+    expect(() => parseState(JSON.stringify({ ...base, look: { skin: 0, style: 0, hair: 0 } }))).toThrow();
+  });
+});

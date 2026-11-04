@@ -35,4 +35,7 @@ export type Journal = Record<string, { mood: Mood; text?: string }>; // day key 
 
 export type Focus = Record<string, number>; // day key -> minutes focused
 
-export type State = { v: 5; settings: Settings; habits: Habit[]; log: Log; wardrobe: Wardrobe; journal: Journal; focus: Focus; lastOpened?: string };
+// Hero appearance, each part an index into the lists in look.ts. Optional: a save without one draws the classic hero.
+export type Look = { skin: number; style: number; hair: number; outfit: number };
+
+export type State = { v: 5; settings: Settings; habits: Habit[]; log: Log; wardrobe: Wardrobe; journal: Journal; focus: Focus; look?: Look; lastOpened?: string };

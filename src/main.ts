@@ -7,7 +7,8 @@ import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
 import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
 import { JOURNAL_GOLD, JOURNAL_MAX } from './logic/journal';
-import type { Mark, Mood, Schedule, Slot, State } from './logic/types';
+import type { Look, Mark, Mood, Schedule, Slot, State } from './logic/types';
+import { CLASSIC, PRESETS, randomLook } from './logic/look';
 import { BACKUP_DAYS, KEY, backupAge, exportFile, fresh, load, newId, parseState, save } from './store';
 import { calendarView } from './ui/calendar';
 import { editListView, formView } from './ui/edit';
@@ -192,13 +193,13 @@ function mark(id: string, m: Mark, d = today()) {
     banner({ title: `${a.streak}-${after.habits[id].unit.toUpperCase()} STREAK!`, sub: `${name}: +${a.milestone} bonus XP and a chest`, onShow: shake });
   }
   if (after.level > before.level) {
-    banner({ title: 'LEVEL UP!', sub: `You reached level ${after.level}`, level: after.level, worn: wornIds(state.wardrobe, hs.trophies), onShow: () => { shake(); sfx('levelup'); } });
+    banner({ title: 'LEVEL UP!', sub: `You reached level ${after.level}`, level: after.level, worn: wornIds(state.wardrobe, hs.trophies), look: state.look, onShow: () => { shake(); sfx('levelup'); } });
   }
   if (!wasComplete && dayComplete(d)) {
     banner({ title: 'PERFECT DAY!', sub: `${after.perfect}-day perfect run`, onShow: () => sfx('perfect') });
   }
   if (bossNow?.won && bossBefore && !bossBefore.won && bossNow.week === bossBefore.week) {
-    banner({ title: 'BOSS DEFEATED!', sub: `${bossNow.name} falls! +${BOSS_GOLD} G and a chest`, level: after.level, worn: wornIds(state.wardrobe, hs.trophies), onShow: () => { shake(); sfx('levelup'); } });
+    banner({ title: 'BOSS DEFEATED!', sub: `${bossNow.name} falls! +${BOSS_GOLD} G and a chest`, level: after.level, worn: wornIds(state.wardrobe, hs.trophies), look: state.look, onShow: () => { shake(); sfx('levelup'); } });
   }
   if (hs.chests.length > chestsBefore) toast('You earned a chest! Open it on the HERO tab.');
 }
@@ -277,7 +278,7 @@ function tapItem(id: string) {
   w.worn[it.slot] = id;
   commit();
   sfx('milestone');
-  banner({ title: 'NEW GEAR!', sub: `${it.name} equipped`, level: scored.level, worn: wornIds(w, hs.trophies), onShow: shake });
+  banner({ title: 'NEW GEAR!', sub: `${it.name} equipped`, level: scored.level, worn: wornIds(w, hs.trophies), look: state.look, onShow: shake });
 }
 
 function openChest(id: string) {
@@ -289,7 +290,7 @@ function openChest(id: string) {
   commit();
   sfx(loot.item ? 'levelup' : 'milestone');
   if (loot.item) {
-    banner({ title: 'RARE FIND!', sub: `${itemById(loot.item)!.name}! Tap it in the wardrobe to wear it`, level: scored.level, worn: [loot.item], onShow: shake });
+    banner({ title: 'RARE FIND!', sub: `${itemById(loot.item)!.name}! Tap it in the wardrobe to wear it`, level: scored.level, worn: [loot.item], look: state.look, onShow: shake });
   } else banner({ title: 'CHEST OPENED!', sub: `+${loot.gold} G` });
 }
 
@@ -423,11 +424,17 @@ function addSuggested() {
 }
 
 // Wipes everything but settings. The typed word is the guard; the EXPORT button sits right above it.
+function setLook(look: Look) {
+  state.look = look;
+  save(state);
+  render();
+}
+
 function newGame() {
   const typed = prompt('NEW GAME wipes all quests, XP, gold, items, journal and focus minutes. Settings stay.\nExport a backup first if you might want them back.\n\nType RESET to start over.');
   if (typed?.trim().toUpperCase() !== 'RESET') return toast('Nothing was reset.');
   setTimer(undefined);
-  state = fresh(state.settings);
+  state = { ...fresh(state.settings), look: state.look }; // your hero's look is yours, like settings
   localStorage.removeItem(TIERS_KEY);
   save(state);
   shownDay = '';
@@ -531,6 +538,9 @@ app.addEventListener('click', (e) => {
     case 'hero-view': heroTab = el.dataset.view as HeroUi['view']; return render();
     case 'badge': return tapBadge(el.dataset.track!);
     case 'item': return tapItem(el.dataset.item!);
+    case 'preset': return setLook(PRESETS[Number(el.dataset.preset)].look);
+    case 'look': return setLook({ ...(state.look ?? CLASSIC), [el.dataset.part as keyof Look]: Number(el.dataset.val) });
+    case 'look-random': return setLook(randomLook());
     case 'open-chest': return openChest(el.dataset.chest!);
   }
 });

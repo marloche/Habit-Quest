@@ -122,7 +122,7 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
 
   return `
     <header class="hud">
-      <div class="hud-hero">${hero(sc.level, 72, wornIds(state.wardrobe, hs.trophies))}</div>
+      <div class="hud-hero">${hero(sc.level, 72, wornIds(state.wardrobe, hs.trophies), state.look)}</div>
       <div class="hud-main">
         <div class="hud-row"><span>LV ${sc.level}</span><span class="muted">${tierOf(sc.level).title}</span></div>
         <div class="bar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="${need}" aria-valuenow="${have}"><div style="width:${Math.round(sc.progress * 100)}%"></div></div>

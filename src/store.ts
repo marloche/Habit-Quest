@@ -2,6 +2,7 @@ import { daysBetween } from './logic/day';
 import { emptyWardrobe, SLOTS } from './logic/items';
 import { FOCUS_MAX } from './logic/focus';
 import { JOURNAL_MAX } from './logic/journal';
+import { PARTS } from './logic/look';
 import type { Settings, State } from './logic/types';
 
 export const KEY = 'habit-quest';
@@ -51,6 +52,8 @@ const validHabit = (h: any) =>
   optional(h.archived, isDay) && optional(h.tiny, (t) => typeof t === 'string') && validSchedule(h.schedule) &&
   optional(h.focus, (m) => isInt(m, 1, FOCUS_MAX));
 
+const validLook = (l: any) => isRecord(l) && Object.entries(PARTS).every(([k, n]) => isInt(l[k], 0, n - 1));
+
 const validFocus = (f: unknown) => entriesOk(f, (k, v) => isDay(k) && isInt(v, 0, 1440));
 
 // Trust boundary: imported files and old saves go through here. Anything the renderer reads must be checked,
@@ -63,14 +66,14 @@ export function parseState(text: string): State {
     (x.v < 3 || validWardrobe(x.wardrobe)) && (x.v < 4 || validJournal(x.journal)) && (x.v < 5 || validFocus(x.focus)) &&
     s && isInt(s.rolloverHour, 0, 23) && typeof s.muted === 'boolean' && optional(s.lastBackup, isDay) &&
     optional(s.wakeLock, (w) => typeof w === 'boolean') &&
-    optional(x.lastOpened, isDay) &&
+    optional(x.lastOpened, isDay) && optional(x.look, validLook) &&
     Array.isArray(x.habits) && x.habits.every(validHabit) &&
     x.log && typeof x.log === 'object' && !Array.isArray(x.log) &&
     Object.entries(x.log).every(([d, marks]) => isDay(d) && marks && typeof marks === 'object' &&
       Object.values(marks).every((m) => m === 'full' || m === 'tiny'));
   if (!ok) throw new Error('Not a Habit Quest save file');
   // v1 -> v2 added planned quests (old data is valid as is); v2 -> v3 added the wardrobe; v3 -> v4 the journal;
-  // v4 -> v5 focus minutes (quest timers and the wake setting are optional fields).
+  // v4 -> v5 focus minutes. Optional fields (quest timers, the wake setting, the hero's look) need no version bump.
   if (x.v < 3) x.wardrobe = emptyWardrobe();
   if (x.v < 4) x.journal = {};
   if (x.v < 5) x.focus = {};

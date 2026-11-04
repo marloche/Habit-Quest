@@ -335,3 +335,18 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .sugg { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; color: var(--text); font: inherit; text-align: left; cursor: pointer; opacity: .6; }
 .sugg.on { opacity: 1; background: #1f3b38; }
 .btn:disabled { opacity: .4; cursor: default; }
+
+/* Hero LOOK tab */
+.presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 4px; }
+.styles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; padding: 4px; }
+@media (max-width: 420px) { .styles { grid-template-columns: repeat(3, 1fr); } }
+.item[aria-pressed='true'] { background: var(--blue); --edge: var(--gold); }
+.item[aria-pressed='true'] .item-name { color: var(--gold); }
+.swatches { display: flex; flex-wrap: wrap; gap: 12px; padding: 4px; }
+.swatch {
+  width: 44px; height: 44px; display: grid; place-items: center; border: 0; cursor: pointer;
+  background: linear-gradient(135deg, var(--c) 60%, var(--d) 60%);
+  box-shadow: 0 0 0 4px var(--edge);
+}
+.swatch[aria-pressed='true'] { box-shadow: 0 0 0 4px var(--gold), 0 0 0 8px var(--bg); }
+.swatch svg { filter: drop-shadow(1px 1px 0 #1a1c2c) drop-shadow(-1px -1px 0 #1a1c2c); }

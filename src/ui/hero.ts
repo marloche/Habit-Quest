@@ -1,13 +1,14 @@
 import { BOSS_GOLD, type HeroState } from '../logic/hero';
 import { buyBlock, ITEMS, SLOTS, wornIds, type Item } from '../logic/items';
 import type { Score } from '../logic/score';
-import type { Slot, State } from '../logic/types';
+import type { Look, Slot, State } from '../logic/types';
 import type { Progress } from '../logic/achievements';
+import { CLASSIC, HAIRS, OUTFITS, PRESETS, sameLook, SKINS, STYLES, type Swatch } from '../logic/look';
 import { BOSS_ART, CHEST, COIN, FLAME, hero, ICONS, nextTier, PAL, svg, tierOf } from '../sprites';
-import { esc } from './html';
+import { CHECK, esc } from './html';
 
-// view: wardrobe or achievements; slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
-export type HeroUi = { view: 'wardrobe' | 'achievements'; slot: Slot; buying?: string };
+// view: wardrobe, look or achievements; slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
+export type HeroUi = { view: 'wardrobe' | 'look' | 'achievements'; slot: Slot; buying?: string };
 
 const SLOT_NAMES: Record<Slot, string> = { hat: 'HAT', weapon: 'WEAPON', cape: 'CAPE', pet: 'PET' };
 
@@ -62,10 +63,35 @@ function itemCard(state: State, sc: Score, hs: HeroState, it: Item, ui: HeroUi) 
   const said = worn ? 'worn, tap to take off' : owned ? 'owned, tap to wear' : arming ? `tap again to buy for ${it.price} gold` : block || `${it.price} gold, tap to buy`;
   const cls = ['item', worn && 'worn', arming && 'arming', block && 'locked'].filter(Boolean).join(' ');
   return `<button class="${cls}" data-action="item" data-item="${it.id}" aria-label="${esc(`${name}, ${said}`)}">
-      <span class="item-art">${hidden ? '?' : hero(sc.level, 48, [it.id])}</span>
+      <span class="item-art">${hidden ? '?' : hero(sc.level, 48, [it.id], state.look)}</span>
       <span class="item-name">${esc(name)}</span>
       <span class="item-status">${status}</span>
     </button>`;
+}
+
+// A color button; the check mark and the name in the heading say which is picked, not the color alone.
+const swatch = (part: keyof Look, label: string, s: Swatch, i: number, on: boolean) =>
+  `<button class="swatch" style="--c:${s.c};--d:${s.d ?? s.c}" data-action="look" data-part="${part}" data-val="${i}" aria-pressed="${on}" aria-label="${label} ${s.name}">${on ? CHECK : ''}</button>`;
+
+function lookView(state: State, level: number) {
+  const look = state.look ?? CLASSIC;
+  const presets = PRESETS.map((p, i) => `<button class="item" data-action="preset" data-preset="${i}" aria-pressed="${sameLook(look, p.look)}">
+      <span class="item-art">${hero(level, 48, [], p.look)}</span><span class="item-name">${p.name.toUpperCase()}</span></button>`);
+  const styles = STYLES.map((n, i) => `<button class="item" data-action="look" data-part="style" data-val="${i}" aria-pressed="${look.style === i}" aria-label="Hair ${n}">
+      <span class="item-art">${hero(level, 40, [], { ...look, style: i })}</span></button>`);
+  const row = (part: keyof Look, label: string, list: Swatch[]) =>
+    `<h3>${label}: ${list[look[part]].name.toUpperCase()}</h3>
+     <div class="swatches" role="group" aria-label="${label}">${list.map((s, i) => swatch(part, label, s, i, look[part] === i)).join('')}</div>`;
+  return `
+    <h3>PRESETS</h3>
+    <div class="presets">${presets.join('')}</div>
+    ${row('skin', 'SKIN', SKINS)}
+    <h3>HAIR: ${STYLES[look.style].toUpperCase()}</h3>
+    <div class="styles" role="group" aria-label="Hair style">${styles.join('')}</div>
+    ${row('hair', 'HAIR COLOR', HAIRS)}
+    ${row('outfit', 'OUTFIT', OUTFITS)}
+    <p class="muted small">Hats cover your hair. Your level adds armor trim on top: shoulder pads at KNIGHT, a gold belt at CHAMPION, glowing eyes at LEGEND.</p>
+    <button class="btn wide ghost" data-action="look-random">RANDOM HERO</button>`;
 }
 
 export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
@@ -76,7 +102,7 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
   return `
     <h2>HERO</h2>
     <div class="hero-card">
-      <div class="hero-big">${hero(sc.level, 128, wornIds(state.wardrobe, hs.trophies))}</div>
+      <div class="hero-big">${hero(sc.level, 128, wornIds(state.wardrobe, hs.trophies), state.look)}</div>
       <div class="hero-info">
         <b>LV ${sc.level} ${t.title.toUpperCase()}</b>
         <span class="gold${hs.balance < 0 ? ' debt' : ''}">${svg(COIN, 12)} ${goldText(hs)} G</span>
@@ -86,11 +112,12 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
     ${bossBar(hs, true)}
     ${hs.chests.length ? `<button class="btn wide chest-btn" data-action="open-chest" data-chest="${hs.chests[0].id}">
       ${svg(CHEST, 32)}<span>OPEN CHEST${hs.chests.length > 1 ? ` (${hs.chests.length})` : ''}<small>${esc(hs.chests[0].why)}</small></span></button>` : ''}
-    <div class="slot-tabs two" role="tablist">
+    <div class="slot-tabs three" role="tablist">
       <button role="tab" data-action="hero-view" data-view="wardrobe" aria-selected="${ui.view === 'wardrobe'}">WARDROBE</button>
+      <button role="tab" data-action="hero-view" data-view="look" aria-selected="${ui.view === 'look'}">LOOK</button>
       <button role="tab" data-action="hero-view" data-view="achievements" aria-selected="${ui.view === 'achievements'}">ACHIEVEMENTS ${stars}/${hs.achievements.length * 3}</button>
     </div>
-    ${ui.view === 'achievements'
+    ${ui.view === 'look' ? lookView(state, sc.level) : ui.view === 'achievements'
       ? `<div class="badges">${hs.achievements.map(badge).join('')}</div>`
       : `<div class="slot-tabs" role="tablist">${tabs.join('')}</div>
          <div class="items">${ITEMS.filter((i) => i.slot === ui.slot).map((i) => itemCard(state, sc, hs, i, ui)).join('')}</div>`}`;
