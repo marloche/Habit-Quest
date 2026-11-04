@@ -1,11 +1,15 @@
 // Writes the app icons as PNGs from the hero sprite, using only Node built-ins.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
-import { HERO, PAL, tierOf } from '../src/sprites.ts';
+import { BODY, HEADS, PAL } from '../src/sprites.ts';
+import { CLASSIC, HAIRS, OUTFITS, SKINS } from '../src/logic/look.ts';
+
+const HERO = [...HEADS[CLASSIC.style], ...BODY]; // the classic squire, no trim
 
 const GRID = 24; // 16px hero centered with padding, inside the maskable safe zone
 const OFF = (GRID - HERO.length) / 2;
-const colors = { ...PAL, ...tierOf(1) };
+const outfit = OUTFITS[CLASSIC.outfit];
+const colors = { ...PAL, f: SKINS[CLASSIC.skin].c, h: HAIRS[CLASSIC.hair].c, A: outfit.c, a: outfit.d };
 const BG = PAL.d;
 
 const crcTable = Array.from({ length: 256 }, (_, n) => {

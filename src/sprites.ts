@@ -1,4 +1,4 @@
-import { CLASSIC, HAIRS, OUTFITS, SKINS } from './logic/look';
+import { CLASSIC, HAIRS, OUTFITS, SKINS } from './logic/look.ts'; // .ts: scripts/make-icons.mjs loads this file in plain Node
 import type { Look } from './logic/types';
 
 // Pixel art as rows of palette letters ('.' = transparent), rendered to crisp SVG.
