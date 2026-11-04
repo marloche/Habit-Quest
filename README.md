@@ -14,13 +14,15 @@ A pixel-RPG daily habit tracker. Check off quests and earn XP and gold, level up
 | Streak milestones | +50 XP at 7, +150 at 30, +500 at 100 |
 | Levels | level L needs 25·L·(L−1) total XP |
 | Weekly quests ("3x a week") | streak counts weeks that hit the quota; the first partial week never counts against you |
-| Weekly boss | HP = 70% of the week's expected checks x 10; full/planned hit 10, tiny 5. Win by Sunday: +50 gold and a chest. Losing costs nothing |
+| Weekly boss | HP = 70% of the week's expected checks x 10; full/planned hit 10, tiny 5. Win by Sunday: +50 gold and a chest. Losing costs nothing. Bosses climb a ladder, one step per win: Slime, Cave Rat, Bat Swarm, Skeleton, Goblin Raider, Orc Brute, Wraith, Dark Knight, Troll, Lich, Demon Lord, Elder Dragon, each bigger and meaner. A lost week brings the same boss back. After the dragon the ladder repeats as glowing ELITE laps |
 | Chests | One per boss win and per streak milestone: 50-150 gold, or (25%) a chest-only item |
 | Achievements | 10 tracks x 3 tiers (HERO > ACHIEVEMENTS), worked out from your history: +25 / +75 / +200 gold per tier. Unticking can lose a tier and its gold. Tier III of STREAK, PERFECT, CHECKS and BOSS SLAYER unlocks a trophy item, wearable only while the tier holds |
 | Journal | One mood (5 faces) + an optional line per day, in the CALENDAR day panel; the QUEST screen asks "how was today?" in the evening or once all quests are done. +2 gold per day with an entry; clearing the entry takes it back. Stats shows a 30-day mood strip and average mood on all-done days vs other days |
 | Focus timer | Give a quest a timer length in its editor (1-180 min) and an hourglass button appears. When it reaches 0 the quest is checked (full) for the day you started it, even if the phone was locked: it finishes when you come back. STOP asks: log the tiny version, discard, or keep going. Minutes focused show on STATS. SETUP can keep the screen on while a timer runs |
 | Suggested quests | New saves start empty and open a WELCOME screen: pick goal cards (or type what you want, e.g. "learn spanish"), choose 5 / 15 / 30+ min a day, and get a pre-ticked list from an offline library of about 60 quests. Also under EDIT QUESTS → + SUGGEST QUESTS |
-| New game | SETUP → NEW GAME (type RESET) wipes quests, XP, gold, items, journal and focus minutes; settings stay |
+| New game | SETUP → NEW GAME (type RESET) wipes quests, XP, gold, items, journal and focus minutes; settings and your hero's look stay |
+| Hero look | HERO → LOOK: 8 presets, or pick skin, hair style, hair color and outfit yourself (RANDOM HERO too). Level adds armor trim on top: shoulder pads at Knight, gold belt at Champion, glowing eyes at Legend |
+| Backgrounds | SETUP → DISPLAY: castle at night, dungeon, forest village, hell-scape, AUTO (village 7:00-19:00, castle at night) or PLAIN; strength LOW / MEDIUM / HIGH; animated torches, stars, embers and smoke (off by default with reduced motion); boss art on or off |
 | Gold | Spend it on cosmetics in the HERO tab. Balance = earned - paid; unticking past days can put it below zero (you keep your items) |
 | New day | starts at 4 AM by default (Setup tab), so late nights count for the day before |
 
