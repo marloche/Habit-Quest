@@ -14,7 +14,7 @@ describe('journal', () => {
   it('pays gold per day with an entry, not for future days, and adds it to the balance', () => {
     const j: Journal = { [day(0)]: { mood: 3 }, [day(1)]: { mood: 5, text: 'yay' }, [day(9)]: { mood: 1 } };
     expect(journalGold(j, day(1))).toBe(2 * JOURNAL_GOLD);
-    const s: State = { v: 5, settings: { rolloverHour: 4, muted: false }, habits: [], log: {}, wardrobe: emptyWardrobe(), journal: j, focus: {} };
+    const s: State = { v: 6, settings: { rolloverHour: 4, muted: false }, habits: [], log: {}, wardrobe: emptyWardrobe(), journal: j, focus: {}, epics: [] };
     expect(heroOf(s, score(s, day(1)), day(1)).balance).toBe(2 * JOURNAL_GOLD);
   });
   it('averages mood on all-done days vs the rest, skipping rest days and the future', () => {

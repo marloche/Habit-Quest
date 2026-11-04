@@ -4,6 +4,7 @@ import { FOCUS_MAX } from './logic/focus';
 import { JOURNAL_MAX } from './logic/journal';
 import { PARTS } from './logic/look';
 import { BGS } from './logic/scene';
+import { AMOUNT_MAX, CHAPTERS_MAX, EPIC_COLORS, GUARDIANS, NAME_MAX, NOTE_MAX, UNIT_MAX, WHY_MAX } from './logic/epic';
 import type { Settings, State } from './logic/types';
 
 export const KEY = 'habit-quest';
@@ -13,13 +14,14 @@ export const newId = () => Date.now().toString(36) + Math.random().toString(36).
 // A clean slate: no quests yet, so the app opens on the welcome goal picker. NEW GAME keeps your settings.
 export function fresh(settings: Settings = { rolloverHour: 4, muted: false }): State {
   return {
-    v: 5,
+    v: 6,
     settings,
     habits: [],
     log: {},
     wardrobe: emptyWardrobe(),
     journal: {},
     focus: {},
+    epics: [],
   };
 }
 
@@ -58,14 +60,28 @@ const validLook = (l: any) => isRecord(l) && Object.entries(PARTS).every(([k, n]
 
 const validFocus = (f: unknown) => entriesOk(f, (k, v) => isDay(k) && isInt(v, 0, 1440));
 
+const isText = (max: number) => (t: unknown) => typeof t === 'string' && t.length <= max;
+const isNum = (x: unknown, min: number, max: number) => typeof x === 'number' && Number.isFinite(x) && x >= min && x <= max;
+const validChapter = (c: any) =>
+  isRecord(c) && isText(NAME_MAX)(c.name) && optional(c.at, (n) => isNum(n, 1, AMOUNT_MAX)) && optional(c.done, isDay) && optional(c.note, isText(NOTE_MAX));
+const validEpic = (e: any) =>
+  isRecord(e) && isId(e.id) && isText(NAME_MAX)(e.name) && e.name.length > 0 && isId(e.icon) && isInt(e.color, 0, EPIC_COLORS.length - 1) &&
+  optional(e.why, isText(WHY_MAX)) && optional(e.due, isDay) && isDay(e.created) && isInt(e.guardian, 0, GUARDIANS - 1) &&
+  ['chapters', 'count', 'links'].includes(e.by) && (e.by === 'chapters' ? e.target === undefined : isNum(e.target, 1, AMOUNT_MAX)) &&
+  optional(e.unit, isText(UNIT_MAX)) && optional(e.links, (l) => Array.isArray(l) && l.every(isId)) &&
+  optional(e.logs, (lg) => entriesOk(lg, (k, v) => isDay(k) && isNum(v, 0, AMOUNT_MAX))) &&
+  Array.isArray(e.chapters) && e.chapters.length <= CHAPTERS_MAX && e.chapters.every(validChapter) &&
+  ['active', 'inn', 'retired'].includes(e.status) && optional(e.main, (b) => typeof b === 'boolean') && optional(e.ended, isDay);
+
 // Trust boundary: imported files and old saves go through here. Anything the renderer reads must be checked,
 // because an invalid save is stored before the first render and would crash every launch after.
 export function parseState(text: string): State {
   const x = JSON.parse(text);
   const s = x?.settings;
   const ok =
-    x && isInt(x.v, 1, 5) &&
+    x && isInt(x.v, 1, 6) &&
     (x.v < 3 || validWardrobe(x.wardrobe)) && (x.v < 4 || validJournal(x.journal)) && (x.v < 5 || validFocus(x.focus)) &&
+    (x.v < 6 || (Array.isArray(x.epics) && x.epics.every(validEpic))) &&
     s && isInt(s.rolloverHour, 0, 23) && typeof s.muted === 'boolean' && optional(s.lastBackup, isDay) &&
     [s.wakeLock, s.bgAnim, s.bossArt].every((b) => optional(b, (v) => typeof v === 'boolean')) &&
     optional(s.bg, (b) => (BGS as unknown[]).includes(b)) && optional(s.bgStrength, (n) => isInt(n, 1, 3)) &&
@@ -76,11 +92,12 @@ export function parseState(text: string): State {
       Object.values(marks).every((m) => m === 'full' || m === 'tiny'));
   if (!ok) throw new Error('Not a Habit Quest save file');
   // v1 -> v2 added planned quests (old data is valid as is); v2 -> v3 added the wardrobe; v3 -> v4 the journal;
-  // v4 -> v5 focus minutes. Optional fields (quest timers, the wake setting, the hero's look) need no version bump.
+  // v4 -> v5 focus minutes; v5 -> v6 epic quests. Optional fields (quest timers, the wake setting, the hero's look) need no version bump.
   if (x.v < 3) x.wardrobe = emptyWardrobe();
   if (x.v < 4) x.journal = {};
   if (x.v < 5) x.focus = {};
-  x.v = 5;
+  if (x.v < 6) x.epics = [];
+  x.v = 6;
   return x as State;
 }
 

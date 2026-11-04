@@ -562,3 +562,60 @@ body.scened main :is(h3, p, label, .date-line, .empty) { text-shadow: 1px 1px 0 
 #bg.still .spark, body.still :is(.juice, .juice *, .rare) { animation: none !important; }
 body.still .bar.juice > div { transition: none !important; }
 #bg.still :is(.s-ember, .s-smoke, .s-glow, .s-fall, .s-rain) { display: none; }
+
+/* Epic quests */
+.mq, .epic-card { background: var(--panel); }
+.mq { display: flex; align-items: center; gap: 12px; width: calc(100% - 8px); margin: 16px 4px 0; padding: 10px 12px; background: linear-gradient(#3b4566, var(--panel)); border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; box-shadow: 0 0 0 4px var(--gold); }
+.mq:active, .epic-card:active { transform: translateY(2px); }
+.mq-main { flex: 1; display: grid; gap: 6px; min-width: 0; }
+.mq-name { font-size: 12px; overflow-wrap: anywhere; }
+.mq-go { color: var(--gold); }
+.bar.epic > div { background: repeating-linear-gradient(90deg, var(--gold) 0 8px, var(--hot) 8px 10px); }
+.etag { display: inline-flex; align-items: center; gap: 3px; margin: 4px 6px 0 0; padding: 2px 4px; background: var(--bg); color: var(--gold); font-size: 6px; vertical-align: middle; }
+.float.epic { color: #d3a6f5; }
+.epic-head { display: flex; gap: 12px; align-items: center; margin: 4px; }
+.epic-title { display: grid; gap: 6px; min-width: 0; }
+.epic-name { font-size: 14px; overflow-wrap: anywhere; }
+.epic-why { margin: 8px 4px; color: var(--muted); }
+.journey { position: relative; margin: 12px 4px 16px; background: #262b44; box-shadow: 0 0 0 4px var(--edge); overflow: hidden; }
+.road-area { position: absolute; left: 0; right: 0; top: 64px; bottom: 28px; }
+.road { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.road polyline { fill: none; stroke-width: 6; stroke-dasharray: 6 6; }
+.road-all { stroke: var(--edge); }
+.road-done { stroke: var(--gold); }
+/* Each stop stands on its point on the road: art above, label below. */
+.stop { position: absolute; display: grid; justify-items: center; gap: 2px; transform: translate(-50%, -24px); }
+.stop.start { transform: translate(-50%, -4px); }
+.stop.end { transform: translate(-50%, -48px); }
+.stop-label { max-width: 128px; padding: 2px 4px; background: #1a1c2ccc; color: var(--gold); font-size: 6px; line-height: 1.6; text-align: center; }
+.stop.end .stop-label { color: var(--hot-text); }
+.guardian.fallen { filter: grayscale(1) brightness(.6); }
+.tree { position: absolute; transform: translate(-50%, -50%); opacity: .8; }
+.walker { position: absolute; transform: translate(-50%, -100%); }
+.walker > svg { animation: bob 1.2s steps(2) infinite; }
+.ch-list { list-style: none; padding: 0; margin: 0 4px; display: grid; }
+.ch-row { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 0; border-bottom: 2px dashed var(--edge); }
+.ch-box { width: 32px; height: 32px; flex: none; display: grid; place-items: center; padding: 0; border: 0; background: var(--bg); box-shadow: inset 0 0 0 2px var(--edge); color: inherit; }
+button.ch-box { width: 44px; height: 44px; cursor: pointer; }
+.ch-row.done .ch-box { background: var(--accent); box-shadow: inset -3px -3px 0 #257179, 0 0 0 2px var(--accent-2); }
+.ch-text { flex: 1; display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.ch-today { display: flex; align-items: center; gap: 8px; margin: 8px 4px; }
+.epic-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 4px; }
+.epic-list { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 12px; }
+.epic-card {
+  display: flex; align-items: center; gap: 12px; width: calc(100% - 8px); margin: 4px; padding: 10px 12px; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  box-shadow: 0 calc(-1 * var(--px)) 0 0 var(--edge), 0 var(--px) 0 0 var(--edge), calc(-1 * var(--px)) 0 0 0 var(--edge), var(--px) 0 0 0 var(--edge);
+}
+.epic-card .bar { margin-top: 4px; }
+.by-target, .by-unit, .by-links { display: none; }
+.epic-form:has(option[value='count']:checked) :is(.by-target, .by-unit) { display: grid; }
+.epic-form:has(option[value='links']:checked) :is(.by-target, .by-links) { display: grid; }
+.epic-form:has(option[value='chapters']:checked) :is(.ch-at, .ch-hint) { display: none; }
+.by-links { gap: 8px; padding: 4px; }
+.link-pick { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 8px; background: var(--panel); cursor: pointer; }
+.link-pick input { width: 20px; height: 20px; box-shadow: none; accent-color: var(--accent); }
+.ch-edit { display: grid; grid-template-columns: 1fr 80px; gap: 12px; padding: 4px; }
+.epic-form:has(option[value='chapters']:checked) .ch-edit { grid-template-columns: 1fr; }
+.icon-grid.colors { grid-template-columns: repeat(8, 1fr); margin-top: 8px; }
+.color-pick { min-height: 44px; }
+.color-pick span { display: block; width: 20px; height: 20px; box-shadow: 0 0 0 2px var(--bg); }

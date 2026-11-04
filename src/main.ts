@@ -7,7 +7,7 @@ import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
 import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
 import { JOURNAL_GOLD, JOURNAL_MAX } from './logic/journal';
-import type { Bg, Look, Mark, Mood, Schedule, Slot, State } from './logic/types';
+import type { Bg, Chapter, Epic, EpicBy, Look, Mark, Mood, Schedule, Slot, State } from './logic/types';
 import { display, sceneFor } from './logic/scene';
 import { mountScene } from './scenes';
 import { CLASSIC, PRESETS, randomLook } from './logic/look';
@@ -16,14 +16,18 @@ import { calendarView } from './ui/calendar';
 import { editListView, formView } from './ui/edit';
 import { heroView, type HeroUi } from './ui/hero';
 import { newTiers, TIER_GOLD, trophyAt } from './logic/achievements';
-import { nav } from './ui/html';
+import { nav, type NavTab } from './ui/html';
 import { questView } from './ui/quest';
 import { settingsView } from './ui/settings';
 import { statsView } from './ui/stats';
 import { picks, suggestView, type SuggestUi } from './ui/suggest';
-import { GOALS, goalsFromText, ideaToHabit, type Budget } from './logic/suggest';
+import { EPIC_IDEAS, epicFromIdea, GOALS, goalsFromText, IDEAS, ideaToHabit, type Budget } from './logic/suggest';
+import { AMOUNT_MAX, defaultGuardian, epicProgress, epicsOfHabit, NAME_MAX, NOTE_MAX, UNIT_MAX, WHY_MAX } from './logic/epic';
+import { epicFormView, epicIdeasView, epicsView, listOf, type EpicUi } from './ui/epic';
+import { LADDER } from './bosses';
 
-type Tab = 'quest' | 'calendar' | 'hero' | 'edit' | 'form' | 'suggest' | 'stats' | 'settings';
+type Tab = 'quest' | 'calendar' | 'hero' | 'edit' | 'form' | 'suggest' | 'stats' | 'settings' | 'epics' | 'epic-form' | 'epic-ideas';
+const UNDER_QUEST: Tab[] = ['edit', 'form', 'suggest', 'epics', 'epic-form', 'epic-ideas']; // screens reached from QUEST, which stays lit
 
 const app = document.getElementById('app')!;
 let state: State = load();
@@ -38,6 +42,9 @@ let calMonth = '';
 let calMood = false; // calendar grid colored by mood instead of quests
 let shopSlot: HeroUi['slot'] = 'hat';
 let heroTab: HeroUi['view'] = 'wardrobe';
+let epicUi: EpicUi = { list: 'active' };
+let epicDraft: Epic | undefined; // the epic in the editor: a copy, so CANCEL changes nothing
+let epicAddQuest: string | undefined; // a quest idea the draft wants linked that you don't have yet
 audio.muted = state.settings.muted;
 
 const today = () => dayKey(new Date(), state.settings.rolloverHour);
@@ -59,8 +66,11 @@ function render() {
     suggest: () => suggestView(state, sugg),
     stats: () => statsView(state, sc, hs, t),
     settings: () => settingsView(state, t, reducedMotion.matches),
+    epics: () => epicsView(state, t, epicUi, sc.level, wornIds(state.wardrobe, hs.trophies), state.look),
+    'epic-form': () => epicFormView(epicDraft, state.habits, !state.epics.some((e) => e.id === epicDraft?.id), epicAddQuest),
+    'epic-ideas': () => epicIdeasView(),
   };
-  app.innerHTML = `<main>${views[tab]()}</main>${nav(tab === 'edit' || tab === 'form' || tab === 'suggest' ? 'quest' : tab)}`;
+  app.innerHTML = `<main>${views[tab]()}</main>${nav((UNDER_QUEST.includes(tab) ? 'quest' : tab) as NavTab)}`;
   applyScene();
 }
 
@@ -244,6 +254,7 @@ function mark(id: string, m: Mark, d = today()) {
   const bossBefore = hs.boss;
   const chestsBefore = hs.chests.length;
   const wasComplete = dayComplete(d);
+  const epicsBefore = epicMarks();
   // Measured before the redraw: a done quest sorts down the list, but its rewards belong where you tapped.
   const tapped = app.querySelector(`[data-row="${key}"]`)?.getBoundingClientRect();
   day[id] = m;
@@ -265,6 +276,8 @@ function mark(id: string, m: Mark, d = today()) {
   floatText(tapped, `+${a.xp} XP`);
   setTimeout(() => floatText(tapped, `+${a.gold} G`, 'gold', -22), 180);
   if (a.comeback) setTimeout(() => floatText(tapped, 'COMEBACK!', 'hot', -44), 360);
+  // A check that moves an epic says so, one line further up.
+  if (epicsOfHabit(state.epics, state.log, id).some((e) => d >= e.created)) setTimeout(() => floatText(tapped, 'EPIC +1', 'epic', a.comeback ? -66 : -44), a.comeback ? 540 : 360);
   sfx(a.milestone ? 'milestone' : a.comeback ? 'combo' : m === 'tiny' ? 'tiny' : 'check');
 
   if (a.milestone) {
@@ -284,6 +297,7 @@ function mark(id: string, m: Mark, d = today()) {
     setTimeout(() => banner({ title: 'BOSS DEFEATED!', sub, level: after.level, worn, look: state.look, onShow: () => { shake(); sfx('bossdown'); } }), 900);
   }
   if (hs.chests.length > chestsBefore) toast('You earned a chest! Open it on the HERO tab.');
+  cheerEpics(epicsBefore);
 }
 
 function move(id: string, dir: number) {
@@ -552,6 +566,220 @@ function unplan(id: string) {
   commit();
 }
 
+// Epic quests. Progress is derived (logic/epic.ts); these only change the epic itself and cheer what changed.
+type EpicMarks = Record<string, { reached: number; finished: boolean; gold: number }>;
+const epicMarks = (): EpicMarks => Object.fromEntries(state.epics.map((e) => {
+  const p = epicProgress(e, state.log);
+  return [e.id, { reached: p.reached.filter(Boolean).length, finished: !!p.finished, gold: p.gold }];
+}));
+
+// A chapter reached gets a banner; a finish gets the big one, with the guardian beaten.
+function cheerEpics(before: EpicMarks) {
+  for (const e of state.epics) {
+    const b = before[e.id];
+    if (!b) continue;
+    const p = epicProgress(e, state.log);
+    const gold = p.gold - b.gold;
+    if (p.finished && !b.finished) {
+      banner({
+        title: 'EPIC QUEST COMPLETE!', sub: `${e.name}: ${LADDER[e.guardian].name} is beaten! +${gold} G`, reveal: true,
+        level: scored.level, worn: wornIds(state.wardrobe, hs.trophies), look: state.look, onShow: () => { shake(); sfx('legendary'); },
+      });
+    } else if (p.reached.filter(Boolean).length > b.reached) {
+      const last = p.reached.reduce((best, d, i) => (d && (best < 0 || d >= p.reached[best]!) ? i : best), -1);
+      banner({ title: 'CHAPTER COMPLETE!', sub: `${e.name}: ${e.chapters[last].name}. +${gold} G`, onShow: () => sfx('milestone') });
+    }
+  }
+}
+
+// Change an epic, save, redraw and cheer anything it reached.
+function epicChange(id: string, change: (e: Epic) => void) {
+  const e = state.epics.find((x) => x.id === id);
+  if (!e) return;
+  const before = epicMarks();
+  change(e);
+  epicUi = { list: listOf(e, epicProgress(e, state.log)), open: id }; // a finish moves it to the HALL: follow it there
+  commit();
+  cheerEpics(before);
+}
+
+function openEpic(id: string) {
+  const e = state.epics.find((x) => x.id === id);
+  if (!e) return;
+  epicUi = { list: listOf(e, epicProgress(e, state.log)), open: id };
+  go('epics');
+}
+
+function editEpic(id?: string, draft?: Epic, addQuest?: string) {
+  const e = state.epics.find((x) => x.id === id);
+  epicDraft = draft ?? (e && structuredClone(e));
+  epicAddQuest = addQuest;
+  go('epic-form');
+}
+
+// An idea fills the editor; its quest is linked if you have it, else offered as a new quest to add on save.
+function takeIdea(n: number) {
+  const i = EPIC_IDEAS[n];
+  if (!i) return;
+  const have = i.link ? state.habits.find((h) => !h.archived && h.name.toLowerCase() === i.link!.toLowerCase()) : undefined;
+  const draft = epicFromIdea(i, newId(), today(), have?.id);
+  editEpic(undefined, draft, i.by === 'links' && !have ? i.link : undefined);
+}
+
+function saveEpic(form: HTMLFormElement) {
+  const f = new FormData(form);
+  const text = (k: string, max: number) => String(f.get(k) ?? '').trim().slice(0, max);
+  const name = text('name', NAME_MAX);
+  if (!name) return;
+  const by = String(f.get('by')) as EpicBy;
+  const rawTarget = Math.round(Number(f.get('target')) * 10) / 10;
+  const target = by === 'chapters' ? undefined : by === 'links' ? Math.round(rawTarget) : rawTarget;
+  if (target !== undefined && !(target >= 1 && target <= AMOUNT_MAX)) return alert('Set a target of at least 1.');
+  const old = state.epics.find((e) => e.id === epicDraft?.id) ?? epicDraft;
+  const names = f.getAll('ch-name').map(String);
+  const ats = f.getAll('ch-at').map(Number);
+  // Row i is chapter i, so a renamed chapter keeps its tick and note.
+  const chapters: Chapter[] = [];
+  names.forEach((raw, i) => {
+    const n = raw.trim().slice(0, NAME_MAX);
+    if (!n) return;
+    const at = by !== 'chapters' && ats[i] >= 1 ? Math.min(target!, by === 'links' ? Math.round(ats[i]) : Math.round(ats[i] * 10) / 10) : undefined;
+    const prev = old?.chapters[i];
+    chapters.push({ name: n, ...(at ? { at } : {}), ...(prev?.done ? { done: prev.done } : {}), ...(prev?.note ? { note: prev.note } : {}) });
+  });
+  if (by === 'chapters' && !chapters.length) return alert('Add at least one chapter.');
+  const links = f.getAll('link').map(String).filter((id) => state.habits.some((h) => h.id === id));
+  const addName = by === 'links' ? String(f.get('add-quest') ?? '') : '';
+  const idea = addName ? IDEAS.find((i) => i.name === addName) : undefined;
+  if (by === 'links' && !links.length && !idea) return alert('Link at least one quest.');
+  if (idea) {
+    const h = ideaToHabit(idea, newId(), today());
+    state.habits.push(h);
+    links.push(h.id);
+  }
+  const due = String(f.get('due') ?? '');
+  const g = Number(f.get('guardian'));
+  const why = text('why', WHY_MAX);
+  const unit = text('unit', UNIT_MAX);
+  const e: Epic = {
+    id: old?.id ?? newId(), name, icon: String(f.get('icon') ?? 'star'), color: Number(f.get('color') ?? 0),
+    created: old?.created ?? today(), guardian: 0, by, chapters, status: old?.status ?? 'active',
+    ...(why ? { why } : {}),
+    ...(/^\d{4}-\d{2}-\d{2}$/.test(due) ? { due } : {}),
+    ...(target !== undefined ? { target } : {}),
+    ...(by === 'count' && unit ? { unit } : {}),
+    ...(by === 'links' ? { links } : {}),
+    ...(old?.logs ? { logs: old.logs } : {}),
+    ...(old?.main ? { main: true } : {}),
+    ...(old?.ended ? { ended: old.ended } : {}),
+  };
+  e.guardian = g >= 0 && g < LADDER.length ? g : defaultGuardian(e);
+  const before = epicMarks();
+  const i = state.epics.findIndex((x) => x.id === e.id);
+  if (i >= 0) state.epics[i] = e;
+  else {
+    before[e.id] = { reached: 0, finished: false, gold: 0 };
+    state.epics.push(e);
+  }
+  epicDraft = undefined;
+  epicAddQuest = undefined;
+  epicUi = { list: listOf(e, epicProgress(e, state.log)), open: e.id };
+  save(state);
+  sfx(i >= 0 ? 'tiny' : 'milestone');
+  go('epics');
+  if (i < 0) toast(idea ? `Epic quest begun! "${idea.name}" was added to your quests.` : 'Epic quest begun! The road is long; every step counts.');
+  cheerEpics(before);
+}
+
+function logEpic(form: HTMLFormElement) {
+  const n = Math.round(Number(new FormData(form).get('amount')) * 10) / 10;
+  if (!(n > 0)) return;
+  const t = today();
+  const at = form.querySelector('button')?.getBoundingClientRect();
+  epicChange(form.dataset.id!, (e) => {
+    e.logs ??= {};
+    e.logs[t] = Math.min(AMOUNT_MAX, Math.round(((e.logs[t] ?? 0) + n) * 10) / 10);
+  });
+  sfx('check');
+  floatText(at, `+${n}`, 'epic');
+}
+
+function unlogEpic(id: string) {
+  const e = state.epics.find((x) => x.id === id);
+  const t = today();
+  if (!e?.logs?.[t] || !confirm(`Clear today's ${e.logs[t]} logged for "${e.name}"?`)) return;
+  delete e.logs[t];
+  commit();
+  sfx('undo');
+}
+
+function tickChapter(id: string, i: number) {
+  const c = state.epics.find((x) => x.id === id)?.chapters[i];
+  if (!c) return;
+  if (c.done) {
+    delete c.done;
+    commit();
+    return sfx('undo');
+  }
+  epicChange(id, () => (c.done = today()));
+  sfx('check');
+}
+
+// One line per chapter: the story the HALL tells later.
+function noteChapter(id: string, i: number) {
+  const c = state.epics.find((x) => x.id === id)?.chapters[i];
+  if (!c) return;
+  const line = prompt(`One line for "${c.name}" (blank clears it)`, c.note ?? '');
+  if (line === null) return;
+  const note = line.trim().slice(0, NOTE_MAX);
+  if (note) c.note = note;
+  else delete c.note;
+  commit();
+}
+
+function setMain(id: string) {
+  for (const e of state.epics) delete e.main;
+  const e = state.epics.find((x) => x.id === id);
+  if (e) e.main = true;
+  commit();
+  sfx('tiny');
+}
+
+// The INN: off the QUEST screen while life is busy. Linked checks still count, so nothing is lost.
+function toggleInn(id: string) {
+  const e = state.epics.find((x) => x.id === id);
+  if (!e) return;
+  e.status = e.status === 'inn' ? 'active' : 'inn';
+  if (e.status === 'inn') delete e.main;
+  epicUi = { list: e.status, open: id };
+  commit();
+  sfx('tiny');
+  toast(e.status === 'inn' ? `${e.name} rests at the INN. Its linked quests still count.` : `${e.name} is back on the road!`);
+}
+
+function retire(id: string) {
+  const e = state.epics.find((x) => x.id === id);
+  if (!e || !confirm(`Retire "${e.name}" with honor? It moves to the HALL with its chapters and gold kept.`)) return;
+  e.status = 'retired';
+  e.ended = today();
+  delete e.main;
+  epicUi = { list: 'hall', open: id };
+  commit();
+  sfx('perfect');
+  toast('Retired with honor. Every chapter you reached stays in the HALL.');
+}
+
+// Only an epic that never paid out can be deleted; one with history retires instead.
+function deleteEpic(id: string) {
+  const i = state.epics.findIndex((x) => x.id === id);
+  const e = state.epics[i];
+  if (!e || epicProgress(e, state.log).gold || !confirm(`Delete "${e.name}"? This can't be undone.`)) return;
+  state.epics.splice(i, 1);
+  epicUi = { list: 'active' };
+  commit();
+  sfx('undo');
+}
+
 async function doExport() {
   const prev = state.settings.lastBackup;
   state.settings.lastBackup = today();
@@ -627,6 +855,18 @@ app.addEventListener('click', (e) => {
     case 'bg': state.settings.bg = el.dataset.bg as Bg; return commit();
     case 'bg-strength': state.settings.bgStrength = Number(el.dataset.val); return commit();
     case 'open-chest': return openChest(el.dataset.chest!);
+    case 'epic-open': return openEpic(id);
+    case 'epic-list': epicUi = { list: el.dataset.list as EpicUi['list'] }; return render();
+    case 'epic-new': return editEpic();
+    case 'epic-edit': return editEpic(id);
+    case 'epic-idea': return takeIdea(Number(el.dataset.idea));
+    case 'epic-chapter': return tickChapter(id, Number(el.dataset.ch));
+    case 'epic-note': return noteChapter(id, Number(el.dataset.ch));
+    case 'epic-unlog': return unlogEpic(id);
+    case 'epic-main': return setMain(id);
+    case 'epic-inn': return toggleInn(id);
+    case 'epic-retire': return retire(id);
+    case 'epic-delete': return deleteEpic(id);
   }
 });
 
@@ -651,6 +891,8 @@ app.addEventListener('submit', (e) => {
   if (form.dataset.form === 'plan') plan(form);
   else if (form.dataset.form === 'journal') saveJournal(form);
   else if (form.dataset.form === 'intent') matchIntent(form);
+  else if (form.dataset.form === 'epic') saveEpic(form);
+  else if (form.dataset.form === 'epic-log') logEpic(form);
   else saveHabit(form);
 });
 
@@ -696,7 +938,7 @@ addEventListener('storage', (e) => {
   }
   quietTiers = true;
   audio.muted = state.settings.muted;
-  if (tab !== 'form') render(); // don't wipe a half-typed quest
+  if (tab !== 'form' && tab !== 'epic-form') render(); // don't wipe a half-typed quest
 });
 
 render();

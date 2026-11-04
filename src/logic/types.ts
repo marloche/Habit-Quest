@@ -46,4 +46,20 @@ export type Focus = Record<string, number>; // day key -> minutes focused
 // garb: the outfit's shape (GARBS); optional because looks saved before it existed have none, and draw the tunic.
 export type Look = { skin: number; style: number; hair: number; outfit: number; garb?: number };
 
-export type State = { v: 5; settings: Settings; habits: Habit[]; log: Log; wardrobe: Wardrobe; journal: Journal; focus: Focus; look?: Look; lastOpened?: string };
+// A long-term goal. Progress is worked out like everything else: from ticked chapters, logged amounts, or the
+// log of linked quests from the epic's start. "Finished" is never stored, so unticking can take it back.
+// at: the amount (count / links) that reaches this chapter; missing means evenly spaced. done: day ticked (chapters mode).
+export type Chapter = { name: string; at?: number; done?: string; note?: string };
+export type EpicBy = 'chapters' | 'count' | 'links';
+export type Epic = {
+  id: string; name: string; icon: string; color: number; // color: index into EPIC_COLORS
+  why?: string; due?: string; created: string;
+  guardian: number; // index into the boss LADDER
+  by: EpicBy; target?: number; unit?: string; links?: string[];
+  logs?: Record<string, number>; // day key -> amount logged that day (count mode)
+  chapters: Chapter[];
+  status: 'active' | 'inn' | 'retired'; main?: boolean;
+  ended?: string; // day it was retired; progress after it doesn't count
+};
+
+export type State = { v: 6; settings: Settings; habits: Habit[]; log: Log; wardrobe: Wardrobe; journal: Journal; focus: Focus; epics: Epic[]; look?: Look; lastOpened?: string };

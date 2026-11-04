@@ -5,7 +5,7 @@ import type { Score } from '../logic/score';
 import type { Look, Slot, State } from '../logic/types';
 import type { Progress } from '../logic/achievements';
 import { CLASSIC, GARBS, HAIRS, OUTFITS, PRESETS, sameLook, SKINS, STYLES, type Swatch } from '../logic/look';
-import { CALENDAR, CHEST, COIN, FLAME, hero, ICONS, ITEM_ART, nextTier, PAL, petOf, SUNRISE, svg, tierOf } from '../sprites';
+import { CALENDAR, CHEST, COIN, crestRows, FLAME, hero, ICONS, ITEM_ART, nextTier, PAL, petOf, SUNRISE, svg, tierOf } from '../sprites';
 import { ELITE_PALS, LADDER, wounded } from '../bosses';
 import { CHECK, esc } from './html';
 
@@ -53,7 +53,7 @@ export const petButton = (id: string, size = 64) =>
 const TRACK_ART: Record<string, string[]> = {
   streak: FLAME, perfect: ICONS.star, checks: ICONS.pen, tiny: ICONS.leaf, comeback: ICONS.heart,
   boss: LADDER[0].art, level: ICONS.sword, planner: ICONS.moon, collector: COIN, treasure: CHEST,
-  days: SUNRISE, weeks: CALENDAR,
+  days: SUNRISE, weeks: CALENDAR, legends: crestRows('star', 'v'),
 };
 const DIM = { ...PAL, y: PAL.S }; // an unearned star
 

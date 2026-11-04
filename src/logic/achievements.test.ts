@@ -9,7 +9,7 @@ const MON = '2026-11-02';
 const day = (n: number) => addDays(MON, n);
 const daily: Habit = { id: 'h', name: 'h', icon: 'star', schedule: { kind: 'daily' }, created: MON };
 const plan: Habit = { id: 'p', name: 'p', icon: 'star', schedule: { kind: 'once', day: day(1) }, created: MON };
-const state = (log: Log, habits = [daily]): State => ({ v: 5, settings: { rolloverHour: 4, muted: false }, habits, log, wardrobe: emptyWardrobe(), journal: {}, focus: {} });
+const state = (log: Log, habits = [daily]): State => ({ v: 6, settings: { rolloverHour: 4, muted: false }, habits, log, wardrobe: emptyWardrobe(), journal: {}, focus: {}, epics: [] });
 
 describe('achievement tracks', () => {
   it('have rising tiers, and every trophy sits on a real track tier with its unlock spelled out', () => {
@@ -68,5 +68,16 @@ describe('new tiers', () => {
     expect(newTiers({}, ps).map((p) => [p.track.id, p.tier])).toEqual([['streak', 2], ['boss', 3]]);
     expect(newTiers({ streak: 2, boss: 2 }, ps).map((p) => p.track.id)).toEqual(['boss']);
     expect(newTiers({ streak: 3, boss: 3 }, ps)).toEqual([]); // tiers lost by unticking: nothing to cheer
+  });
+});
+
+describe('legends', () => {
+  it('counts finished epic quests', () => {
+    const s = { ...state({ [day(0)]: { h: 'full' }, [day(1)]: { h: 'full' } }), epics: [
+      { id: 'a', name: 'A', icon: 'star', color: 0, created: day(0), guardian: 0, by: 'links' as const, target: 2, links: ['h'], chapters: [], status: 'active' as const },
+      { id: 'b', name: 'B', icon: 'star', color: 0, created: day(0), guardian: 0, by: 'links' as const, target: 9, links: ['h'], chapters: [], status: 'active' as const },
+    ] };
+    const p = progressOf(trackValues(s, score(s, day(1)), 0)).find((x) => x.track.id === 'legends')!;
+    expect([p.value, p.tier]).toEqual([1, 1]);
   });
 });

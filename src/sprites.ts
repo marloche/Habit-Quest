@@ -24,6 +24,15 @@ export const ICONS: Record<string, string[]> = {
   coin: COIN,
 };
 
+// An epic quest's crest: a shield in its color (a palette letter) with its icon on a dark field.
+const SHIELD = ['kkkkkkkkkkkk', 'kAAAAAAAAAAk', ...Array(8).fill('kAddddddddAk'), 'kAAAAAAAAAAk', '.kAAAAAAAAk.', '..kAAAAAAk..', '...kAAAAk...', '....kAAk....', '.....kk.....'];
+export const crestRows = (iconName: string, color: string) =>
+  SHIELD.map((row, y) => [...row].map((ch, x) => {
+    const px = y >= 2 && y < 10 && x >= 2 && x < 10 ? (ICONS[iconName] ?? ICONS.star)[y - 2][x - 2] : '.';
+    return px !== '.' ? px : ch === 'A' ? color : ch;
+  }).join(''));
+export const crest = (iconName: string, color: string, size = 32, label = '') => svg(crestRows(iconName, color), size, label);
+
 export const CHEST = ['........', '.oooooo.', 'oooooooo', 'yyyyyyyy', 'oooyyooo', 'oooyyooo', 'oooooooo', '.oooooo.'];
 
 // Mood faces 1-5 (awful to great); 'm' is the mood's own color.

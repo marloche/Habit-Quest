@@ -3,6 +3,7 @@ import { expected, isActive, type Score } from './score';
 import { progressOf, tierGold, trackValues, trophiesOf, type Progress } from './achievements';
 import { ITEMS } from './items';
 import { journalGold } from './journal';
+import { epicGold } from './epic';
 import type { Habit, Log, Mark, State, Wardrobe } from './types';
 
 // Weekly boss: each boss has its own HP, and your hits scale so it falls once you've done a fair share of the week's
@@ -86,7 +87,7 @@ export type HeroState = {
   achievements: Progress[]; trophies: string[];
 };
 
-// Gold you can spend: checks + boss wins + opened chests + achievement tiers, minus what you paid. It can go negative if you untick
+// Gold you can spend: checks + boss wins + opened chests + achievement tiers + journal + epic quests, minus what you paid. It can go negative if you untick
 // past days after buying; you keep your items and can't buy until it's positive again. A chest that's no longer
 // earned (its milestone was unticked) stops paying its gold, but an item it gave stays.
 export function heroOf(state: State, sc: Score, today: string): HeroState {
@@ -113,7 +114,7 @@ export function heroOf(state: State, sc: Score, today: string): HeroState {
   const { opened, owned } = state.wardrobe;
   const chestGold = earnedChests.reduce((n, c) => n + (opened[c.id]?.gold ?? 0), 0);
   const achievements = progressOf(trackValues(state, sc, wins));
-  const earned = sc.gold + bossGold + chestGold + tierGold(achievements) + journalGold(state.journal, today);
+  const earned = sc.gold + bossGold + chestGold + tierGold(achievements) + journalGold(state.journal, today) + epicGold(state.epics, state.log);
   const spent = Object.values(owned).reduce((n, o) => n + o.paid, 0);
   return {
     earned, spent, balance: earned - spent, wins, boss, chests: earnedChests.filter((c) => !opened[c.id]),

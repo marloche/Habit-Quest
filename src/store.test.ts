@@ -4,7 +4,7 @@ import { emptyWardrobe } from './logic/items';
 import type { State } from './logic/types';
 
 describe('backupAge', () => {
-  const s = (log: object, lastBackup?: string) => ({ v: 5, settings: { rolloverHour: 4, muted: false, lastBackup }, habits: [], log, wardrobe: emptyWardrobe(), journal: {}, focus: {} }) as State;
+  const s = (log: object, lastBackup?: string) => ({ v: 6, settings: { rolloverHour: 4, muted: false, lastBackup }, habits: [], log, wardrobe: emptyWardrobe(), journal: {}, focus: {}, epics: [] }) as State;
   it('is undefined while there is nothing to back up', () => {
     expect(backupAge(s({}), '2026-11-03')).toBeUndefined();
   });
@@ -14,8 +14,14 @@ describe('backupAge', () => {
   });
 });
 
+const epic = {
+  id: 'e1', name: 'Run a 5K', icon: 'heart', color: 3, why: 'Feel strong', due: '2027-01-01', created: '2026-11-01', guardian: 2,
+  by: 'links', target: 24, links: ['abc-1'], status: 'active', main: true,
+  chapters: [{ name: 'First run', at: 1, note: 'Sore legs' }, { name: '5K day' }],
+};
+
 const good = {
-  v: 5,
+  v: 6,
   settings: { rolloverHour: 4, muted: false, wakeLock: true },
   habits: [{ id: 'abc-1', name: 'Read', icon: 'book', schedule: { kind: 'daily' }, created: '2026-11-01', focus: 20 }],
   log: { '2026-11-01': { 'abc-1': 'full' } },
@@ -26,6 +32,7 @@ const good = {
   },
   journal: { '2026-11-01': { mood: 4, text: 'Good run' }, '2026-11-02': { mood: 2 } },
   focus: { '2026-11-01': 20 },
+  epics: [epic],
 };
 
 describe('parseState', () => {
@@ -59,14 +66,40 @@ describe('parseState', () => {
     expect(() => parseState(JSON.stringify(s))).not.toThrow();
     expect(() => parseState(JSON.stringify({ ...good, habits: [{ ...good.habits[0], schedule: { kind: 'once', day: 'friday' } }] }))).toThrow();
   });
-  it('migrates v1-v4 saves to v5 with an empty wardrobe, journal and focus, touching nothing else', () => {
-    const { wardrobe, journal, focus: _, ...old } = good;
-    const want = { ...old, v: 5, wardrobe: emptyWardrobe(), journal: {}, focus: {} };
+  it('migrates v1-v5 saves to v6 with an empty wardrobe, journal, focus and epics, touching nothing else', () => {
+    const { wardrobe, journal, focus, epics: _, ...old } = good;
+    const want = { ...old, v: 6, wardrobe: emptyWardrobe(), journal: {}, focus: {}, epics: [] };
     expect(parseState(JSON.stringify({ ...old, v: 1 }))).toEqual(want);
     expect(parseState(JSON.stringify({ ...old, v: 2 }))).toEqual(want);
     expect(parseState(JSON.stringify({ ...old, v: 3, wardrobe }))).toEqual({ ...want, wardrobe });
     expect(parseState(JSON.stringify({ ...old, v: 4, wardrobe, journal }))).toEqual({ ...want, wardrobe, journal });
-    expect(() => parseState(JSON.stringify({ ...good, v: 6 }))).toThrow();
+    expect(parseState(JSON.stringify({ ...old, v: 5, wardrobe, journal, focus }))).toEqual({ ...want, wardrobe, journal, focus });
+    expect(() => parseState(JSON.stringify({ ...good, v: 7 }))).toThrow();
+  });
+  it('rejects broken epics', () => {
+    const e = (patch: object) => JSON.stringify({ ...good, epics: [{ ...epic, ...patch }] });
+    expect(() => parseState(JSON.stringify({ ...good, epics: undefined }))).toThrow();
+    expect(() => parseState(e({ id: '"><b>' }))).toThrow();
+    expect(() => parseState(e({ name: '' }))).toThrow();
+    expect(() => parseState(e({ icon: '<svg>' }))).toThrow();
+    expect(() => parseState(e({ color: 8 }))).toThrow();
+    expect(() => parseState(e({ guardian: 12 }))).toThrow();
+    expect(() => parseState(e({ by: 'vibes' }))).toThrow();
+    expect(() => parseState(e({ target: 0 }))).toThrow();
+    expect(() => parseState(e({ by: 'chapters' }))).toThrow(); // chapters mode has no target
+    expect(() => parseState(e({ status: 'won' }))).toThrow();
+    expect(() => parseState(e({ logs: { '2026-11-01': -3 } }))).toThrow();
+    expect(() => parseState(e({ chapters: [{ name: 'x'.repeat(41) }] }))).toThrow();
+    expect(() => parseState(e({ chapters: Array(13).fill({ name: 'c' }) }))).toThrow();
+    expect(() => parseState(e({ chapters: [{ name: 'c', done: 'soon' }] }))).toThrow();
+  });
+  it('accepts every epic kind', () => {
+    const epics = [
+      { ...epic, id: 'a', by: 'count', target: 12.5, unit: 'km', logs: { '2026-11-01': 2.5 }, links: undefined },
+      { ...epic, id: 'b', by: 'chapters', target: undefined, links: undefined, status: 'retired', ended: '2026-11-03', chapters: [{ name: 'Kitchen', done: '2026-11-02' }] },
+      { ...epic, id: 'c', status: 'inn', main: false },
+    ];
+    expect(parseState(JSON.stringify({ ...good, epics })).epics).toEqual(JSON.parse(JSON.stringify(epics)));
   });
   it('rejects broken focus minutes, quest timers and wake settings', () => {
     expect(() => parseState(JSON.stringify({ ...good, focus: undefined }))).toThrow();

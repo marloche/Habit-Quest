@@ -1,4 +1,5 @@
-import type { Habit, Schedule } from './types';
+import { defaultGuardian, EPIC_COLORS } from './epic';
+import type { Epic, EpicBy, Habit, Schedule } from './types';
 
 // Offline quest ideas: no network, so the app only knows the goals written here.
 export type Goal = { id: string; name: string; icon: string; words: string[] };
@@ -112,3 +113,48 @@ export function suggest(goals: string[], budget: Budget, have: Habit[]): { idea:
 export const ideaToHabit = (i: Idea, id: string, today: string): Habit => ({
   id, name: i.name, tiny: i.tiny, icon: i.icon, schedule: i.schedule, created: today, ...(i.focus ? { focus: i.focus } : {}),
 });
+
+// Epic quest ideas, two per goal. link: the quest idea whose checks move it (added for you if you don't have it).
+// chapters: [name, amount that reaches it]; chapters-mode ideas have no amounts.
+export type EpicIdea = { goal: string; name: string; icon: string; why: string; by: EpicBy; target?: number; unit?: string; link?: string; chapters: [string, number?][] };
+
+const linked = (goal: string, icon: string, name: string, why: string, link: string, target: number, chapters: [string, number][]): EpicIdea =>
+  ({ goal, name, icon, why, by: 'links', target, link, chapters });
+const counted = (goal: string, icon: string, name: string, why: string, target: number, unit: string, chapters: [string, number][]): EpicIdea =>
+  ({ goal, name, icon, why, by: 'count', target, unit, chapters });
+const story = (goal: string, icon: string, name: string, why: string, chapters: string[]): EpicIdea =>
+  ({ goal, name, icon, why, by: 'chapters', chapters: chapters.map((c) => [c]) });
+
+export const EPIC_IDEAS: EpicIdea[] = [
+  linked('fitness', 'dumbbell', 'Run a 5K', 'Cross a finish line', 'Go for a run', 24, [['First run', 1], ['1 km nonstop', 8], ['3 km', 16], ['5K day', 24]]),
+  counted('fitness', 'dumbbell', 'Train for a half marathon', 'Run 21 km in one go', 300, 'km', [['First 50 km', 50], ['Long runs', 150], ['Taper', 250], ['Race day', 300]]),
+  linked('sleep', 'moon', 'Fix my sleep', 'Wake up rested', 'Lights out by 11 PM', 30, [['First week', 7], ['Two weeks', 14], ['A full month', 30]]),
+  linked('sleep', 'moon', 'Become an early riser', 'Own the morning', 'Same wake-up time', 60, [['15 mornings', 15], ['30 mornings', 30], ['60 mornings', 60]]),
+  linked('mind', 'leaf', 'Meditate 100 days', 'A calmer mind', 'Meditate 10 min', 100, [['First week', 7], ['A month', 30], ['Halfway', 50], ['100 days', 100]]),
+  linked('mind', 'pen', 'Fill a gratitude journal', 'Notice the good', 'Write 3 gratitudes', 50, [['10 pages', 10], ['25 pages', 25], ['Last page', 50]]),
+  counted('learning', 'book', 'Read 12 books', 'A book a month', 12, 'books', [['First book', 1], ['Quarter shelf', 3], ['Halfway', 6], ['Nine down', 9], ['Twelve!', 12]]),
+  linked('learning', 'book', 'Learn a language basics', 'Hold a first chat', 'Language practice', 90, [['Greetings', 15], ['Ordering food', 45], ['First chat', 90]]),
+  story('focus', 'sword', 'Finish a big project', 'See it shipped', ['Plan', 'Draft', 'Build', 'Polish', 'Ship it']),
+  linked('focus', 'sword', '50 deep work blocks', 'Do the work that matters', 'Deep work block', 50, [['10 blocks', 10], ['25 blocks', 25], ['50 blocks', 50]]),
+  linked('health', 'drop', 'Hydration hero', 'Drink water every day', 'Drink water', 60, [['A week', 7], ['A month', 30], ['Two months', 60]]),
+  linked('health', 'apple', 'Cook 30 meals at home', 'Eat better, spend less', 'Cook at home', 30, [['10 meals', 10], ['20 meals', 20], ['30 meals', 30]]),
+  story('home', 'star', 'Declutter the home', 'A home that feels light', ['Kitchen', 'Bedroom', 'Closet', 'Bathroom', 'Garage']),
+  linked('home', 'star', 'A tidy month', 'Come home to calm', 'Tidy 10 min', 30, [['A week', 7], ['Two weeks', 14], ['A month', 30]]),
+  counted('social', 'heart', 'Reconnect with 10 friends', 'Keep the people who matter', 10, 'friends', [['First hello', 1], ['Five friends', 5], ['Ten friends', 10]]),
+  linked('social', 'heart', 'Family dinner season', 'Time around the table', 'Family dinner', 24, [['6 dinners', 6], ['12 dinners', 12], ['24 dinners', 24]]),
+  counted('money', 'coin', 'Save $1,000', 'A safety cushion', 1000, '$', [['$250', 250], ['$500', 500], ['$750', 750], ['$1,000', 1000]]),
+  linked('money', 'coin', 'No-spend challenge', 'Spend on purpose', 'No-spend day', 30, [['10 days', 10], ['20 days', 20], ['30 days', 30]]),
+  story('creative', 'pen', 'Write a short story', 'Finish what I start', ['Idea', 'Outline', 'First draft', 'Edit', 'The end']),
+  linked('creative', 'pen', 'Fill a sketchbook', 'Draw without fear', 'Draw 15 min', 60, [['15 pages', 15], ['30 pages', 30], ['Last page', 60]]),
+];
+
+// A new epic from an idea, color by goal. linkId: your quest that moves it (links mode).
+export function epicFromIdea(i: EpicIdea, id: string, today: string, linkId?: string): Epic {
+  const e: Epic = {
+    id, name: i.name, icon: i.icon, why: i.why, color: Math.max(0, GOALS.findIndex((g) => g.id === i.goal)) % EPIC_COLORS.length,
+    created: today, guardian: 0, by: i.by, status: 'active',
+    chapters: i.chapters.map(([name, at]) => (at === undefined ? { name } : { name, at })),
+    ...(i.target !== undefined ? { target: i.target } : {}), ...(i.unit ? { unit: i.unit } : {}), ...(linkId ? { links: [linkId] } : {}),
+  };
+  return { ...e, guardian: defaultGuardian(e) };
+}

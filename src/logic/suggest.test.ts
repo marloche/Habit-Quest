@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { GOALS, goalsFromText, IDEAS, ideaToHabit, suggest } from './suggest';
+import { EPIC_IDEAS, epicFromIdea, GOALS, goalsFromText, IDEAS, ideaToHabit, suggest } from './suggest';
+import { CHAPTERS_MAX, NAME_MAX, WHY_MAX } from './epic';
+import { fresh, parseState } from '../store';
 import { ICONS } from '../sprites';
 import type { Habit } from './types';
 
@@ -43,5 +45,30 @@ describe('quest ideas', () => {
     const h = ideaToHabit(suggest(['fitness'], 30, [])[0].idea, 'x', '2026-11-03');
     expect(h).toEqual({ id: 'x', name: 'Workout', tiny: '1 pushup', icon: 'dumbbell', schedule: { kind: 'weekly', times: 3 }, created: '2026-11-03', focus: 30 });
     expect('focus' in ideaToHabit(suggest(['health'], 30, [])[0].idea, 'y', '2026-11-03')).toBe(false);
+  });
+});
+
+describe('epic quest ideas', () => {
+  it('fit the epic form, two per goal, linked to real quest ideas, chapters climbing to the target', () => {
+    const goals = new Set(GOALS.map((g) => g.id));
+    for (const i of EPIC_IDEAS) {
+      expect(goals.has(i.goal) && !!ICONS[i.icon], i.name).toBe(true);
+      expect(i.name.length <= NAME_MAX && i.why.length <= WHY_MAX, i.name).toBe(true);
+      expect(i.chapters.length >= 1 && i.chapters.length <= CHAPTERS_MAX, i.name).toBe(true);
+      if (i.by === 'links') expect(IDEAS.some((q) => q.name === i.link), i.name).toBe(true);
+      if (i.by !== 'chapters') {
+        const ats = i.chapters.map(([, at]) => at!);
+        expect(ats.every((a, n) => a > 0 && a <= i.target! && (n === 0 || a > ats[n - 1])), i.name).toBe(true);
+      }
+    }
+    for (const g of GOALS) expect(EPIC_IDEAS.filter((i) => i.goal === g.id).length, g.id).toBe(2);
+    expect(new Set(EPIC_IDEAS.map((i) => i.name)).size).toBe(EPIC_IDEAS.length);
+  });
+  it('become valid epics that load from a save', () => {
+    const epics = EPIC_IDEAS.map((i, n) => epicFromIdea(i, `e${n}`, '2026-11-04', i.by === 'links' ? 'abc-1' : undefined));
+    const s = parseState(JSON.stringify({ ...fresh(), epics }));
+    expect(s.epics).toEqual(epics);
+    expect(epics[0].links).toEqual(['abc-1']);
+    expect(epics.find((e) => e.name === 'Save $1,000')!.guardian).toBe(2); // no date: a count epic defaults to two months
   });
 });

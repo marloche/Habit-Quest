@@ -3,8 +3,9 @@ import { isPlanned } from './score';
 import { itemById, ITEMS } from './items';
 import { weekStart } from './day';
 import type { State } from './types';
+import { epicsFinished } from './epic';
 
-// Twelve tracks, three tiers each. Worked out from your history like everything else, so unticking days can
+// Thirteen tracks, three tiers each. Worked out from your history like everything else, so unticking days can
 // lose a tier, its gold, and its trophy. Trophies live on the items (items.ts), at tier II or III.
 export type Track = { id: string; name: string; unit: string; tiers: [number, number, number] };
 
@@ -24,6 +25,7 @@ export const TRACKS: Track[] = [
   // Showing up, counted so that more quests don't make them faster: only more days do.
   { id: 'days', name: 'SHOW UP', unit: 'days shown up', tiers: [30, 100, 365] },
   { id: 'weeks', name: 'FULL WEEKS', unit: 'weeks with a check every day', tiers: [4, 12, 40] },
+  { id: 'legends', name: 'LEGENDS', unit: 'epic quests finished', tiers: [1, 3, 10] },
 ];
 
 export const trophyAt = (track: string, tier: number) => ITEMS.find((i) => i.trophy?.track === track && i.trophy.tier === tier);
@@ -51,6 +53,7 @@ export function trackValues(state: State, sc: Score, bossWins: number): Record<s
     treasure: Object.keys(state.wardrobe.opened).length,
     days: shown.length,
     weeks: Object.values(perWeek).filter((n) => n === 7).length,
+    legends: epicsFinished(state.epics, state.log),
   };
 }
 
