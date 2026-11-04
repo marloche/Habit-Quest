@@ -32,13 +32,13 @@ export function bossBar(hs: HeroState, big = false, art = true) {
       : `Beat it ${by}: ${prize}. Miss, and it comes back for a rematch.`;
   const { art: rows, title } = LADDER[b.tier];
   // Bigger bosses also draw bigger on the HERO tab: 48px for the 8-pixel slime up to 64px for the dragon.
-  const size = big ? 40 + rows.length : 24;
+  const size = 40 + (big ? rows.length : 0);
   const pal = b.lap ? { ...PAL, ...ELITE_PALS[(b.lap - 1) % ELITE_PALS.length] } : PAL;
   return `<div class="boss-bar${big ? ' big' : ''}${b.won ? ' won' : ''}" role="img" aria-label="${said}">
       ${art ? `<span class="boss-art juice b${b.tier}${b.lap ? ` elite e${(b.lap - 1) % ELITE_PALS.length}` : ''}">${svg(wounded(rows, woundStage(b), b.name), size, '', pal)}</span>` : ''}
       <div class="boss-main">
         <div class="hud-row small"><span>${big ? (b.weeks > 1 ? 'BOSS: ' : 'WEEK BOSS: ') : ''}${b.name.toUpperCase()}</span><span class="${b.won ? 'gold' : b.reach ? '' : 'muted'}">${status}</span></div>
-        <div class="bar boss"><div style="width:${Math.round((left / b.hp) * 100)}%"></div></div>
+        <div class="bar boss ticks juice"><div class="trail" style="width:${Math.round((left / b.hp) * 100)}%"></div><div style="width:${Math.round((left / b.hp) * 100)}%"></div></div>
         ${big ? `<div class="small hot">"${title}"</div>
         ${b.won ? '' : `<div class="small">${b.hp} HP${b.weeks > 1 ? `, a ${b.weeks}-week fight` : ''}. Your checks hit for ${b.hit}, tiny ones for ${Math.round(b.hit / 2)}.</div>`}
         <div class="small muted">${story} Bosses beaten: ${hs.wins}</div>` : ''}
@@ -46,9 +46,9 @@ export function bossBar(hs: HeroState, big = false, art = true) {
     </div>`;
 }
 
-// The worn pet sits on the hero as its own button, so tapping or rubbing it gets a reaction. 128px hero: 8px a pixel.
-const petButton = (id: string) =>
-  `<button class="pet p-${id}" data-action="pet" data-pet="${id}" aria-label="Pet your ${esc(itemById(id)?.name ?? 'pet')}">${svg(ITEM_ART[id].rows, 64)}</button>`;
+// The worn pet sits on the hero as its own button, so tapping or rubbing it gets a reaction. Half the hero's size: 8 of its 16 rows.
+export const petButton = (id: string, size = 64) =>
+  `<button class="pet p-${id}" data-action="pet" data-pet="${id}" aria-label="Pet your ${esc(itemById(id)?.name ?? 'pet')}">${svg(ITEM_ART[id].rows, size)}</button>`;
 
 const TRACK_ART: Record<string, string[]> = {
   streak: FLAME, perfect: ICONS.star, checks: ICONS.pen, tiny: ICONS.leaf, comeback: ICONS.heart,

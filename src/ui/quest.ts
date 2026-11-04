@@ -4,9 +4,9 @@ import type { HeroState } from '../logic/hero';
 import { wornIds } from '../logic/items';
 import { JOURNAL_GOLD, MOODS } from '../logic/journal';
 import type { Habit, State } from '../logic/types';
-import { bossBar, goldText } from './hero';
+import { bossBar, goldText, petButton } from './hero';
 import { clock, timeLeft, type Timer } from '../logic/focus';
-import { COIN, FLAME, hero, HOURGLASS, icon, moodFace, svg, tierOf } from '../sprites';
+import { COIN, FLAME, hero, HOURGLASS, icon, moodFace, petOf, svg, tierOf } from '../sprites';
 import { CHECK, esc } from './html';
 
 // arming: "day:id" of a done quest waiting for a second tap to undo.
@@ -75,6 +75,8 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
   // Between midnight and the rollover hour the calendar has moved on but the quest day hasn't.
   const lateNight = dayKey(now, 0) !== today;
   const dateLine = `${dayLabel(today)}${lateNight ? ` <span class="muted">(still ${weekdayName(today)} until ${state.settings.rolloverHour}:00 AM)</span>` : ''}`;
+  const worn = wornIds(state.wardrobe, hs.trophies);
+  const pet = petOf(worn);
   const need = xpForLevel(sc.level + 1) - xpForLevel(sc.level);
   const have = sc.xp - xpForLevel(sc.level);
   // Still-to-do quests first, then rest-day bonuses, then done ones; your order is kept within each group.
@@ -99,7 +101,7 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
     const key = keyOf(h);
     let meta = '';
     if (armed) meta = '<span class="hot">TAP AGAIN TO UNDO</span>';
-    else if (mark && award) meta = `+${award.xp} XP${mark === 'tiny' ? ' (tiny)' : ''}`;
+    else if (mark && award) meta = `+${award.xp} XP${mark === 'tiny' ? ' <span class="tag">TINY</span>' : ''}`;
     else if (risky.has(h.id)) meta = `<span class="hot">STREAK AT RISK${h.tiny ? ' - TINY COUNTS' : ''}</span>`;
     else if (st.comebackReady) meta = '<span class="hot">COMEBACK x1.5</span>';
     else if (rest) meta = 'Rest day - bonus XP';
@@ -107,13 +109,13 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
     if (weekly) meta = `${st.weekCount}/${weekly} this week ${meta}`;
     const streak = st.streak ? `<span class="streak">${svg(FLAME, 16)}${st.streak}${st.unit === 'week' ? 'w' : ''}</span>` : '';
     const label = `${h.name}${armed ? ', tap again to undo' : mark ? ', done. Tap twice to undo' : ''}`;
-    return `<li class="quest${mark ? ' done' : ''}${armed ? ' arming' : ''}${rest ? ' rest' : ''}" data-row="${today}:${h.id}">
+    return `<li class="quest${mark ? ` done ${mark}` : ''}${armed ? ' arming' : ''}${rest ? ' rest' : ''}" data-row="${today}:${h.id}">
       <button class="q-main" data-action="mark" data-id="${h.id}" data-mark="full" aria-pressed="${!!mark}" aria-label="${esc(label)}"${key ? ` aria-keyshortcuts="${key}"` : ''}>
         ${key ? `<span class="q-key" aria-hidden="true">${key}</span>` : ''}
         <span class="q-icon">${icon(h.icon, 32)}</span>
         <span class="q-text"><span class="q-name">${esc(h.name)}</span><span class="q-meta">${meta}</span></span>
         ${streak}
-        <span class="q-check">${mark ? CHECK : ''}</span>
+        <span class="q-check juice">${mark ? `${CHECK}<i class="burst"></i>` : ''}</span>
       </button>
       ${h.tiny && !mark ? `<button class="q-tiny" data-action="mark" data-id="${h.id}" data-mark="tiny" aria-label="Tiny version: ${esc(h.tiny)}">TINY<small>${esc(h.tiny)}</small></button>` : ''}
       ${h.focus && !mark && ui.timer?.habit !== h.id ? `<button class="q-focus" data-action="focus-start" data-id="${h.id}" aria-label="Start a ${h.focus} minute focus timer for ${esc(h.name)}">${svg(HOURGLASS, 16)}<small>${h.focus}m</small></button>` : ''}
@@ -122,12 +124,16 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
 
   return `
     <header class="hud">
-      <div class="hud-hero">${hero(sc.level, 72, wornIds(state.wardrobe, hs.trophies), state.look)}</div>
+      <div class="hud-hero juice">${hero(sc.level, 80, worn, state.look, true)}${pet ? petButton(pet, 40) : ''}</div>
       <div class="hud-main">
-        <div class="hud-row"><span>LV ${sc.level}</span><span class="muted">${tierOf(sc.level).title}</span></div>
-        <div class="bar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="${need}" aria-valuenow="${have}"><div style="width:${Math.round(sc.progress * 100)}%"></div></div>
-        <div class="hud-row small"><span>${have}/${need} XP</span><span class="gold${hs.balance < 0 ? ' debt' : ''}">${svg(COIN, 12)} ${goldText(hs)}</span></div>
-        <div class="hud-row small"><span title="Share of your quests done in the last 14 days">x${sc.momentum.toFixed(2)} MOMENTUM</span><span>${svg(FLAME, 12)} ${sc.perfect}d</span></div>
+        <div class="hud-row"><span class="lv">LV ${sc.level}</span><span class="tier">${tierOf(sc.level).title.toUpperCase()}</span></div>
+        <div class="bar xp ticks juice" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="${need}" aria-valuenow="${have}"><div style="width:${Math.round(sc.progress * 100)}%"></div></div>
+        <span class="small">${have}/${need} XP</span>
+        <div class="chips small">
+          <span class="chip gold${hs.balance < 0 ? ' debt' : ''}">${svg(COIN, 12)} ${goldText(hs)}</span>
+          <span class="chip hot" title="Perfect days in a row">${svg(FLAME, 12)} ${sc.perfect}d</span>
+          <span class="chip" title="Share of your quests done in the last 14 days">x${sc.momentum.toFixed(2)} MOMENTUM</span>
+        </div>
       </div>
     </header>
     ${bossBar(hs, false, state.settings.bossArt !== false)}

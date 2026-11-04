@@ -204,6 +204,18 @@ let arming: string | undefined; // "day:id" of a done quest waiting for a second
 let armTimer: ReturnType<typeof setTimeout>;
 const lateTouched = new Set<string>();
 
+// The page redraws on every check, so a bar would jump; start it where it was and let its CSS transition move it.
+function slide(sel: string, fromPct: number) {
+  app.querySelectorAll<HTMLElement>(sel).forEach((el) => {
+    const to = el.style.width;
+    el.style.transition = 'none';
+    el.style.width = `${fromPct}%`;
+    void el.offsetWidth;
+    el.style.transition = '';
+    el.style.width = to;
+  });
+}
+
 function mark(id: string, m: Mark, d = today()) {
   const t = today();
   // Any past day can be changed from the calendar (your call: fully editable); the future can't be done yet.
@@ -237,14 +249,16 @@ function mark(id: string, m: Mark, d = today()) {
   const after = scored;
   const bossNow = hs.boss;
   const sameFight = !!bossNow && bossNow.week === bossBefore?.week;
+  slide('.bar.xp > div', after.level > before.level ? 0 : before.progress * 100);
   if (sameFight && bossNow.dmg > bossBefore.dmg) {
+    slide('.bar.boss > div', ((bossBefore.hp - bossBefore.dmg) / bossBefore.hp) * 100);
     floatText(app.querySelector('.boss-bar'), `-${bossNow.dmg - bossBefore.dmg} HP`, 'hot');
     app.querySelectorAll('.boss-art').forEach((el) => el.classList.add(bossNow.won ? 'fall' : 'hit'));
     setTimeout(() => sfx('hit'), 90);
   }
   const a = after.awards[d][id];
   const row = app.querySelector(`[data-row="${key}"]`);
-  row?.classList.add('pop');
+  row?.classList.add('pop', 'stamp');
   floatText(row, `+${a.xp} XP`);
   setTimeout(() => floatText(row, `+${a.gold} G`, 'gold'), 180);
   if (a.comeback) setTimeout(() => floatText(row, 'COMEBACK!', 'hot'), 360);
