@@ -32,6 +32,7 @@ export function bossBar(hs: HeroState, big = false, art = true) {
         <div class="hud-row small"><span>${big ? 'WEEK BOSS: ' : ''}${b.name.toUpperCase()}</span><span class="${b.won ? 'gold' : ''}">${status}</span></div>
         <div class="bar boss"><div style="width:${Math.round((left / b.hp) * 100)}%"></div></div>
         ${big ? `<div class="small hot">"${title}"</div>
+        ${b.won ? '' : `<div class="small">${b.hp} HP. Your checks hit for ${b.hit} this week, tiny ones for ${Math.round(b.hit / 2)}.</div>`}
         <div class="small muted">${b.won ? `+${BOSS_GOLD} G and a chest earned. A meaner boss comes Monday.` : `Beat it by Sunday: +${BOSS_GOLD} G and a chest. Miss, and it comes back for a rematch.`} Bosses beaten: ${hs.wins}</div>` : ''}
       </div>
     </div>`;

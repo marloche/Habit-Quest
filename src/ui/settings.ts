@@ -1,6 +1,6 @@
 import { daysBetween } from '../logic/day';
 import type { State } from '../logic/types';
-import { BGS, DAY_FROM, display, NIGHT_FROM } from '../logic/scene';
+import { BG_NAMES, BGS, DAY_FROM, display, NIGHT_FROM } from '../logic/scene';
 import { BACKUP_DAYS, backupAge } from '../store';
 
 export function settingsView(state: State, today: string, reducedMotion: boolean) {
@@ -8,7 +8,7 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
   const age = lastBackup ? daysBetween(lastBackup, today) : undefined;
   const stale = (backupAge(state, today) ?? 0) > BACKUP_DAYS;
   const d = display(state.settings, reducedMotion);
-  const bgs = BGS.map((b) => `<button role="tab" data-action="bg" data-bg="${b}" aria-selected="${b === d.bg}">${b === 'hell' ? 'HELL' : b.toUpperCase()}</button>`);
+  const bgs = BGS.map((b) => `<button role="tab" data-action="bg" data-bg="${b}" aria-selected="${b === d.bg}">${BG_NAMES[b] ?? b.toUpperCase()}</button>`);
   const strengths = ['LOW', 'MEDIUM', 'HIGH'].map((s, i) => `<button role="tab" data-action="bg-strength" data-val="${i + 1}" aria-selected="${i + 1 === d.strength}">${s}</button>`);
   const hours = [0, 1, 2, 3, 4, 5, 6].map((h) => `<option value="${h}" ${h === rolloverHour ? 'selected' : ''}>${h === 0 ? '12' : h}:00 AM</option>`);
   return `
@@ -23,11 +23,11 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
     <h3>DISPLAY</h3>
     <p class="muted small">BACKGROUND</p>
     <div class="slot-tabs three" role="tablist" aria-label="Background">${bgs.join('')}</div>
-    <p class="muted small">AUTO: forest village from ${DAY_FROM}:00, castle at night from ${NIGHT_FROM}:00.</p>
+    <p class="muted small">AUTO: a day scene from ${DAY_FROM}:00 and a night scene from ${NIGHT_FROM}:00, a different one each day.</p>
     <p class="muted small">STRENGTH</p>
     <div class="slot-tabs three" role="tablist" aria-label="Background strength">${strengths.join('')}</div>
     <label class="toggle"><input type="checkbox" data-setting="bgAnim" ${d.anim ? 'checked' : ''}> ANIMATE BACKGROUND</label>
-    ${reducedMotion ? '<p class="muted small">This device asks for reduced motion, so the background stays still either way. Change it in the system settings.</p>' : ''}
+    ${reducedMotion ? '<p class="muted small">Your system asks for reduced motion, so the background starts still. This switch overrides it for the background only.</p>' : ''}
     <label class="toggle"><input type="checkbox" data-setting="bossArt" ${d.bossArt ? 'checked' : ''}> SHOW BOSS ART</label>
     <h3>BACKUP</h3>
     <p class="${stale ? 'hot' : 'muted'} small">Last backup: ${age === undefined ? 'never' : age === 0 ? 'today' : `${age} days ago`}</p>

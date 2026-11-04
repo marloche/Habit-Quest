@@ -18,7 +18,8 @@ export type Habit = {
 export type Mark = 'full' | 'tiny';
 export type Log = Record<string, Record<string, Mark>>; // day key -> habit id -> mark
 
-export type Bg = 'auto' | 'castle' | 'dungeon' | 'forest' | 'hell' | 'plain';
+export type Bg = 'auto' | 'castle' | 'dungeon' | 'forest' | 'hell' | 'plain'
+  | 'snow' | 'harbor' | 'grove' | 'desert' | 'aurora' | 'lair' | 'storm' | 'isles';
 
 // Display fields are optional; scene.ts fills in the defaults.
 export type Settings = {

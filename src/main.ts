@@ -73,7 +73,8 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let sceneKey = '';
 function applyScene() {
   const d = display(state.settings, reducedMotion.matches);
-  const scene = sceneFor(d.bg, new Date().getHours());
+  const now = new Date();
+  const scene = sceneFor(d.bg, now.getHours(), Math.floor((now.getTime() - now.getTimezoneOffset() * 60000) / 864e5));
   const px = innerWidth < 700 ? 3 : 5;
   const key = [scene, px, Math.ceil(innerWidth / px), Math.ceil(innerHeight / px), d.strength, d.anim].join();
   if (key === sceneKey) return;

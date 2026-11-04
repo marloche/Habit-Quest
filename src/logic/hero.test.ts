@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './day';
-import { BOSS_GOLD, BOSSES, bossName, bossOf, chestLoot, heroOf } from './hero';
+import { BOSS_GOLD, BOSS_HP, BOSSES, bossName, bossOf, bossShare, chestLoot, heroOf } from './hero';
+import { isActive } from './score';
 import { buyBlock, emptyWardrobe, itemById, ITEMS, wornIds } from './items';
 import { score } from './score';
 import { ITEM_ART, PAL } from '../sprites';
@@ -96,19 +97,62 @@ describe('gold balance', () => {
 describe('weekly boss', () => {
   const day = (n: number) => addDays(MON, n);
   const week = (marks: Mark[]): Log => Object.fromEntries(marks.map((m, i) => [day(i), { h: m }]));
-  it('has 70% of the week as HP and falls with a few misses', () => {
+  it('needs about 65% of the week from the first boss, and falls with a few misses', () => {
     const b = bossOf([daily], week(['full', 'full', 'full', 'full', 'full']), MON, day(6))!;
-    expect(b.hp).toBe(49);
-    expect(b.won).toBe(true);
+    expect([b.hp, b.dmg, b.won]).toEqual([120, 120, true]);
     expect(bossOf([daily], week(['full', 'full', 'full', 'full']), MON, day(6))!.won).toBe(false);
+  });
+  it('has its own HP up the ladder, tougher each elite lap, while your hits scale to your week', () => {
+    expect(BOSS_HP.length).toBe(BOSSES.length);
+    expect(BOSS_HP.every((hp, i) => i === 0 || hp > BOSS_HP[i - 1])).toBe(true);
+    const few = bossOf([daily], {}, MON, MON, 0)!;
+    const many = bossOf(Array.from({ length: 12 }, (_, i) => ({ ...daily, id: `d${i}` })), {}, MON, MON, 0)!;
+    expect([few.hp, many.hp]).toEqual([120, 120]);
+    expect(few.hit).toBeGreaterThan(many.hit * 10);
+    expect(bossOf([daily], {}, MON, MON, 11)!.hp).toBe(1200);
+    expect(bossOf([daily], {}, MON, MON, 12)!.hp).toBe(180); // Elite Slime: half again
+  });
+  it('asks the same fair share of the week at any quest count, schedule mix or ladder step, capped at 75%', () => {
+    const q = (id: string, schedule: Habit['schedule'], created = MON): Habit => ({ ...daily, id, schedule, created });
+    const dailies = (n: number) => Array.from({ length: n }, (_, i) => q(`d${i}`, { kind: 'daily' }));
+    const weeks: [Habit[], number][] = [
+      [dailies(1), 7], [dailies(3), 21], [dailies(6), 42], [dailies(12), 84],
+      [[...dailies(2), q('w1', { kind: 'weekly', times: 3 }), q('w2', { kind: 'weekly', times: 3 })], 20],
+      [[...dailies(1), q('late', { kind: 'daily' }, day(3))], 11], // one added on Thursday counts only from Thursday
+      [[...dailies(1), { ...q('gone', { kind: 'daily' }), archived: day(3) }], 10], // one archived on Thursday stops counting
+    ];
+    for (const beaten of [0, 5, 11, 40]) {
+      for (const [habits, want] of weeks) {
+        // Check off quests one at a time, only where they are active, until the boss falls.
+        const log: Log = {};
+        let checks = 0;
+        for (let i = 0; i < 7 && !bossOf(habits, log, MON, day(6), beaten)!.won; i++)
+          for (const h of habits) {
+            if (bossOf(habits, log, MON, day(6), beaten)!.won) break;
+            if (!isActive(h, day(i))) continue;
+            log[day(i)] = { ...log[day(i)], [h.id]: 'full' };
+            checks++;
+          }
+        const share = checks / want;
+        expect(bossOf(habits, log, MON, day(6), beaten)!.won, `${want} checks, ${beaten} beaten`).toBe(true);
+        expect(share, `${want} checks, ${beaten} beaten`).toBeGreaterThanOrEqual(0.6);
+        expect(share, `${want} checks, ${beaten} beaten`).toBeLessThanOrEqual(0.8);
+      }
+    }
+    expect(bossShare(0)).toBe(0.65);
+    expect(bossShare(10)).toBe(0.75);
+    expect(bossShare(500)).toBe(0.75);
   });
   it('takes half damage from tiny checks and full damage from plans, which add no HP', () => {
     const plan: Habit = { ...daily, id: 'p', schedule: { kind: 'once', day: day(1) } };
     const b = bossOf([daily, plan], { ...week(['tiny', 'tiny']), [day(1)]: { h: 'tiny', p: 'full' } }, MON, day(1))!;
-    expect([b.hp, b.dmg, b.daysLeft]).toEqual([49, 20, 5]);
+    expect([b.hp, b.dmg, b.daysLeft]).toEqual([120, 48, 5]); // 2 hits of the 5 needed
+    expect(bossOf([daily], {}, MON, MON)!.hit).toBe(24);
   });
   it('only counts days a quest existed, and skips empty weeks', () => {
-    expect(bossOf([{ ...daily, created: day(2) }], {}, MON, day(2))!.hp).toBe(35);
+    const late = [{ ...daily, created: day(2) }];
+    expect(bossOf(late, { [day(2)]: { h: 'full' }, [day(3)]: { h: 'full' } }, MON, day(6))!.won).toBe(false);
+    expect(bossOf(late, { [day(2)]: { h: 'full' }, [day(3)]: { h: 'full' }, [day(4)]: { h: 'full' } }, MON, day(6))!.won).toBe(true);
     expect(bossOf([daily], {}, addDays(MON, -7), day(0))).toBeUndefined();
   });
   it('has square art for every boss on the ladder, growing as it climbs, in known colors', () => {

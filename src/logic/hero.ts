@@ -5,17 +5,20 @@ import { ITEMS } from './items';
 import { journalGold } from './journal';
 import type { Habit, Log, Mark, State, Wardrobe } from './types';
 
-// Weekly boss: HP is 70% of the week's expected checks x 10, so a few misses still win. Losing costs nothing.
-export const BOSS_SHARE = 0.7;
+// Weekly boss: each boss has its own HP, and your hits scale so it falls once you've done a fair share of the week's
+// expected checks: 65% for the first boss, rising 1% per win to 75%. Few quests hit hard, many hit lighter, and a few
+// misses still win at any quest count. Losing costs nothing.
+export const bossShare = (beaten: number) => Math.min(0.75, 0.65 + 0.01 * beaten);
 export const BOSS_GOLD = 50;
-export const BOSS_DAMAGE: Record<Mark, number> = { full: 10, tiny: 5 };
+export const BOSS_HITS: Record<Mark, number> = { full: 1, tiny: 0.5 };
 // The ladder: each win brings the next, meaner boss; a lost week brings the same one back for a rematch.
-// After the last, the ladder repeats as ELITE laps (art recolored in the UI).
+// After the last, the ladder repeats as ELITE laps (art recolored in the UI), each lap half again as tough.
 export const BOSSES = ['Slime', 'Cave Rat', 'Bat Swarm', 'Skeleton', 'Goblin Raider', 'Orc Brute', 'Wraith', 'Dark Knight', 'Troll', 'Lich', 'Demon Lord', 'Elder Dragon'];
+export const BOSS_HP = [120, 180, 240, 320, 400, 500, 600, 700, 820, 950, 1080, 1200];
 const LAP = ['', 'Elite', 'Elite II', 'Elite III', 'Elite IV', 'Elite V'];
 
-// tier: index into BOSSES; lap: 0 for the first climb, 1+ for elite laps.
-export type Boss = { week: string; name: string; tier: number; lap: number; hp: number; dmg: number; won: boolean; daysLeft: number };
+// tier: index into BOSSES; lap: 0 for the first climb, 1+ for elite laps. hit: what one full check deals this week.
+export type Boss = { week: string; name: string; tier: number; lap: number; hp: number; hit: number; dmg: number; won: boolean; daysLeft: number };
 
 export function bossName(beaten: number) {
   const tier = beaten % BOSSES.length;
@@ -25,18 +28,21 @@ export function bossName(beaten: number) {
 
 export function bossOf(habits: Habit[], log: Log, week: string, today: string, beaten = 0): Boss | undefined {
   let want = 0;
-  let dmg = 0;
+  let hits = 0;
   for (let i = 0; i < 7; i++) {
     const d = addDays(week, i);
     for (const h of habits) {
       want += expected(h, d);
       const m = log[d]?.[h.id];
-      if (m && d <= today && isActive(h, d)) dmg += BOSS_DAMAGE[m]; // planned quests hit too, without adding HP
+      if (m && d <= today && isActive(h, d)) hits += BOSS_HITS[m]; // planned quests hit too, without making it tougher
     }
   }
-  const hp = Math.round(10 * BOSS_SHARE * want);
-  if (!hp) return undefined;
-  return { week, ...bossName(beaten), hp, dmg: Math.min(dmg, hp), won: dmg >= hp, daysLeft: daysBetween(today, addDays(week, 6)) };
+  if (!want) return undefined;
+  const who = bossName(beaten);
+  const hp = Math.round(BOSS_HP[who.tier] * (1 + 0.5 * who.lap));
+  const need = Math.max(1, Math.round(bossShare(beaten) * want)); // nearest whole check, so one quest isn't held to 6 of 7
+  const won = hits >= need; // compared in hits, so rounding the HP shown can't cost a win
+  return { week, ...who, hp, hit: Math.round(hp / need), dmg: won ? hp : Math.min(hp - 1, Math.round((hp * hits) / need)), won, daysLeft: daysBetween(today, addDays(week, 6)) };
 }
 
 // Chests come from streak milestones and boss wins: 25% a chest-only item you don't own yet, else 50-150 gold.

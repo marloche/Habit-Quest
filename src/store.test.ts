@@ -139,6 +139,7 @@ describe('display settings in the save', () => {
     const s = { ...base, settings: { ...base.settings, bg: 'hell', bgStrength: 3, bgAnim: false, bossArt: false } } as State;
     expect(parseState(JSON.stringify(s)).settings).toEqual(s.settings);
     expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, bg: 'moon' } }))).toThrow();
+    expect(parseState(JSON.stringify({ ...base, settings: { ...base.settings, bg: 'aurora' } })).settings.bg).toBe('aurora'); // scenes added later load too
     expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, bgStrength: 4 } }))).toThrow();
   });
 });
