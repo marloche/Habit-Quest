@@ -445,10 +445,11 @@ body.still .float.juice { animation: fade 1.6s ease-out forwards !important; }
 .toast {
   position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 16px); transform: translateX(-50%);
   width: min(440px, calc(100% - 32px)); padding: 12px; background: var(--blue); font-size: 10px; text-align: center;
-  box-shadow: 0 0 0 4px var(--gold); animation: drop .3s steps(3);
+  box-shadow: 0 0 0 4px var(--gold); animation: drop .3s steps(3); z-index: 2;
 }
+/* Layer order in #fx, whatever order things arrive in: popups and hearts, then banners (which dim them), then toasts. */
 .banner {
-  position: fixed; inset: 0; pointer-events: auto; display: grid; place-content: center; justify-items: center; gap: 16px;
+  position: fixed; inset: 0; z-index: 1; pointer-events: auto; display: grid; place-content: center; justify-items: center; gap: 16px;
   background: rgb(26 28 44 / .92); border: 0; color: var(--text); font: inherit; cursor: pointer; animation: flash .4s steps(4);
 }
 .banner-hero svg { animation: bob .6s steps(2) infinite; }
