@@ -17,8 +17,16 @@ export const BOSSES = ['Slime', 'Cave Rat', 'Bat Swarm', 'Skeleton', 'Goblin Rai
 export const BOSS_HP = [120, 180, 240, 320, 400, 500, 600, 700, 820, 950, 1080, 1200];
 const LAP = ['', 'Elite', 'Elite II', 'Elite III', 'Elite IV', 'Elite V'];
 
-// tier: index into BOSSES; lap: 0 for the first climb, 1+ for elite laps. hit: what one full check deals this week.
-export type Boss = { week: string; name: string; tier: number; lap: number; hp: number; hit: number; dmg: number; won: boolean; daysLeft: number };
+// Fight length in weeks: one week each until the last three, which take 2, 3 and 4 (a month at most). Gold and chests
+// pay per week of the fight, so long fights don't starve your income.
+export const BOSS_WEEKS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 4];
+
+// tier: index into BOSSES; lap: 0 for the first climb, 1+ for elite laps. week: the fight's first Monday; end: its last
+// day. hit: what one full check deals in this fight.
+export type Boss = {
+  week: string; end: string; weeks: number; name: string; tier: number; lap: number; hp: number; hit: number; dmg: number;
+  won: boolean; wonOn?: string; reach: boolean; daysLeft: number;
+};
 
 export function bossName(beaten: number) {
   const tier = beaten % BOSSES.length;
@@ -26,23 +34,31 @@ export function bossName(beaten: number) {
   return { tier, lap, name: lap ? `${LAP[lap] ?? `Elite ${lap}`} ${BOSSES[tier]}` : BOSSES[tier] };
 }
 
+// A fight starts on a Monday (week) and lasts BOSS_WEEKS of its boss. reach: false once even checking everything left
+// can't land enough hits before it ends. wonOn: the day the last needed hit landed; the next boss comes the Monday after.
 export function bossOf(habits: Habit[], log: Log, week: string, today: string, beaten = 0): Boss | undefined {
-  let want = 0;
+  const who = bossName(beaten);
+  const weeks = BOSS_WEEKS[who.tier];
+  const end = addDays(week, weeks * 7 - 1);
+  const days = Array.from({ length: weeks * 7 }, (_, i) => addDays(week, i));
+  const want = days.reduce((n, d) => n + habits.reduce((m, h) => m + expected(h, d), 0), 0);
+  if (!want) return undefined;
+  const need = Math.max(1, Math.round(bossShare(beaten) * want)); // nearest whole check, so one quest isn't held to 6 of 7
   let hits = 0;
-  for (let i = 0; i < 7; i++) {
-    const d = addDays(week, i);
+  let open = 0; // checks still possible from today on: what's due and not yet done
+  let wonOn: string | undefined;
+  for (const d of days) {
     for (const h of habits) {
-      want += expected(h, d);
       const m = log[d]?.[h.id];
       if (m && d <= today && isActive(h, d)) hits += BOSS_HITS[m]; // planned quests hit too, without making it tougher
+      else if (d >= today && (expected(h, d) > 0 || (h.schedule.kind === 'once' && h.schedule.day === d))) open++;
     }
+    if (!wonOn && hits >= need) wonOn = d; // compared in hits, so rounding the HP shown can't cost a win
   }
-  if (!want) return undefined;
-  const who = bossName(beaten);
+  const won = !!wonOn;
   const hp = Math.round(BOSS_HP[who.tier] * (1 + 0.5 * who.lap));
-  const need = Math.max(1, Math.round(bossShare(beaten) * want)); // nearest whole check, so one quest isn't held to 6 of 7
-  const won = hits >= need; // compared in hits, so rounding the HP shown can't cost a win
-  return { week, ...who, hp, hit: Math.round(hp / need), dmg: won ? hp : Math.min(hp - 1, Math.round((hp * hits) / need)), won, daysLeft: daysBetween(today, addDays(week, 6)) };
+  const dmg = won ? hp : Math.min(hp - 1, Math.round((hp * hits) / need));
+  return { week, ...who, weeks, end, hp, hit: Math.round(hp / need), dmg, won, wonOn, reach: won || hits + open >= need, daysLeft: daysBetween(today, end) };
 }
 
 // Chests come from streak milestones and boss wins: 25% a chest-only item you don't own yet, else 50-150 gold.
@@ -74,14 +90,18 @@ export function heroOf(state: State, sc: Score, today: string): HeroState {
   const start = state.habits.reduce((m, h) => (h.created < m ? h.created : m), today);
   const earnedChests: Chest[] = [];
   let wins = 0;
+  let bossGold = 0;
   let boss: Boss | undefined;
-  for (let w = weekStart(start); w <= today; w = addDays(w, 7)) {
-    const b = bossOf(state.habits, state.log, w, today, wins); // wins so far pick this week's boss
+  for (let w = weekStart(start); w <= today; ) {
+    const b = bossOf(state.habits, state.log, w, today, wins); // wins so far pick this fight's boss
+    boss = b;
     if (b?.won) {
       wins++;
-      earnedChests.push({ id: `b-${w}`, why: `Beat ${b.name}` });
+      bossGold += BOSS_GOLD * b.weeks;
+      for (let i = 1; i <= b.weeks; i++) earnedChests.push({ id: i === 1 ? `b-${w}` : `b-${w}-${i}`, why: `Beat ${b.name}` });
     }
-    if (w === weekStart(today)) boss = b;
+    // An empty week has no boss; a win ends the fight early; a loss ends with its window, then a rematch.
+    w = !b ? addDays(w, 7) : b.wonOn ? addDays(weekStart(b.wonOn), 7) : addDays(b.end, 1);
   }
   for (const [d, awards] of Object.entries(sc.awards))
     for (const [id, a] of Object.entries(awards))
@@ -90,7 +110,7 @@ export function heroOf(state: State, sc: Score, today: string): HeroState {
   const { opened, owned } = state.wardrobe;
   const chestGold = earnedChests.reduce((n, c) => n + (opened[c.id]?.gold ?? 0), 0);
   const achievements = progressOf(trackValues(state, sc, wins));
-  const earned = sc.gold + wins * BOSS_GOLD + chestGold + tierGold(achievements) + journalGold(state.journal, today);
+  const earned = sc.gold + bossGold + chestGold + tierGold(achievements) + journalGold(state.journal, today);
   const spent = Object.values(owned).reduce((n, o) => n + o.paid, 0);
   return {
     earned, spent, balance: earned - spent, wins, boss, chests: earnedChests.filter((c) => !opened[c.id]),

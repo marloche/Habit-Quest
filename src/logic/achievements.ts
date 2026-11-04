@@ -16,7 +16,7 @@ export const TRACKS: Track[] = [
   { id: 'checks', name: 'CHECKS', unit: 'checks', tiers: [50, 250, 1000] },
   { id: 'tiny', name: 'TINY HERO', unit: 'tiny checks', tiers: [10, 50, 200] },
   { id: 'comeback', name: 'COMEBACK', unit: 'comebacks', tiers: [1, 10, 30] },
-  { id: 'boss', name: 'BOSS SLAYER', unit: 'bosses beaten', tiers: [1, 5, 20] },
+  { id: 'boss', name: 'BOSS SLAYER', unit: 'bosses beaten', tiers: [1, 5, 12] }, // III: the whole ladder, about 18 weeks
   { id: 'level', name: 'LEVEL', unit: 'level', tiers: [5, 10, 20] },
   { id: 'planner', name: 'PLANNER', unit: 'plans done', tiers: [5, 25, 100] },
   { id: 'collector', name: 'COLLECTOR', unit: 'items owned', tiers: [3, 12, 43] },

@@ -1,3 +1,4 @@
+import { dayLabel } from '../logic/day';
 import { BOSS_GOLD, type HeroState } from '../logic/hero';
 import { buyBlock, ITEMS, RARITY, SLOTS, wornIds, type Item } from '../logic/items';
 import type { Score } from '../logic/score';
@@ -15,13 +16,20 @@ const SLOT_NAMES: Record<Slot, string> = { hat: 'HAT', armor: 'ARMOR', weapon: '
 
 export const goldText = (hs: HeroState) => `${hs.balance}${hs.balance < 0 ? ' (debt)' : ''}`;
 
-// The week's boss as an HP bar that empties as you check things off; big on the Hero tab, slim on the Quest screen.
+// The current boss as an HP bar that empties as you check things off; big on the Hero tab, slim on the Quest screen.
 export function bossBar(hs: HeroState, big = false, art = true) {
   const b = hs.boss;
   if (!b) return '';
   const left = b.hp - b.dmg;
-  const status = b.won ? 'DEFEATED!' : `${left} HP - ${b.daysLeft ? `${b.daysLeft}d left` : 'last day'}`;
-  const said = b.won ? `Week boss ${b.name} defeated` : `Week boss ${b.name}, ${left} of ${b.hp} HP left, ${b.daysLeft} days left`;
+  const status = b.won ? 'DEFEATED!' : `${left} HP - ${!b.reach ? 'OUT OF REACH' : b.daysLeft ? `${b.daysLeft}d left` : 'last day'}`;
+  const said = b.won ? `Boss ${b.name} defeated` : `Boss ${b.name}, ${left} of ${b.hp} HP left, ${b.reach ? `${b.daysLeft} days left` : 'out of reach this time'}`;
+  const prize = `+${BOSS_GOLD * b.weeks} G and ${b.weeks > 1 ? `${b.weeks} chests` : 'a chest'}`;
+  const by = b.weeks > 1 ? `in ${b.weeks} weeks, by ${dayLabel(b.end)}` : 'by Sunday';
+  const story = b.won
+    ? `${prize} earned. A meaner boss comes Monday.`
+    : !b.reach
+      ? `Out of reach this time: it gets away ${b.daysLeft ? `on ${dayLabel(b.end)}` : 'tonight'}. A fresh rematch starts Monday, nothing lost, and every check still earns XP and gold.`
+      : `Beat it ${by}: ${prize}. Miss, and it comes back for a rematch.`;
   const { art: rows, title } = LADDER[b.tier];
   // Bigger bosses also draw bigger on the HERO tab: 48px for the 8-pixel slime up to 64px for the dragon.
   const size = big ? 40 + rows.length : 24;
@@ -29,11 +37,11 @@ export function bossBar(hs: HeroState, big = false, art = true) {
   return `<div class="boss-bar${big ? ' big' : ''}${b.won ? ' won' : ''}" role="img" aria-label="${said}">
       ${art ? `<span class="boss-art${b.lap ? ` elite e${(b.lap - 1) % ELITE_PALS.length}` : ''}">${svg(rows, size, '', pal)}</span>` : ''}
       <div class="boss-main">
-        <div class="hud-row small"><span>${big ? 'WEEK BOSS: ' : ''}${b.name.toUpperCase()}</span><span class="${b.won ? 'gold' : ''}">${status}</span></div>
+        <div class="hud-row small"><span>${big ? (b.weeks > 1 ? 'BOSS: ' : 'WEEK BOSS: ') : ''}${b.name.toUpperCase()}</span><span class="${b.won ? 'gold' : b.reach ? '' : 'muted'}">${status}</span></div>
         <div class="bar boss"><div style="width:${Math.round((left / b.hp) * 100)}%"></div></div>
         ${big ? `<div class="small hot">"${title}"</div>
-        ${b.won ? '' : `<div class="small">${b.hp} HP. Your checks hit for ${b.hit} this week, tiny ones for ${Math.round(b.hit / 2)}.</div>`}
-        <div class="small muted">${b.won ? `+${BOSS_GOLD} G and a chest earned. A meaner boss comes Monday.` : `Beat it by Sunday: +${BOSS_GOLD} G and a chest. Miss, and it comes back for a rematch.`} Bosses beaten: ${hs.wins}</div>` : ''}
+        ${b.won ? '' : `<div class="small">${b.hp} HP${b.weeks > 1 ? `, a ${b.weeks}-week fight` : ''}. Your checks hit for ${b.hit}, tiny ones for ${Math.round(b.hit / 2)}.</div>`}
+        <div class="small muted">${story} Bosses beaten: ${hs.wins}</div>` : ''}
       </div>
     </div>`;
 }

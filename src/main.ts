@@ -229,7 +229,7 @@ function mark(id: string, m: Mark, d = today()) {
     banner({ title: 'PERFECT DAY!', sub: `${after.perfect}-day perfect run`, onShow: () => sfx('perfect') });
   }
   if (bossNow?.won && bossBefore && !bossBefore.won && bossNow.week === bossBefore.week) {
-    banner({ title: 'BOSS DEFEATED!', sub: `${bossNow.name} falls! +${BOSS_GOLD} G and a chest`, level: after.level, worn: wornIds(state.wardrobe, hs.trophies), look: state.look, onShow: () => { shake(); sfx('levelup'); } });
+    banner({ title: 'BOSS DEFEATED!', sub: `${bossNow.name} falls! +${BOSS_GOLD * bossNow.weeks} G and ${bossNow.weeks > 1 ? `${bossNow.weeks} chests` : 'a chest'}`, level: after.level, worn: wornIds(state.wardrobe, hs.trophies), look: state.look, onShow: () => { shake(); sfx('levelup'); } });
   }
   if (hs.chests.length > chestsBefore) toast('You earned a chest! Open it on the HERO tab.');
 }

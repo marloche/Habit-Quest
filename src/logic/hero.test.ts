@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './day';
-import { BOSS_GOLD, BOSS_HP, BOSSES, bossName, bossOf, bossShare, chestLoot, heroOf } from './hero';
-import { isActive } from './score';
+import { BOSS_GOLD, BOSS_HP, BOSS_WEEKS, BOSSES, bossName, bossOf, bossShare, chestLoot, heroOf } from './hero';
+import { expected, isActive } from './score';
+import { TRACKS } from './achievements';
 import { buyBlock, emptyWardrobe, itemById, ITEMS, wornIds } from './items';
 import { score } from './score';
 import { ITEM_ART, PAL } from '../sprites';
@@ -115,26 +116,29 @@ describe('weekly boss', () => {
   it('asks the same fair share of the week at any quest count, schedule mix or ladder step, capped at 75%', () => {
     const q = (id: string, schedule: Habit['schedule'], created = MON): Habit => ({ ...daily, id, schedule, created });
     const dailies = (n: number) => Array.from({ length: n }, (_, i) => q(`d${i}`, { kind: 'daily' }));
-    const weeks: [Habit[], number][] = [
-      [dailies(1), 7], [dailies(3), 21], [dailies(6), 42], [dailies(12), 84],
-      [[...dailies(2), q('w1', { kind: 'weekly', times: 3 }), q('w2', { kind: 'weekly', times: 3 })], 20],
-      [[...dailies(1), q('late', { kind: 'daily' }, day(3))], 11], // one added on Thursday counts only from Thursday
-      [[...dailies(1), { ...q('gone', { kind: 'daily' }), archived: day(3) }], 10], // one archived on Thursday stops counting
+    const mixes: Habit[][] = [
+      dailies(1), dailies(3), dailies(6), dailies(12),
+      [...dailies(2), q('w1', { kind: 'weekly', times: 3 }), q('w2', { kind: 'weekly', times: 3 })],
+      [...dailies(1), q('late', { kind: 'daily' }, day(3))], // one added on Thursday counts only from Thursday
+      [...dailies(1), { ...q('gone', { kind: 'daily' }), archived: day(3) }], // one archived on Thursday stops counting
     ];
-    for (const beaten of [0, 5, 11, 40]) {
-      for (const [habits, want] of weeks) {
-        // Check off quests one at a time, only where they are active, until the boss falls.
+    for (const beaten of [0, 5, 9, 11, 40]) {
+      for (const habits of mixes) {
+        // Check off quests one at a time, only where they are active, until the boss falls, across its whole fight.
+        const days = Array.from({ length: bossOf(habits, {}, MON, MON, beaten)!.weeks * 7 }, (_, i) => day(i));
+        const last = days[days.length - 1];
+        const want = days.reduce((n, d) => n + habits.reduce((m, h) => m + expected(h, d), 0), 0);
         const log: Log = {};
         let checks = 0;
-        for (let i = 0; i < 7 && !bossOf(habits, log, MON, day(6), beaten)!.won; i++)
+        for (const d of days)
           for (const h of habits) {
-            if (bossOf(habits, log, MON, day(6), beaten)!.won) break;
-            if (!isActive(h, day(i))) continue;
-            log[day(i)] = { ...log[day(i)], [h.id]: 'full' };
+            if (bossOf(habits, log, MON, last, beaten)!.won) break;
+            if (!isActive(h, d)) continue;
+            log[d] = { ...log[d], [h.id]: 'full' };
             checks++;
           }
         const share = checks / want;
-        expect(bossOf(habits, log, MON, day(6), beaten)!.won, `${want} checks, ${beaten} beaten`).toBe(true);
+        expect(bossOf(habits, log, MON, last, beaten)!.won, `${want} checks, ${beaten} beaten`).toBe(true);
         expect(share, `${want} checks, ${beaten} beaten`).toBeGreaterThanOrEqual(0.6);
         expect(share, `${want} checks, ${beaten} beaten`).toBeLessThanOrEqual(0.8);
       }
@@ -142,6 +146,37 @@ describe('weekly boss', () => {
     expect(bossShare(0)).toBe(0.65);
     expect(bossShare(10)).toBe(0.75);
     expect(bossShare(500)).toBe(0.75);
+  });
+  it('gives the last three bosses longer fights, a month at most, elite laps too', () => {
+    expect(BOSS_WEEKS.length).toBe(BOSSES.length);
+    expect([0, 8, 9, 10, 11, 23].map((n) => bossOf([daily], {}, MON, MON, n)!.weeks)).toEqual([1, 1, 2, 3, 4, 4]);
+    const dragon = bossOf([daily], {}, MON, MON, 11)!;
+    expect([dragon.end, dragon.daysLeft]).toEqual([day(27), 27]);
+  });
+  it('says out of reach once checking everything left cannot win, and counts today as still open', () => {
+    expect(bossOf([daily], {}, MON, MON)!.reach).toBe(true);
+    expect(bossOf([daily], {}, MON, day(3))!.reach).toBe(false); // 4 days left, 5 hits needed
+    expect(bossOf([daily], week(['full']), MON, day(3))!.reach).toBe(true);
+    expect(bossOf([daily], {}, MON, day(4), 9)!.reach).toBe(true); // Lich: 10 days left for 10 hits
+    expect(bossOf([daily], {}, MON, day(7), 9)!.reach).toBe(false);
+  });
+  it('pays gold and a chest per week of a long fight, starts the next one the Monday after a win, and BOSS SLAYER III at 12', () => {
+    const all = (n: number): Log => Object.fromEntries(Array.from({ length: n }, (_, i) => [day(i), { h: 'full' }]));
+    let s = state(all(120));
+    const lich = heroOf(s, score(s, day(70)), day(70)).boss!;
+    expect([lich.name, lich.week, lich.weeks]).toEqual(['Lich', day(63), 2]);
+    const hs = heroOf(s, score(s, day(119)), day(119));
+    expect(hs.wins).toBe(12);
+    const won = hs.chests.filter((c) => c.id.startsWith('b-')).map((c) => c.id);
+    expect(won.length).toBe(9 + 2 + 3 + 4);
+    expect(won).toContain(`b-${day(63)}-2`); // Lich, won day 72: Demon Lord starts day 77
+    expect(won).toContain(`b-${day(77)}-3`);
+    expect(won).toContain(`b-${day(98)}-4`);
+    expect([hs.boss!.name, hs.boss!.week]).toEqual(['Elite Slime', day(119)]);
+    expect(hs.achievements.find((p) => p.track.id === 'boss')!.tier).toBe(3);
+    expect(TRACKS.find((t) => t.id === 'boss')!.tiers).toEqual([1, 5, 12]);
+    s = state(all(63)); // stop after the Troll: the Lich gets away, then comes back fresh
+    expect(heroOf(s, score(s, day(80)), day(80)).boss!).toMatchObject({ name: 'Lich', week: day(77), dmg: 0 });
   });
   it('takes half damage from tiny checks and full damage from plans, which add no HP', () => {
     const plan: Habit = { ...daily, id: 'p', schedule: { kind: 'once', day: day(1) } };
