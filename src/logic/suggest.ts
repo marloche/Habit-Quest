@@ -18,7 +18,7 @@ export const GOALS: Goal[] = [
   { id: 'health', name: 'HEALTH', icon: 'apple', words: ['health', 'eat', 'diet', 'food', 'water', 'hydrat', 'nutrition', 'veg', 'sugar', 'cook', 'vitamin', 'teeth', 'weight'] },
   { id: 'home', name: 'HOME', icon: 'star', words: ['home', 'clean', 'tidy', 'mess', 'chore', 'house', 'apartment', 'room', 'laundry', 'declutter', 'organi'] },
   { id: 'social', name: 'SOCIAL', icon: 'heart', words: ['friend', 'family', 'social', 'lonely', 'people', 'relationship', 'partner', 'connect', 'kind', 'parent', 'kids'] },
-  { id: 'money', name: 'MONEY', icon: 'pen', words: ['money', 'save', 'saving', 'budget', 'spend', 'debt', 'financ', 'invest', 'cash', 'frugal', 'rich'] },
+  { id: 'money', name: 'MONEY', icon: 'coin', words: ['money', 'save', 'saving', 'budget', 'spend', 'debt', 'financ', 'invest', 'cash', 'frugal', 'rich'] },
   { id: 'creative', name: 'CREATIVE', icon: 'pen', words: ['creat', 'art', 'draw', 'paint', 'writ', 'music', 'guitar', 'piano', 'instrument', 'photo', 'design', 'sing', 'craft', 'novel', 'poem'] },
 ];
 
@@ -74,10 +74,10 @@ export const IDEAS: Idea[] = [
   idea('social', 'pen', 'Reply to messages', 'Reply to 1', daily, 10),
   idea('social', 'star', 'Plan a hangout', 'Message 1 person', weekly(1)),
   idea('social', 'apple', 'Family dinner', 'Sit together 10 min', weekly(3)),
-  idea('money', 'pen', 'Log spending', 'Log 1 purchase', daily, 5),
-  idea('money', 'star', 'No-spend day', 'Skip 1 impulse buy', weekly(3)),
-  idea('money', 'book', 'Check the budget', 'Open the bank app', weekly(1), 15),
-  idea('money', 'star', 'Move money to savings', 'Move $1', weekly(1)),
+  idea('money', 'coin', 'Log spending', 'Log 1 purchase', daily, 5),
+  idea('money', 'coin', 'No-spend day', 'Skip 1 impulse buy', weekly(3)),
+  idea('money', 'coin', 'Check the budget', 'Open the bank app', weekly(1), 15),
+  idea('money', 'coin', 'Move money to savings', 'Move $1', weekly(1)),
   idea('money', 'apple', 'Pack lunch', 'Pack a snack', weekly(3)),
   idea('creative', 'pen', 'Draw 15 min', 'Draw 1 line', daily, 15),
   idea('creative', 'pen', 'Write 200 words', 'Write 1 sentence', daily, 20),

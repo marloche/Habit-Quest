@@ -15,6 +15,11 @@ describe('quest ideas', () => {
     for (const g of GOALS) expect(IDEAS.filter((i) => i.goal === g.id).length, g.id).toBeGreaterThanOrEqual(5);
     expect(ICONS[GOALS[0].icon]).toBeDefined();
   });
+  it('shows money as a gold coin', () => {
+    expect(GOALS.find((g) => g.id === 'money')!.icon).toBe('coin');
+    const money = IDEAS.filter((i) => i.goal === 'money' && i.name !== 'Pack lunch');
+    expect(money.every((i) => i.icon === 'coin')).toBe(true);
+  });
   it('maps typed intentions to goals by word stems', () => {
     expect(goalsFromText('I want to learn Spanish and sleep better')).toEqual(['sleep', 'learning']);
     expect(goalsFromText('Less stress, more exercising')).toEqual(['fitness', 'mind']);

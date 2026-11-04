@@ -5,6 +5,8 @@ export const PAL: Record<string, string> = {
   f: '#e8b796',
 };
 
+export const COIN = ['..yyyy..', '.yyoyyy.', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', '.yyoyyy.', '..yyyy..'];
+
 export const ICONS: Record<string, string[]> = {
   sword: ['......ws', '.....wsS', '....wsS.', '.y.wsS..', '..ySS...', '..ry....', '.r..y...', 'r.......'],
   book: ['........', '.bbbbbb.', '.bwwwwb.', '.bwkkwb.', '.bwwwwb.', '.bwkkwb.', '.bbbbbb.', '........'],
@@ -14,8 +16,9 @@ export const ICONS: Record<string, string[]> = {
   moon: ['...yyy..', '..yy....', '.yy.....', '.yy.....', '.yy.....', '.yy.....', '..yy....', '...yyy..'],
   leaf: ['.....gg.', '...gggg.', '..gggGg.', '.ggGgg..', '.gGggg..', '.Gggg...', 'G.......', '........'],
   dumbbell: ['........', 'SS....SS', 'SS....SS', 'SSssssSS', 'SS....SS', 'SS....SS', '........', '........'],
-  pen: ['......ww', '.....wwk', '....wwk.', '...wwk..', '..wwk...', '..yk....', '.yk.....', 'k.......'],
+  pen: ['.....www', '....wwsw', '....wsw.', '...wsw..', '..ks....', '.nkn....', 'nbbbn...', 'nnnnn...'], // a quill in an ink pot, so it can't pass for the sword
   apple: ['....g...', '...g....', '.rrrrr..', 'rrwrrrr.', 'rwrrrrr.', 'rrrrrrr.', 'rrrrrrr.', '.rr.rr..'],
+  coin: COIN,
 };
 
 export const BOSS_ART: Record<string, string[]> = {
@@ -43,7 +46,6 @@ export const moodFace = (mood: number, size = 24) => svg(FACES[mood - 1], size, 
 export const HOURGLASS = ['oooooooo', '.CyyyyC.', '..CyyC..', '...CC...', '...CC...', '..CyyC..', '.CyyyyC.', 'oooooooo'];
 
 export const FLAME = ['...o....', '...oo...', '..ooy...', '..oyyo..', '.ooyyoo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..'];
-export const COIN = ['..yyyy..', '.yyoyyy.', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', '.yyoyyy.', '..yyyy..'];
 
 // h = hair/helmet, A/a = armor and its shade; swapped per level tier so the hero visibly grows.
 export const HERO = [
