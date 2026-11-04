@@ -38,7 +38,8 @@ export function toast(text: string) {
   }, wait);
 }
 
-type Banner = { title: string; sub: string; level?: number; worn?: string[]; look?: Look; onShow?: () => void };
+// prize: a trophy won with this banner, named in the rarity font (tier 2 = EPIC, 3 = LEGENDARY).
+type Banner = { title: string; sub: string; level?: number; worn?: string[]; look?: Look; prize?: { name: string; tier: number }; onShow?: () => void };
 const queue: Banner[] = [];
 let showing = false;
 
@@ -54,8 +55,9 @@ function next() {
   if (!b) return;
   const el = document.createElement('button');
   el.className = 'banner';
-  el.setAttribute('aria-label', `${b.title}. ${b.sub}. Tap to close.`);
-  el.innerHTML = `${b.level ? `<div class="banner-hero">${hero(b.level, 128, b.worn, b.look)}</div>` : ''}<div class="banner-title">${esc(b.title)}</div><div class="banner-sub">${esc(b.sub)}</div>`;
+  el.setAttribute('aria-label', `${b.title}. ${b.sub}.${b.prize ? ` Trophy: ${b.prize.name}.` : ''} Tap to close.`);
+  el.innerHTML = `${b.level ? `<div class="banner-hero">${hero(b.level, 128, b.worn, b.look)}</div>` : ''}<div class="banner-title">${esc(b.title)}</div><div class="banner-sub">${esc(b.sub)}</div>${
+    b.prize ? `<div class="banner-prize rare t${b.prize.tier}">${esc(b.prize.name)}</div>` : ''}`;
   let done = false;
   const close = () => {
     if (done) return;

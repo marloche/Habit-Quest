@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { progressOf, tierGold, TRACKS, trackValues, trophiesOf } from './achievements';
+import { progressOf, tierGold, TRACKS, trackValues, trophiesOf, trophyAt } from './achievements';
 import { addDays } from './day';
-import { emptyWardrobe, itemById, ITEMS } from './items';
+import { emptyWardrobe, ITEMS } from './items';
 import { score } from './score';
 import type { Habit, Log, State } from './types';
 
@@ -12,10 +12,30 @@ const plan: Habit = { id: 'p', name: 'p', icon: 'star', schedule: { kind: 'once'
 const state = (log: Log, habits = [daily]): State => ({ v: 5, settings: { rolloverHour: 4, muted: false }, habits, log, wardrobe: emptyWardrobe(), journal: {}, focus: {} });
 
 describe('achievement tracks', () => {
-  it('have rising tiers, and every trophy is a real trophy item', () => {
+  it('have rising tiers, and every trophy sits on a real track tier with its unlock spelled out', () => {
     for (const t of TRACKS) expect(t.tiers[0] < t.tiers[1] && t.tiers[1] < t.tiers[2], t.id).toBe(true);
-    for (const t of TRACKS.filter((x) => x.trophy)) expect(itemById(t.trophy!)?.trophy, t.id).toBe(t.name);
+    expect(new Set(TRACKS.map((t) => t.id)).size).toBe(TRACKS.length);
+    const trophies = ITEMS.filter((i) => i.trophy);
+    expect(trophies.length).toBe(12);
+    for (const i of trophies) {
+      const t = TRACKS.find((x) => x.id === i.trophy!.track)!;
+      expect(t, i.id).toBeDefined();
+      expect(i.trophy!.how, i.id).toContain(`(${t.name} ${i.trophy!.tier === 2 ? 'II' : 'III'})`);
+      expect(trophyAt(t.id, i.trophy!.tier)?.id, i.id).toBe(i.id); // one trophy per track tier
+    }
+    expect(trophies.some((i) => i.trophy!.track === 'checks')).toBe(false); // raw volume never wins a trophy
     expect(TRACKS.find((t) => t.id === 'collector')!.tiers[2]).toBe(ITEMS.filter((i) => !i.trophy).length); // III = own them all
+  });
+  it('count days shown up and weeks with a check every day', () => {
+    // Week 1: every day, tiny counts. Week 2: Tuesday missed.
+    const log: Log = Object.fromEntries([0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13].map((i) => [day(i), { h: i === 3 ? 'tiny' : 'full' }]));
+    const s = state(log);
+    expect(trackValues(s, score(s, day(13)), 0)).toMatchObject({ days: 13, weeks: 1 });
+  });
+  it('keep a trophy earned through a later missed day', () => {
+    const log: Log = Object.fromEntries([...Array.from({ length: 30 }, (_, i) => i), 31].map((i) => [day(i), { h: 'full' }])); // 30 in a row, a miss, back
+    const s = state(log);
+    expect(trophiesOf(progressOf(trackValues(s, score(s, day(31)), 0)))).toContain('sun-circlet');
   });
   it('measure checks, tiny checks, comebacks, plans and streaks from the log', () => {
     // Mon full, Tue tiny + plan done, Wed missed, Thu full (a comeback), Fri full.
@@ -30,7 +50,8 @@ describe('achievement tracks', () => {
     expect(ps.find((p) => p.track.id === 'checks')!.tier).toBe(2);
     expect(ps.find((p) => p.track.id === 'tiny')!.tier).toBe(0);
     expect(tierGold(ps)).toBe(300 + 100);
-    expect(trophiesOf(ps)).toEqual(['flame-crown']);
+    expect(trophiesOf(ps)).toEqual(['sun-circlet', 'flame-crown']);
+    expect(trophiesOf(progressOf({ streak: 30, days: 365 }))).toEqual(['sun-circlet', 'loyal-hound', 'wise-owl']);
   });
   it('are lost again when the history behind them is unticked', () => {
     const week: Log = Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((i) => [day(i), { h: 'full' }]));

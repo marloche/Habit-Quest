@@ -68,7 +68,7 @@ describe('buying', () => {
     const w = { ...emptyWardrobe(), worn: { hat: 'flame-crown' as const } };
     expect(wornIds(w, [])).toEqual([]);
     expect(wornIds(w, ['flame-crown'])).toEqual(['flame-crown']);
-    expect(buyBlock(itemById('flame-crown')!, 99, 9999, w)).toBe('Trophy: reach STREAK tier III.');
+    expect(buyBlock(itemById('flame-crown')!, 99, 9999, w)).toBe('Trophy: Keep one quest going 100 days in a row (STREAK III).');
   });
 });
 

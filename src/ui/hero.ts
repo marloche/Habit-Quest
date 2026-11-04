@@ -1,15 +1,15 @@
 import { BOSS_GOLD, type HeroState } from '../logic/hero';
-import { buyBlock, ITEMS, SLOTS, wornIds, type Item } from '../logic/items';
+import { buyBlock, ITEMS, RARITY, SLOTS, wornIds, type Item } from '../logic/items';
 import type { Score } from '../logic/score';
 import type { Look, Slot, State } from '../logic/types';
 import type { Progress } from '../logic/achievements';
 import { CLASSIC, HAIRS, OUTFITS, PRESETS, sameLook, SKINS, STYLES, type Swatch } from '../logic/look';
-import { CHEST, COIN, FLAME, hero, ICONS, nextTier, PAL, svg, tierOf } from '../sprites';
+import { CALENDAR, CHEST, COIN, FLAME, hero, ICONS, nextTier, PAL, SUNRISE, svg, tierOf } from '../sprites';
 import { ELITE_PALS, LADDER } from '../bosses';
 import { CHECK, esc } from './html';
 
 // view: wardrobe, look or achievements; slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
-export type HeroUi = { view: 'wardrobe' | 'look' | 'achievements'; slot: Slot; buying?: string };
+export type HeroUi = { view: 'wardrobe' | 'look' | 'achievements'; slot: Slot | 'trophies'; buying?: string };
 
 const SLOT_NAMES: Record<Slot, string> = { hat: 'HAT', weapon: 'WEAPON', cape: 'CAPE', pet: 'PET' };
 
@@ -40,6 +40,7 @@ export function bossBar(hs: HeroState, big = false, art = true) {
 const TRACK_ART: Record<string, string[]> = {
   streak: FLAME, perfect: ICONS.star, checks: ICONS.pen, tiny: ICONS.leaf, comeback: ICONS.heart,
   boss: LADDER[0].art, level: ICONS.sword, planner: ICONS.moon, collector: COIN, treasure: CHEST,
+  days: SUNRISE, weeks: CALENDAR,
 };
 const DIM = { ...PAL, y: PAL.S }; // an unearned star
 
@@ -75,6 +76,23 @@ function itemCard(state: State, sc: Score, hs: HeroState, it: Item, ui: HeroUi) 
     </button>`;
 }
 
+// Trophies stay visible while locked (dimmed), with their unlock spelled out: the point is knowing what to show up for.
+function trophyCard(state: State, sc: Score, hs: HeroState, it: Item) {
+  const t = it.trophy!;
+  const earned = hs.trophies.includes(it.id);
+  const worn = earned && state.wardrobe.worn[it.slot] === it.id;
+  const kind = `${RARITY[t.tier]} ${SLOT_NAMES[it.slot]}`;
+  const said = `${it.name}, ${kind.toLowerCase()} trophy, ${worn ? 'worn, tap to take off' : earned ? 'earned, tap to wear' : 'locked'}. ${t.how}`;
+  const cls = ['item', 'trophy', `t${t.tier}`, worn && 'worn', !earned && 'unearned'].filter(Boolean).join(' ');
+  return `<button class="${cls}" data-action="item" data-item="${it.id}" aria-label="${esc(said)}">
+      <span class="item-art">${hero(sc.level, 48, [it.id], state.look)}</span>
+      <span class="rare t${t.tier}">${esc(it.name)}</span>
+      <span class="item-kind">${kind}</span>
+      <span class="item-how">${esc(t.how)}</span>
+      <span class="item-status">${worn ? 'WORN' : earned ? 'EARNED' : 'LOCKED'}</span>
+    </button>`;
+}
+
 // A color button; the check mark and the name in the heading say which is picked, not the color alone.
 const swatch = (part: keyof Look, label: string, s: Swatch, i: number, on: boolean) =>
   `<button class="swatch" style="--c:${s.c};--d:${s.d ?? s.c}" data-action="look" data-part="${part}" data-val="${i}" aria-pressed="${on}" aria-label="${label} ${s.name}">${on ? CHECK : ''}</button>`;
@@ -104,7 +122,9 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
   const t = tierOf(sc.level);
   const next = nextTier(sc.level);
   const stars = hs.achievements.reduce((n, p) => n + p.tier, 0);
-  const tabs = SLOTS.map((s) => `<button role="tab" data-action="slot" data-slot="${s}" aria-selected="${s === ui.slot}">${SLOT_NAMES[s]}</button>`);
+  const tabs = [...SLOTS, 'trophies' as const].map((s) => `<button role="tab" data-action="slot" data-slot="${s}" aria-selected="${s === ui.slot}">${s === 'trophies' ? 'TROPHY' : SLOT_NAMES[s]}</button>`);
+  const trophies = ITEMS.filter((i) => i.trophy);
+  const earned = trophies.filter((i) => hs.trophies.includes(i.id)).length;
   return `
     <h2>HERO</h2>
     <div class="hero-card">
@@ -125,6 +145,9 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
     </div>
     ${ui.view === 'look' ? lookView(state, sc.level) : ui.view === 'achievements'
       ? `<div class="badges">${hs.achievements.map(badge).join('')}</div>`
-      : `<div class="slot-tabs" role="tablist">${tabs.join('')}</div>
-         <div class="items">${ITEMS.filter((i) => i.slot === ui.slot).map((i) => itemCard(state, sc, hs, i, ui)).join('')}</div>`}`;
+      : `<div class="slot-tabs five" role="tablist">${tabs.join('')}</div>
+         ${ui.slot === 'trophies'
+           ? `<p class="muted small">${earned} of ${trophies.length} earned. Trophies can't be bought: you earn them by showing up. A missed day never takes one away.</p>
+              <div class="items">${trophies.map((i) => trophyCard(state, sc, hs, i)).join('')}</div>`
+           : `<div class="items">${ITEMS.filter((i) => i.slot === ui.slot && !i.trophy).map((i) => itemCard(state, sc, hs, i, ui)).join('')}</div>`}`}`;
 }

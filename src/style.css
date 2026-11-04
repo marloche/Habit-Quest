@@ -3,6 +3,12 @@
   src: url('/fonts/PressStart2P.ttf') format('truetype');
   font-display: block;
 }
+/* Trophy names only; not preloaded, so it costs nothing until a trophy is on screen. */
+@font-face {
+  font-family: 'Jacquarda Bastarda 9';
+  src: url('/fonts/JacquardaBastarda9.ttf') format('truetype');
+  font-display: swap;
+}
 
 :root {
   --bg: #1a1c2c;
@@ -265,6 +271,28 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .item.worn .item-status { color: var(--accent-2); }
 .item.arming .item-status { color: var(--hot-text); }
 .slot-tabs.two { grid-template-columns: 1fr 1fr; }
+.slot-tabs.five { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.slot-tabs.five button:last-child { color: var(--gold); }
+.items + .muted, .slot-tabs + .muted { margin: 0 4px 12px; line-height: 1.6; }
+
+/* Trophies: a blackletter pixel font for the name, silver for EPIC, gold for LEGENDARY, with a slow glow.
+   24px and 48px looked crispest in a size test (18px blurs its thin strokes). */
+.rare {
+  font-family: 'Jacquarda Bastarda 9', 'Press Start 2P', serif; font-size: 24px; line-height: 1.1; text-align: center;
+  color: var(--c); text-shadow: 1px 1px 0 var(--bg), 0 0 6px var(--c); animation: glint 1.6s steps(4) infinite alternate;
+}
+.rare.t2 { --c: #c2d3dd; }
+.rare.t3 { --c: #ffcd75; }
+.item.trophy { gap: 6px; }
+.item.trophy.t3 { --edge: var(--gold); }
+.item.trophy.t2 { --edge: var(--muted); }
+.item.trophy.t3:not(.unearned) .item-art { filter: drop-shadow(0 0 4px rgb(255 205 117 / .7)); }
+.item.trophy.t2:not(.unearned) .item-art { filter: drop-shadow(0 0 4px rgb(148 176 194 / .7)); }
+.item.trophy.unearned .item-art { filter: grayscale(1); opacity: .45; }
+.item-kind { font-size: 6px; color: var(--muted); }
+.item-how { font-size: 8px; line-height: 1.6; text-align: center; color: var(--text); padding: 0 4px; }
+.banner-prize { font-size: 48px; max-width: 320px; }
+@keyframes glint { to { text-shadow: 1px 1px 0 var(--bg), 0 0 1px var(--c); } }
 .badges { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 4px; }
 .badge { display: grid; justify-items: center; gap: 8px; padding: 12px 8px; color: var(--text); font: inherit; cursor: pointer; }
 .badge:active { transform: translateY(2px); }

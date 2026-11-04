@@ -15,7 +15,7 @@ import { BACKUP_DAYS, KEY, backupAge, exportFile, fresh, load, newId, parseState
 import { calendarView } from './ui/calendar';
 import { editListView, formView } from './ui/edit';
 import { heroView, type HeroUi } from './ui/hero';
-import { TIER_GOLD } from './logic/achievements';
+import { TIER_GOLD, trophyAt } from './logic/achievements';
 import { nav } from './ui/html';
 import { questView } from './ui/quest';
 import { settingsView } from './ui/settings';
@@ -36,7 +36,7 @@ let shownDay = '';
 let calDay = ''; // selected day on the calendar
 let calMonth = '';
 let calMood = false; // calendar grid colored by mood instead of quests
-let shopSlot: Slot = 'hat';
+let shopSlot: HeroUi['slot'] = 'hat';
 let heroTab: HeroUi['view'] = 'wardrobe';
 audio.muted = state.settings.muted;
 
@@ -114,8 +114,11 @@ function announceTiers() {
   if (ups.length > 2) return toast(`${ups.length} achievements unlocked from your history! See HERO > ACHIEVEMENTS.`);
   setTimeout(() => // after the check's own banners
     ups.forEach((p) => {
-      const trophy = p.tier === 3 && p.track.trophy ? ` and the ${itemById(p.track.trophy)!.name}` : '';
-      banner({ title: 'ACHIEVEMENT!', sub: `${p.track.name} ${ROMAN[p.tier - 1]}: +${TIER_GOLD[p.tier - 1]} G${trophy}`, onShow: () => sfx('perfect') });
+      const prize = trophyAt(p.track.id, p.tier);
+      banner({
+        title: 'ACHIEVEMENT!', sub: `${p.track.name} ${ROMAN[p.tier - 1]}: +${TIER_GOLD[p.tier - 1]} G${prize ? ' and a trophy' : ''}`,
+        prize: prize && { name: prize.name, tier: p.tier }, onShow: () => sfx('perfect'),
+      });
     }));
 }
 
@@ -123,7 +126,7 @@ function tapBadge(id: string) {
   const p = hs.achievements.find((x) => x.track.id === id);
   if (!p) return;
   const t = p.track;
-  const trophy = t.trophy ? ` Tier III wins the ${itemById(t.trophy)!.name}.` : '';
+  const trophy = [2, 3].map((n) => trophyAt(t.id, n)).map((it, i) => (it ? ` Tier ${ROMAN[i + 1]} wins the ${it.name}.` : '')).join('');
   toast(`${t.name}: ${t.tiers.join(' / ')} ${t.unit}. You have ${p.value}.${trophy}`);
 }
 
@@ -560,7 +563,7 @@ app.addEventListener('click', (e) => {
     case 'new-game': return newGame();
     case 'rename': return rename(id);
     case 'unplan': return unplan(id);
-    case 'slot': shopSlot = el.dataset.slot as Slot; return render();
+    case 'slot': shopSlot = el.dataset.slot as HeroUi['slot']; return render();
     case 'hero-view': heroTab = el.dataset.view as HeroUi['view']; return render();
     case 'badge': return tapBadge(el.dataset.track!);
     case 'item': return tapItem(el.dataset.item!);

@@ -40,6 +40,9 @@ export const moodFace = (mood: number, size = 24) => svg(FACES[mood - 1], size, 
 
 export const HOURGLASS = ['oooooooo', '.CyyyyC.', '..CyyC..', '...CC...', '...CC...', '..CyyC..', '.CyyyyC.', 'oooooooo'];
 
+export const SUNRISE = ['...yy...', '.y.yy.y.', '..yyyy..', 'y.yyyy.y', '.yyyyyy.', 'oooooooo', 'rrrrrrrr', '........'];
+export const CALENDAR = ['.S....S.', 'rrrrrrrr', 'wwwwwwww', 'wgwgwgww', 'wwwwwwww', 'wgwgwgww', 'wwwwwwww', '........'];
+
 export const FLAME = ['...o....', '...oo...', '..ooy...', '..oyyo..', '.ooyyoo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..'];
 
 // f = skin, h = hair, A/a = outfit and its shade: all come from your look. Head rows 0-6 per hair style (STYLES order).
@@ -79,13 +82,47 @@ export const tierOf = (level: number) => [...TIERS].reverse().find((t) => level 
 export const nextTier = (level: number) => TIERS.find((t) => t.from > level);
 
 // Wardrobe art, drawn onto the hero at (x, y). Capes go behind the body; pets sit to the right (x 16-23).
-type Layer = { x: number; y: number; rows: string[]; behind?: true };
+// cover: helmets and hoods first wipe this many head rows (the hair above the face), so spikes and buns can't poke through.
+type Layer = { x: number; y: number; rows: string[]; behind?: true; cover?: number };
 const cape = (m: string, s: string, t: string): Layer => ({
   x: 1, y: 7, behind: true,
   rows: [`..${m.repeat(10)}..`, `.${m.repeat(12)}.`, `.${m.repeat(12)}.`, m.repeat(14), m.repeat(14),
     `${m}${s}${m.repeat(10)}${s}${m}`, `${m}${s}${m.repeat(10)}${s}${m}`, `${t}${t}.${t.repeat(8)}.${t}${t}`],
 });
+// Trophy capes: wider, with a high collar and a scalloped hem, so they read grander than any shop cape.
+const robe = (m: string, s: string, t: string): Layer => ({
+  x: 0, y: 6, behind: true,
+  rows: [`${t}${t}${'.'.repeat(12)}${t}${t}`, `${t}${m.repeat(14)}${t}`, `.${m}${s}${m.repeat(10)}${s}${m}.`, `.${m.repeat(14)}.`,
+    `${m}${s}${m.repeat(12)}${s}${m}`, m.repeat(16), `${m}${m}${s}${m.repeat(10)}${s}${m}${m}`, t.repeat(16), `${t}.${t}.${t.repeat(8)}.${t}.${t}`],
+});
 export const ITEM_ART: Record<string, Layer> = {
+  bandana: { x: 4, y: 1, rows: ['rrrrrrrr..', 'rprrrrprrr', '........r.'] },
+  'ranger-hood': { x: 3, y: 0, cover: 3, rows: ['..gggggg..', '.gggggggg.', 'gggGGGGggg', 'gg......gg', 'gg......gg', 'Gg......gG', '.G......G.'] },
+  'knight-helm': { x: 3, y: 0, cover: 3, rows: ['....rrr...', '..SSSSSS..', '.SssssssS.', 'SssssssssS', 'SskkkkkksS', 'SssssssssS', '.SsSssSsS.'] },
+  'dragon-helm': { x: 2, y: 0, cover: 3, rows: ['l..........l', 'll.gGggGg.ll', '.llgGggGgll.', '..gGyggyGg..', '..gg....gg..', '..Gg....gG..'] },
+  dagger: { x: 13, y: 4, rows: ['.w.', '.s.', '.s.', 'kyk', '.o.', '.o.'] },
+  lute: { x: 13, y: 3, rows: ['kok', '.o.', '.o.', '.y.', 'ooo', 'oko', 'oyo', '.o.'] },
+  'battle-axe': { x: 13, y: 1, rows: ['.o.', 'SoS', 'sos', 'wos', 'SoS', '.o.', '.o.', '.o.', '.o.', '.o.'] },
+  'rune-spear': { x: 13, y: 0, rows: ['.C.', 'CwC', '.C.', '.s.', '.c.', '.o.', '.o.', '.c.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.'] },
+  'traveler-cloak': cape('G', 'g', 'S'),
+  'fur-mantle': cape('S', 's', 'w'),
+  'feather-cape': { x: 1, y: 7, behind: true, rows: ['..cbcbcbcbcb..', '.bcbcbcbcbcbc.', '.cbcbcbcbcbcb.', 'bcbcbcbcbcbcbc', 'cbcbcbcbcbcbcb', 'wcwcwcwcwcwcwc', 'cwcwcwcwcwcwcw', 'w.w.w.ww.w.w.w'] },
+  'dragonwing-cape': {
+    x: 0, y: 5, behind: true,
+    rows: ['p..............p', 'pp............pp', 'pvp..........pvp', 'pvvppppppppppvvp', 'pvvvppppppppvvvp', 'pvvvppppppppvvvp', '.pvvppppppppvvp.', '.pvppppppppppvp.','..p.pppppppp.p..'],
+  },
+  frog: { x: 16, y: 8, rows: ['........', '........', '.ww..ww.', '.wk..wk.', 'gggggggg', 'ggkkkkgg', '.gllllg.', 'Gg....gG'] },
+  fox: { x: 16, y: 8, rows: ['........', '.o....o.', '.oo..oo.', '.oooooo.', '.okooko.', '.owwwwoo', '..wkkw.w', '..o..o..'] },
+  'little-ghost': { x: 16, y: 8, rows: ['........', '..wwww..', '.wwwwww.', '.wvwwvw.', '.wwwwww.', '.wwkkww.', 'wwwwwwww', 'w.ww.w.w'] },
+  griffin: { x: 16, y: 8, rows: ['..ww....', '.wkww...', 'yywww.ss', '..wwwsss', '..yyysss', '.yyyyyy.', '.yy..yyo', '.o...o..'] },
+  'sun-circlet': { x: 3, y: 0, rows: ['y...yy...y', '.y.yooy.y.', 'yyyyooyyyy'] },
+  'laurel-wreath': { x: 3, y: 1, rows: ['.l.g..g.l.', 'lgGgyygGgl', 'g........g', 'G........G'] },
+  'second-wind': { x: 13, y: 0, rows: ['..C', '.wc', '.w.', 'cw.', '.wC', '.w.', '.w.', 'yry', '.r.', '.y.'] },
+  'starforged-blade': { x: 13, y: 0, rows: ['.y.', 'yyy', '.w.', '.w.', 'wCw', '.w.', '.w.', 'yvy', '.v.', '.y.'] },
+  'moonlit-cape': robe('n', 'w', 's'),
+  'ember-cape': robe('r', 'o', 'y'),
+  'loyal-hound': { x: 16, y: 8, rows: ['........', '.ssssss.', 'SskssksS', 'SsswwssS', '.sskkss.', '.rryrrr.', '.ssssss.', '.s.ss.s.'] },
+  'steady-turtle': { x: 16, y: 8, rows: ['........', '........', '..GGGG..', '.GgyygG.', 'lGyggyGG', 'klllllll', '.ll..ll.', '........'] },
   'leaf-crown': { x: 4, y: 0, rows: ['.g.gg.g.', 'gGgGGgGg'] },
   'wizard-hat': { x: 4, y: 0, rows: ['...bb...', '..bbyb..', 'bbbbbbbb'] },
   'horned-helm': { x: 3, y: 0, rows: ['w........w', 'ww.SSSS.ww', '.wSssssSw.', '..SSSSSS..'] },
@@ -105,7 +142,7 @@ export const ITEM_ART: Record<string, Layer> = {
   'baby-dragon': { x: 16, y: 8, rows: ['.....ll.', '....lgkl', '.y..gggl', 'yy.ggg..', '.yggggg.', '..gglgg.', '..gg.gg.', '..l...l.'] },
   'flame-crown': { x: 4, y: 0, rows: ['.o..o..o', 'oyooyooy', 'yyyyyyyy'] },
   dragonslayer: { x: 13, y: 0, rows: ['.w.', '.w.', 'wCw', '.w.', '.w.', '.w.', '.w.', 'ryr', '.r.', '.r.', '.y.'] },
-  'champion-cape': cape('w', 'y', 'y'),
+  'champion-cape': robe('w', 'y', 'y'),
   'wise-owl': { x: 16, y: 8, rows: ['........', '.s....s.', '.ssssss.', '.ykssyk.', '.ssooss.', '.swwwws.', '.swwwws.', '..o..o..'] },
   phoenix: { x: 16, y: 8, rows: ['...o....', '..oyo...', '.oykoo..', 'o.oyyoo.', '..ooyyo.', '.r.oyo..', 'r..ro...', '..r.r...'] },
 };
@@ -135,6 +172,7 @@ export function hero(level: number, size = 64, worn: string[] = [], look: Look =
   const grid = [...HEADS[look.style], ...BODY].map((row) => row.padEnd(width, '.').split(''));
   const outfit = OUTFITS[look.outfit];
   const pal = { ...PAL, f: SKINS[look.skin].c, h: HAIRS[look.hair].c, A: outfit.c, a: outfit.d! };
+  for (const l of layers) for (let y = 0; y < (l.cover ?? 0); y++) grid[y].fill('.', 0, 16);
   for (const l of [...t.trim, ...layers])
     l.rows.forEach((row, dy) =>
       [...row].forEach((ch, dx) => {
