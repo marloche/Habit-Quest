@@ -16,7 +16,7 @@ describe('achievement tracks', () => {
     for (const t of TRACKS) expect(t.tiers[0] < t.tiers[1] && t.tiers[1] < t.tiers[2], t.id).toBe(true);
     expect(new Set(TRACKS.map((t) => t.id)).size).toBe(TRACKS.length);
     const trophies = ITEMS.filter((i) => i.trophy);
-    expect(trophies.length).toBe(12);
+    expect(trophies.length).toBe(14);
     for (const i of trophies) {
       const t = TRACKS.find((x) => x.id === i.trophy!.track)!;
       expect(t, i.id).toBeDefined();

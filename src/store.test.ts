@@ -118,9 +118,18 @@ describe('hero look in the save', () => {
     const s = { ...base, look: { skin: 5, style: 3, hair: 7, outfit: 6 } };
     expect(parseState(JSON.stringify(s, null, 1)).look).toEqual(s.look);
   });
+  it('keeps an outfit shape, and still loads a look saved before shapes existed', () => {
+    const s = { ...base, look: { skin: 0, style: 0, hair: 0, outfit: 0, garb: 10 } };
+    expect(parseState(JSON.stringify(s)).look).toEqual(s.look);
+  });
   it('rejects a look with a part out of range or missing', () => {
     expect(() => parseState(JSON.stringify({ ...base, look: { skin: 9, style: 0, hair: 0, outfit: 0 } }))).toThrow();
     expect(() => parseState(JSON.stringify({ ...base, look: { skin: 0, style: 0, hair: 0 } }))).toThrow();
+    expect(() => parseState(JSON.stringify({ ...base, look: { skin: 0, style: 0, hair: 0, outfit: 0, garb: 99 } }))).toThrow();
+  });
+  it('round-trips worn armor', () => {
+    const s = { ...base, wardrobe: { ...base.wardrobe, owned: { chainmail: { day: '2026-11-04', paid: 220 } }, worn: { armor: 'chainmail' } } };
+    expect(parseState(JSON.stringify(s)).wardrobe).toEqual(s.wardrobe);
   });
 });
 

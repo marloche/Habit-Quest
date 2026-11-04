@@ -19,7 +19,7 @@ export const TRACKS: Track[] = [
   { id: 'boss', name: 'BOSS SLAYER', unit: 'bosses beaten', tiers: [1, 5, 20] },
   { id: 'level', name: 'LEVEL', unit: 'level', tiers: [5, 10, 20] },
   { id: 'planner', name: 'PLANNER', unit: 'plans done', tiers: [5, 25, 100] },
-  { id: 'collector', name: 'COLLECTOR', unit: 'items owned', tiers: [3, 12, 34] },
+  { id: 'collector', name: 'COLLECTOR', unit: 'items owned', tiers: [3, 12, 43] },
   { id: 'treasure', name: 'TREASURE', unit: 'chests opened', tiers: [1, 10, 30] },
   // Showing up, counted so that more quests don't make them faster: only more days do.
   { id: 'days', name: 'SHOW UP', unit: 'days shown up', tiers: [30, 100, 365] },

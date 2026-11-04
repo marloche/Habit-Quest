@@ -5,7 +5,8 @@ import type { Slot, Wardrobe } from './types';
 export type Trophy = { track: string; tier: 2 | 3; how: string };
 export type Item = { id: string; slot: Slot; name: string; price: number; level?: number; chest?: true; trophy?: Trophy };
 
-export const SLOTS: Slot[] = ['hat', 'weapon', 'cape', 'pet'];
+// Also the drawing order: armor before the weapon, so a weapon is held in front of it.
+export const SLOTS: Slot[] = ['hat', 'armor', 'weapon', 'cape', 'pet'];
 
 // Ids are stored in saves: only ever add, never rename. Array order is display order; chest items keep theirs (chest loot picks by it).
 export const ITEMS: Item[] = [
@@ -18,14 +19,23 @@ export const ITEMS: Item[] = [
   { id: 'gold-crown', slot: 'hat', name: 'Gold crown', price: 400, level: 10 },
   { id: 'dragon-helm', slot: 'hat', name: 'Dragon helm', price: 600, level: 20 },
   { id: 'halo', slot: 'hat', name: 'Halo', price: 0, chest: true },
+  { id: 'leather-vest', slot: 'armor', name: 'Leather vest', price: 100 },
+  { id: 'chainmail', slot: 'armor', name: 'Chainmail', price: 220 },
+  { id: 'breastplate', slot: 'armor', name: 'Breastplate', price: 350, level: 5 },
+  { id: 'gilded-plate', slot: 'armor', name: 'Gilded plate', price: 550, level: 10 },
+  { id: 'dragonscale', slot: 'armor', name: 'Dragonscale', price: 850, level: 20 },
   { id: 'wood-sword', slot: 'weapon', name: 'Wooden sword', price: 50 },
   { id: 'dagger', slot: 'weapon', name: 'Dagger', price: 80 },
+  { id: 'mace', slot: 'weapon', name: 'Mace', price: 140 },
   { id: 'staff', slot: 'weapon', name: 'Staff', price: 150 },
   { id: 'lute', slot: 'weapon', name: 'Lute', price: 180 },
   { id: 'bow', slot: 'weapon', name: 'Bow', price: 200 },
+  { id: 'crossbow', slot: 'weapon', name: 'Crossbow', price: 280, level: 5 },
   { id: 'battle-axe', slot: 'weapon', name: 'Battle axe', price: 320, level: 5 },
   { id: 'flame-blade', slot: 'weapon', name: 'Flame blade', price: 400, level: 10 },
+  { id: 'flail', slot: 'weapon', name: 'Flail', price: 420, level: 10 },
   { id: 'rune-spear', slot: 'weapon', name: 'Rune spear', price: 600, level: 20 },
+  { id: 'scythe', slot: 'weapon', name: 'Scythe', price: 750, level: 20 },
   { id: 'crystal-staff', slot: 'weapon', name: 'Crystal staff', price: 0, chest: true },
   { id: 'traveler-cloak', slot: 'cape', name: 'Traveler cloak', price: 80 },
   { id: 'red-cape', slot: 'cape', name: 'Red cape', price: 120 },
@@ -47,6 +57,8 @@ export const ITEMS: Item[] = [
   { id: 'sun-circlet', slot: 'hat', name: 'Sun circlet', price: 0, trophy: { track: 'streak', tier: 2, how: 'Keep one quest going 30 days in a row (STREAK II).' } },
   { id: 'laurel-wreath', slot: 'hat', name: 'Laurel wreath', price: 0, trophy: { track: 'weeks', tier: 2, how: 'Check something off every day of a week, 12 weeks in all (FULL WEEKS II).' } },
   { id: 'flame-crown', slot: 'hat', name: 'Flame crown', price: 0, trophy: { track: 'streak', tier: 3, how: 'Keep one quest going 100 days in a row (STREAK III).' } },
+  { id: 'steadfast-mantle', slot: 'armor', name: 'Steadfast mantle', price: 0, trophy: { track: 'tiny', tier: 2, how: 'Do the tiny version 50 times: small still counts (TINY HERO II).' } },
+  { id: 'slayers-cuirass', slot: 'armor', name: "Slayer's cuirass", price: 0, trophy: { track: 'boss', tier: 2, how: 'Beat 5 weekly bosses (BOSS SLAYER II).' } },
   { id: 'second-wind', slot: 'weapon', name: 'Second Wind', price: 0, trophy: { track: 'comeback', tier: 2, how: 'Come back after a missed day, 10 times (COMEBACK II).' } },
   { id: 'dragonslayer', slot: 'weapon', name: 'Dragonslayer', price: 0, trophy: { track: 'boss', tier: 3, how: 'Beat 20 weekly bosses (BOSS SLAYER III).' } },
   { id: 'starforged-blade', slot: 'weapon', name: 'Starforged blade', price: 0, trophy: { track: 'weeks', tier: 3, how: 'Check something off every day of a week, 40 weeks in all (FULL WEEKS III).' } },

@@ -3,7 +3,7 @@ import { buyBlock, ITEMS, RARITY, SLOTS, wornIds, type Item } from '../logic/ite
 import type { Score } from '../logic/score';
 import type { Look, Slot, State } from '../logic/types';
 import type { Progress } from '../logic/achievements';
-import { CLASSIC, HAIRS, OUTFITS, PRESETS, sameLook, SKINS, STYLES, type Swatch } from '../logic/look';
+import { CLASSIC, GARBS, HAIRS, OUTFITS, PRESETS, sameLook, SKINS, STYLES, type Swatch } from '../logic/look';
 import { CALENDAR, CHEST, COIN, FLAME, hero, ICONS, nextTier, PAL, SUNRISE, svg, tierOf } from '../sprites';
 import { ELITE_PALS, LADDER } from '../bosses';
 import { CHECK, esc } from './html';
@@ -11,7 +11,7 @@ import { CHECK, esc } from './html';
 // view: wardrobe, look or achievements; slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
 export type HeroUi = { view: 'wardrobe' | 'look' | 'achievements'; slot: Slot | 'trophies'; buying?: string };
 
-const SLOT_NAMES: Record<Slot, string> = { hat: 'HAT', weapon: 'WEAPON', cape: 'CAPE', pet: 'PET' };
+const SLOT_NAMES: Record<Slot, string> = { hat: 'HAT', armor: 'ARMOR', weapon: 'WEAPON', cape: 'CAPE', pet: 'PET' };
 
 export const goldText = (hs: HeroState) => `${hs.balance}${hs.balance < 0 ? ' (debt)' : ''}`;
 
@@ -103,7 +103,9 @@ function lookView(state: State, level: number) {
       <span class="item-art">${hero(level, 48, [], p.look)}</span><span class="item-name">${p.name.toUpperCase()}</span></button>`);
   const styles = STYLES.map((n, i) => `<button class="item" data-action="look" data-part="style" data-val="${i}" aria-pressed="${look.style === i}" aria-label="Hair ${n}">
       <span class="item-art">${hero(level, 40, [], { ...look, style: i })}</span></button>`);
-  const row = (part: keyof Look, label: string, list: Swatch[]) =>
+  const garbs = GARBS.map((n, i) => `<button class="item" data-action="look" data-part="garb" data-val="${i}" aria-pressed="${(look.garb ?? 0) === i}" aria-label="Outfit ${n}">
+      <span class="item-art">${hero(level, 40, [], { ...look, garb: i })}</span></button>`);
+  const row = (part: 'skin' | 'hair' | 'outfit', label: string, list: Swatch[]) =>
     `<h3>${label}: ${list[look[part]].name.toUpperCase()}</h3>
      <div class="swatches" role="group" aria-label="${label}">${list.map((s, i) => swatch(part, label, s, i, look[part] === i)).join('')}</div>`;
   return `
@@ -113,7 +115,9 @@ function lookView(state: State, level: number) {
     <h3>HAIR: ${STYLES[look.style].toUpperCase()}</h3>
     <div class="styles" role="group" aria-label="Hair style">${styles.join('')}</div>
     ${row('hair', 'HAIR COLOR', HAIRS)}
-    ${row('outfit', 'OUTFIT', OUTFITS)}
+    <h3>OUTFIT STYLE: ${GARBS[look.garb ?? 0].toUpperCase()}</h3>
+    <div class="styles" role="group" aria-label="Outfit style">${garbs.join('')}</div>
+    ${row('outfit', 'OUTFIT COLOR', OUTFITS)}
     <p class="muted small">Hats cover your hair. Your level adds armor trim on top: shoulder pads at KNIGHT, a gold belt at CHAMPION, glowing eyes at LEGEND.</p>
     <button class="btn wide ghost" data-action="look-random">RANDOM HERO</button>`;
 }
@@ -145,7 +149,7 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
     </div>
     ${ui.view === 'look' ? lookView(state, sc.level) : ui.view === 'achievements'
       ? `<div class="badges">${hs.achievements.map(badge).join('')}</div>`
-      : `<div class="slot-tabs five" role="tablist">${tabs.join('')}</div>
+      : `<div class="slot-tabs six" role="tablist">${tabs.join('')}</div>
          ${ui.slot === 'trophies'
            ? `<p class="muted small">${earned} of ${trophies.length} earned. Trophies can't be bought: you earn them by showing up. A missed day never takes one away.</p>
               <div class="items">${trophies.map((i) => trophyCard(state, sc, hs, i)).join('')}</div>`

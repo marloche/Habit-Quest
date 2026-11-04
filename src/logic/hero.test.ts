@@ -47,6 +47,18 @@ describe('item art', () => {
       expect(art.rows.join('').replace(/\./g, ''), i.id).toMatch(new RegExp(`^[${Object.keys(PAL).join('')}]+$`));
     }
   });
+  it('keeps weapons held beside the hand and clear of the pet, and armor off the hands', () => {
+    for (const i of ITEMS.filter((x) => x.slot === 'weapon')) {
+      const art = ITEM_ART[i.id];
+      expect(art.x + art.rows[0].length, i.id).toBeLessThanOrEqual(16); // pets start at column 16
+      const at = (r: number, c: number) => art.rows[r - art.y]?.[c - art.x] ?? '.';
+      expect([8, 9].some((r) => [11, 12, 13].some((c) => at(r, c) !== '.')), i.id).toBe(true); // something in or next to the hand
+    }
+    for (const i of ITEMS.filter((x) => x.slot === 'armor')) {
+      const art = ITEM_ART[i.id];
+      for (const [r, c] of [[8, 4], [8, 11], [9, 4], [9, 11]]) expect(art.rows[r - art.y]?.[c - art.x] ?? '.', i.id).toBe('.');
+    }
+  });
 });
 
 describe('buying', () => {

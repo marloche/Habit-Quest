@@ -271,8 +271,9 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .item.worn .item-status { color: var(--accent-2); }
 .item.arming .item-status { color: var(--hot-text); }
 .slot-tabs.two { grid-template-columns: 1fr 1fr; }
-.slot-tabs.five { grid-template-columns: repeat(5, 1fr); gap: 4px; }
-.slot-tabs.five button:last-child { color: var(--gold); }
+/* Five slots plus TROPHY: two rows of three, so WEAPON still fits at phone width. */
+.slot-tabs.six { grid-template-columns: repeat(3, 1fr); }
+.slot-tabs.six button:last-child { color: var(--gold); }
 .items + .muted, .slot-tabs + .muted { margin: 0 4px 12px; line-height: 1.6; }
 
 /* Trophies: a blackletter pixel font for the name, silver for EPIC, gold for LEGENDARY, with a slow glow.
@@ -367,7 +368,7 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .btn:disabled { opacity: .4; cursor: default; }
 
 /* Hero LOOK tab */
-.presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 4px; }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 4px; } /* 3 wide so NECROMANCER fits on a phone */
 .styles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; padding: 4px; }
 @media (max-width: 420px) { .styles { grid-template-columns: repeat(3, 1fr); } }
 .item[aria-pressed='true'] { background: var(--blue); --edge: var(--gold); }

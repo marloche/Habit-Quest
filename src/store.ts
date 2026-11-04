@@ -53,7 +53,8 @@ const validHabit = (h: any) =>
   optional(h.archived, isDay) && optional(h.tiny, (t) => typeof t === 'string') && validSchedule(h.schedule) &&
   optional(h.focus, (m) => isInt(m, 1, FOCUS_MAX));
 
-const validLook = (l: any) => isRecord(l) && Object.entries(PARTS).every(([k, n]) => isInt(l[k], 0, n - 1));
+// garb came later: looks saved before it have none and draw the tunic.
+const validLook = (l: any) => isRecord(l) && Object.entries(PARTS).every(([k, n]) => (k === 'garb' && l[k] === undefined) || isInt(l[k], 0, n - 1));
 
 const validFocus = (f: unknown) => entriesOk(f, (k, v) => isDay(k) && isInt(v, 0, 1440));
 

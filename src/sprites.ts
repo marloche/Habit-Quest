@@ -5,7 +5,7 @@ import type { Look } from './logic/types';
 export const PAL: Record<string, string> = {
   k: '#1a1c2c', p: '#5d275d', r: '#b13e53', o: '#ef7d57', y: '#ffcd75', l: '#a7f070', g: '#38b764', G: '#257179',
   n: '#29366f', b: '#3b5dc9', c: '#41a6f6', C: '#73eff7', w: '#f4f4f4', s: '#94b0c2', S: '#566c86', d: '#333c57',
-  f: '#e8b796', v: '#9b5fc0',
+  f: '#e8b796', v: '#9b5fc0', e: '#8a5a36', E: '#5c3a28',
 };
 
 export const COIN = ['..yyyy..', '.yyoyyy.', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', '.yyoyyy.', '..yyyy..'];
@@ -67,6 +67,20 @@ export const BODY = [
   '....kkk..kkk....',
   '................',
 ];
+// Outfit shapes, in GARBS order (look.ts); BODY is the tunic. Hands stay at rows 8-9, columns 4 and 11, on every one.
+export const GARB_ROWS: string[][] = [
+  BODY,
+  ['....kAAAAAAk....', '...kfAaAAaAfk...', '...kfAaAAaAfk...', '....kAAyyAAk....', '....kAAAAAAk....', '...kAAAAaAAAk...', '...kAAAAaAAAk...', '...kaaaaaaaak...', '................'],
+  ['....kAAAAAEk....', '...kfAAAAEAfk...', '...kfAAAEAAfk...', '....kAAEAAAk....', '....kEEyEEEk....', '....kaakkaak....', '....kaakkaak....', '....kkk..kkk....', '................'],
+  ['....kSAAAASk....', '...kfsAwwAsfk...', '...kfswwwwsfk...', '....ksAwwAsk....', '....kyyyyyyk....', '....kSAAAASk....', '....kSSkkSSk....', '....kkk..kkk....', '................'],
+  ['...kaaaaaaaak...', '...kfaAAAAafk...', '...kfaAkkAafk...', '....kaAAAAak....', '....kkkSkkkk....', '....kddkkddk....', '....kddkkddk....', '....kkk..kkk....', '................'],
+  ['...kaAAAAAAak...', '...kfAAAaaafk...', '...kfaaaAAAfk...', '....kAAAaaak....', '....kkkykkkk....', '....kAakkaAk....', '....kaAkkAak....', '....kkk..kkk....', '................'],
+  ['....kAAffAAk....', '...kfAaAAAAfk...', '...kfAAaAAAfk...', '....kAAAaAAk....', '....kooooook....', '....kAAkkoAk....', '....kAAkkAAk....', '....fff..fff....', '................'],
+  ['....kyAAAAyk....', '...kfAaAaAafk...', '...kfaAaAaAfk...', '....kAaAaAak....', '....kyyyyyyk....', '....kaAyyAak....', '....kSSkkSSk....', '....kkk..kkk....', '................'],
+  ['....kAAwwAAk....', '...kfAwAAwAfk...', '...kfAAwwAAfk...', '....kAwAAwAk....', '....kAAvvAAk....', '...kAAAAAAAAk...', '...kAaAAAAaAk...', '...kaaaaaaaak...', '................'],
+  ['...glAAAAAAlg...', '...kfAgAAAAfk...', '...kfAAAAgAfk...', '....kAAAAAAk....', '....kgGgGgGk....', '...kAAAAAAAAk...', '...kAAAgAAAAk...', '...kaaaaaaaak...', '................'],
+  ['....kwwwwwwk....', '...kfAAAAAAfk...', '...kfwwwwwwfk...', '....kAAAAAAk....', '....krrrrrrk....', '....kddkkdrk....', '....kddkkddk....', '....kkk..kkk....', '................'],
+];
 
 // Your colors stay yours; each tier adds trim on top so the hero still visibly grows.
 const pads = (a: string, b: string): Layer => ({ x: 3, y: 7, rows: [`${a}${b}......${b}${a}`] });
@@ -100,10 +114,24 @@ export const ITEM_ART: Record<string, Layer> = {
   'ranger-hood': { x: 3, y: 0, cover: 3, rows: ['..gggggg..', '.gggggggg.', 'gggGGGGggg', 'gg......gg', 'gg......gg', 'Gg......gG', '.G......G.'] },
   'knight-helm': { x: 3, y: 0, cover: 3, rows: ['....rrr...', '..SSSSSS..', '.SssssssS.', 'SssssssssS', 'SskkkkkksS', 'SssssssssS', '.SsSssSsS.'] },
   'dragon-helm': { x: 2, y: 0, cover: 3, rows: ['l..........l', 'll.gGggGg.ll', '.llgGggGgll.', '..gGyggyGg..', '..gg....gg..', '..Gg....gG..'] },
-  dagger: { x: 13, y: 4, rows: ['.w.', '.s.', '.s.', 'kyk', '.o.', '.o.'] },
-  lute: { x: 13, y: 3, rows: ['kok', '.o.', '.o.', '.y.', 'ooo', 'oko', 'oyo', '.o.'] },
-  'battle-axe': { x: 13, y: 1, rows: ['.o.', 'SoS', 'sos', 'wos', 'SoS', '.o.', '.o.', '.o.', '.o.', '.o.'] },
-  'rune-spear': { x: 13, y: 0, rows: ['.C.', 'CwC', '.C.', '.s.', '.c.', '.o.', '.o.', '.c.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.'] },
+  // Weapons are held: the grip sits at column 12, rows 8-9, right beside the hand (column 11). Blades and hafts lean out
+  // and up; staffs and spears stand beside the hand down to the ground; nothing passes column 15, where pets start.
+  dagger: { x: 12, y: 5, rows: ['..w.', '.s..', 'kyk.', 'o...', 'o...'] },
+  lute: { x: 10, y: 5, rows: ['.....k', '.....o', '....o.', '...o..', '..o...', 'ooo...', 'oko...', 'ooo...'] },
+  'battle-axe': { x: 12, y: 1, rows: ['..o.', '.SoS', '.sow', '.SoS', '..o.', '.o..', '.o..', 'o...', 'o...', 'o...'] },
+  'rune-spear': { x: 11, y: 0, rows: ['.C.', 'CwC', '.C.', '.s.', '.c.', '.o.', '.c.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.'] },
+  mace: { x: 12, y: 2, rows: ['..S.', '.SsS', '..S.', '..o.', '.o..', '.o..', 'o...', 'o...', 'k...'] },
+  crossbow: { x: 12, y: 6, rows: ['...S', '...s', 'ooos', 'pk.s', '...S'] },
+  flail: { x: 12, y: 2, rows: ['..SS', '..Ss', '..k.', '.k..', '.o..', '.o..', 'o...', 'o...'] },
+  scythe: { x: 12, y: 0, rows: ['oSSs', 'o.ss', 'o..s', ...Array<string>(12).fill('o...')] },
+  // Armor sits on the chest over the outfit (rows 7-10) and under the weapon; it hides level-tier shoulder pads where they meet.
+  'leather-vest': { x: 3, y: 7, rows: ['..eeeeee..', '..ee..ee..', '..eE..Ee..', '...e..e...'] },
+  chainmail: { x: 3, y: 7, rows: ['.SssssssS.', '..sSsSsS..', '..SsSsSs..', '..sSsSsS..'] },
+  breastplate: { x: 3, y: 7, rows: ['SsSssssSsS', '..swssss..', '..swsssS..', '...SssS...'] },
+  'gilded-plate': { x: 3, y: 7, rows: ['oyoyyyyoyo', '..ywyyyo..', '..yyrryy..', '...oyyo...'] },
+  dragonscale: { x: 3, y: 7, rows: ['GgGlgglGgG', '..gGgGgG..', '..GgGgGg..', '...gGgG...'] },
+  'steadfast-mantle': { x: 3, y: 7, rows: ['lgwwwwwwgl', '..gwyywg..', '...g..g...'] },
+  'slayers-cuirass': { x: 3, y: 7, rows: ['rdSddddSdr', '..dwwwwd..', '..dSddSd..', '...rddr...'] },
   'traveler-cloak': cape('G', 'g', 'S'),
   'fur-mantle': cape('S', 's', 'w'),
   'feather-cape': { x: 1, y: 7, behind: true, rows: ['..cbcbcbcbcb..', '.bcbcbcbcbcbc.', '.cbcbcbcbcbcb.', 'bcbcbcbcbcbcbc', 'cbcbcbcbcbcbcb', 'wcwcwcwcwcwcwc', 'cwcwcwcwcwcwcw', 'w.w.w.ww.w.w.w'] },
@@ -117,8 +145,8 @@ export const ITEM_ART: Record<string, Layer> = {
   griffin: { x: 16, y: 8, rows: ['..ww....', '.wkww...', 'yywww.ss', '..wwwsss', '..yyysss', '.yyyyyy.', '.yy..yyo', '.o...o..'] },
   'sun-circlet': { x: 3, y: 0, rows: ['y...yy...y', '.y.yooy.y.', 'yyyyooyyyy'] },
   'laurel-wreath': { x: 3, y: 1, rows: ['.l.g..g.l.', 'lgGgyygGgl', 'g........g', 'G........G'] },
-  'second-wind': { x: 13, y: 0, rows: ['..C', '.wc', '.w.', 'cw.', '.wC', '.w.', '.w.', 'yry', '.r.', '.y.'] },
-  'starforged-blade': { x: 13, y: 0, rows: ['.y.', 'yyy', '.w.', '.w.', 'wCw', '.w.', '.w.', 'yvy', '.v.', '.y.'] },
+  'second-wind': { x: 12, y: 0, rows: ['...C', '..wc', '..w.', '.cw.', '.wC.', '.w..', '.w..', 'yry.', 'r...', 'r...', 'y...'] },
+  'starforged-blade': { x: 12, y: 0, rows: ['..y.', '.yyy', '..w.', '..w.', '.wC.', '.w..', '.w..', 'yvy.', 'v...', 'v...', 'y...'] },
   'moonlit-cape': robe('n', 'w', 's'),
   'ember-cape': robe('r', 'o', 'y'),
   'loyal-hound': { x: 16, y: 8, rows: ['........', '.ssssss.', 'SskssksS', 'SsswwssS', '.sskkss.', '.rryrrr.', '.ssssss.', '.s.ss.s.'] },
@@ -128,11 +156,11 @@ export const ITEM_ART: Record<string, Layer> = {
   'horned-helm': { x: 3, y: 0, rows: ['w........w', 'ww.SSSS.ww', '.wSssssSw.', '..SSSSSS..'] },
   'gold-crown': { x: 4, y: 0, rows: ['y..yy..y', 'yyyyyyyy', 'yryyyyry'] },
   halo: { x: 5, y: 0, rows: ['.CCCC.', 'C....C'] },
-  'wood-sword': { x: 13, y: 2, rows: ['.o.', '.o.', '.o.', '.o.', '.o.', 'kok', '.k.', '.k.'] },
-  staff: { x: 13, y: 1, rows: ['.c.', 'cCc', '.c.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.'] },
-  bow: { x: 13, y: 4, rows: ['.ow', 'o.w', 'o.w', 'o.w', 'o.w', 'o.w', '.ow'] },
-  'flame-blade': { x: 13, y: 1, rows: ['.o.', 'oyo', '.yo', 'oy.', '.yo', 'oy.', '.y.', 'kyk', '.k.', '.k.'] },
-  'crystal-staff': { x: 13, y: 1, rows: ['CwC', 'wCw', 'CwC', '.s.', '.s.', '.s.', '.s.', '.s.', '.s.', '.s.', '.s.', '.s.'] },
+  'wood-sword': { x: 12, y: 1, rows: ['...o', '..o.', '..o.', '..o.', '.o..', '.o..', 'kok.', 'p...', 'p...', 'k...'] },
+  staff: { x: 11, y: 0, rows: ['.c.', 'cCc', '.c.', ...Array<string>(12).fill('.o.')] },
+  bow: { x: 12, y: 3, rows: ['..os', '.o.s', '.o.s', 'o..s', 'o..s', 'p..s', 'p..s', 'o..s', '.o.s', '.o.s', '..os'] },
+  'flame-blade': { x: 12, y: 1, rows: ['...o', '..yo', '.oy.', '..y.', '.yo.', 'oy..', 'ryr.', 'r...', 'r...', 'y...'] },
+  'crystal-staff': { x: 11, y: 0, rows: ['CwC', 'wCw', 'CwC', ...Array<string>(12).fill('.s.')] },
   'red-cape': cape('r', 'p', 'p'),
   'royal-cape': cape('b', 'n', 'y'),
   'starry-cape': cape('n', 'w', 'C'),
@@ -141,7 +169,7 @@ export const ITEM_ART: Record<string, Layer> = {
   cat: { x: 16, y: 8, rows: ['........', '.o....o.', '.oo..oo.', '.oooooo.', '.okooko.', '.oooooo.', '..oooo.o', '..o..oo.'] },
   'baby-dragon': { x: 16, y: 8, rows: ['.....ll.', '....lgkl', '.y..gggl', 'yy.ggg..', '.yggggg.', '..gglgg.', '..gg.gg.', '..l...l.'] },
   'flame-crown': { x: 4, y: 0, rows: ['.o..o..o', 'oyooyooy', 'yyyyyyyy'] },
-  dragonslayer: { x: 13, y: 0, rows: ['.w.', '.w.', 'wCw', '.w.', '.w.', '.w.', '.w.', 'ryr', '.r.', '.r.', '.y.'] },
+  dragonslayer: { x: 12, y: 0, rows: ['...w', '..ws', '..ws', '.ws.', '.ws.', '.wC.', '.w..', 'ryr.', 'r...', 'r...', 'y...'] },
   'champion-cape': robe('w', 'y', 'y'),
   'wise-owl': { x: 16, y: 8, rows: ['........', '.s....s.', '.ssssss.', '.ykssyk.', '.ssooss.', '.swwwws.', '.swwwws.', '..o..o..'] },
   phoenix: { x: 16, y: 8, rows: ['...o....', '..oyo...', '.oykoo..', 'o.oyyoo.', '..ooyyo.', '.r.oyo..', 'r..ro...', '..r.r...'] },
@@ -169,7 +197,7 @@ export function hero(level: number, size = 64, worn: string[] = [], look: Look =
   const t = tierOf(level);
   const layers = worn.map((id) => ITEM_ART[id]).filter(Boolean);
   const width = layers.some((l) => l.x + l.rows[0].length > 16) ? 24 : 16;
-  const grid = [...HEADS[look.style], ...BODY].map((row) => row.padEnd(width, '.').split(''));
+  const grid = [...HEADS[look.style], ...GARB_ROWS[look.garb ?? 0]].map((row) => row.padEnd(width, '.').split(''));
   const outfit = OUTFITS[look.outfit];
   const pal = { ...PAL, f: SKINS[look.skin].c, h: HAIRS[look.hair].c, A: outfit.c, a: outfit.d! };
   for (const l of layers) for (let y = 0; y < (l.cover ?? 0); y++) grid[y].fill('.', 0, 16);

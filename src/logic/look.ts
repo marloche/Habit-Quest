@@ -34,29 +34,41 @@ export const OUTFITS: Swatch[] = [
   { name: 'Steel', c: '#94b0c2', d: '#566c86' },
   { name: 'Arcane', c: '#9b5fc0', d: '#5d275d' },
   { name: 'Shadow', c: '#566c86', d: '#333c57' },
+  { name: 'Leather', c: '#8a5a36', d: '#5c3a28' },
+  { name: 'Ivory', c: '#e8dcc0', d: '#b8a37a' },
+  { name: 'Midnight', c: '#29366f', d: '#1a1c2c' },
+  { name: 'Forest', c: '#257179', d: '#1a4b50' },
 ];
 
-export const PARTS: Record<keyof Look, number> = { skin: SKINS.length, style: STYLES.length, hair: HAIRS.length, outfit: OUTFITS.length };
+// Outfit shapes (GARBS in sprites.ts); the outfit color paints whichever one you wear.
+export const GARBS = ['Tunic', 'Robe', 'Leathers', 'Tabard', 'Jerkin', 'Doublet', 'Wrap', 'Scale', 'Bone robe', 'Leaf robe', 'Sailor'];
+
+export const PARTS: Record<keyof Look, number> = { skin: SKINS.length, style: STYLES.length, hair: HAIRS.length, outfit: OUTFITS.length, garb: GARBS.length };
 
 // The original hero; saves without a look draw this.
 export const CLASSIC: Look = { skin: 1, style: 0, hair: 0, outfit: 0 };
 
 export const PRESETS: { name: string; look: Look }[] = [
   { name: 'Squire', look: CLASSIC },
-  { name: 'Ranger', look: { skin: 2, style: 2, hair: 1, outfit: 5 } },
-  { name: 'Mage', look: { skin: 0, style: 1, hair: 4, outfit: 6 } },
-  { name: 'Paladin', look: { skin: 3, style: 0, hair: 3, outfit: 1 } },
-  { name: 'Rogue', look: { skin: 4, style: 3, hair: 2, outfit: 7 } },
-  { name: 'Bard', look: { skin: 1, style: 4, hair: 5, outfit: 2 } },
-  { name: 'Monk', look: { skin: 5, style: 5, hair: 2, outfit: 4 } },
-  { name: 'Valkyrie', look: { skin: 0, style: 1, hair: 3, outfit: 3 } },
+  { name: 'Ranger', look: { skin: 2, style: 2, hair: 1, outfit: 8, garb: 2 } },
+  { name: 'Mage', look: { skin: 0, style: 1, hair: 4, outfit: 6, garb: 1 } },
+  { name: 'Paladin', look: { skin: 3, style: 0, hair: 3, outfit: 1, garb: 3 } },
+  { name: 'Rogue', look: { skin: 4, style: 3, hair: 2, outfit: 7, garb: 4 } },
+  { name: 'Bard', look: { skin: 1, style: 4, hair: 5, outfit: 2, garb: 5 } },
+  { name: 'Monk', look: { skin: 5, style: 5, hair: 2, outfit: 4, garb: 6 } },
+  { name: 'Valkyrie', look: { skin: 0, style: 1, hair: 3, outfit: 5, garb: 7 } },
+  { name: 'Necromancer', look: { skin: 0, style: 5, hair: 2, outfit: 10, garb: 8 } },
+  { name: 'Druid', look: { skin: 4, style: 1, hair: 5, outfit: 11, garb: 9 } },
+  { name: 'Pirate', look: { skin: 2, style: 2, hair: 2, outfit: 2, garb: 10 } },
 ];
 
-export const sameLook = (a: Look, b: Look) => (Object.keys(PARTS) as (keyof Look)[]).every((k) => a[k] === b[k]);
+// A look without a garb wears the tunic (garb 0), so it matches a preset that says garb 0 or nothing.
+export const sameLook = (a: Look, b: Look) => (Object.keys(PARTS) as (keyof Look)[]).every((k) => (a[k] ?? 0) === (b[k] ?? 0));
 
 export const randomLook = (r = Math.random): Look => ({
   skin: Math.floor(r() * PARTS.skin),
   style: Math.floor(r() * PARTS.style),
   hair: Math.floor(r() * PARTS.hair),
   outfit: Math.floor(r() * PARTS.outfit),
+  garb: Math.floor(r() * PARTS.garb),
 });

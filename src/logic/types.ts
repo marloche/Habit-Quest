@@ -26,7 +26,7 @@ export type Settings = {
   bg?: Bg; bgStrength?: number; bgAnim?: boolean; bossArt?: boolean;
 };
 
-export type Slot = 'hat' | 'weapon' | 'cape' | 'pet';
+export type Slot = 'hat' | 'armor' | 'weapon' | 'cape' | 'pet';
 
 // What you bought (and the price you paid, so retuning prices never rewrites the past),
 // what you wear, and which chests you've opened with what came out.
@@ -42,6 +42,7 @@ export type Journal = Record<string, { mood: Mood; text?: string }>; // day key 
 export type Focus = Record<string, number>; // day key -> minutes focused
 
 // Hero appearance, each part an index into the lists in look.ts. Optional: a save without one draws the classic hero.
-export type Look = { skin: number; style: number; hair: number; outfit: number };
+// garb: the outfit's shape (GARBS); optional because looks saved before it existed have none, and draw the tunic.
+export type Look = { skin: number; style: number; hair: number; outfit: number; garb?: number };
 
 export type State = { v: 5; settings: Settings; habits: Habit[]; log: Log; wardrobe: Wardrobe; journal: Journal; focus: Focus; look?: Look; lastOpened?: string };
