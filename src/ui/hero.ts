@@ -110,7 +110,7 @@ function trophyCard(state: State, sc: Score, hs: HeroState, it: Item) {
 const swatch = (part: keyof Look, label: string, s: Swatch, i: number, on: boolean) =>
   `<button class="swatch" style="--c:${s.c};--d:${s.d ?? s.c}" data-action="look" data-part="${part}" data-val="${i}" aria-pressed="${on}" aria-label="${label} ${s.name}">${on ? CHECK : ''}</button>`;
 
-function lookView(state: State, level: number) {
+function lookView(state: State, level: number, worn: string[]) {
   const look = state.look ?? CLASSIC;
   const presets = PRESETS.map((p, i) => `<button class="item" data-action="preset" data-preset="${i}" aria-pressed="${sameLook(look, p.look)}">
       <span class="item-art">${hero(level, 48, [], p.look)}</span><span class="item-name">${p.name.toUpperCase()}</span></button>`);
@@ -121,7 +121,9 @@ function lookView(state: State, level: number) {
   const row = (part: 'skin' | 'hair' | 'outfit', label: string, list: Swatch[]) =>
     `<h3>${label}: ${list[look[part]].name.toUpperCase()}</h3>
      <div class="swatches" role="group" aria-label="${label}">${list.map((s, i) => swatch(part, label, s, i, look[part] === i)).join('')}</div>`;
+  // Pinned while you scroll the long list below, so every change shows on your hero without scrolling back up.
   return `
+    <div class="look-pin">${hero(level, 48, worn, look)}<button class="btn ghost" data-action="look-random">RANDOM HERO</button></div>
     <h3>PRESETS</h3>
     <div class="presets">${presets.join('')}</div>
     ${row('skin', 'SKIN', SKINS)}
@@ -131,8 +133,7 @@ function lookView(state: State, level: number) {
     <h3>OUTFIT STYLE: ${GARBS[look.garb ?? 0].toUpperCase()}</h3>
     <div class="styles" role="group" aria-label="Outfit style">${garbs.join('')}</div>
     ${row('outfit', 'OUTFIT COLOR', OUTFITS)}
-    <p class="muted small">Hats cover your hair. Your level adds armor trim on top: shoulder pads at KNIGHT, a gold belt at CHAMPION, glowing eyes at LEGEND.</p>
-    <button class="btn wide ghost" data-action="look-random">RANDOM HERO</button>`;
+    <p class="muted small">Hats cover your hair. Your level adds armor trim on top: shoulder pads at KNIGHT, a gold belt at CHAMPION, glowing eyes at LEGEND.</p>`;
 }
 
 export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
@@ -162,7 +163,7 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
       <button role="tab" data-action="hero-view" data-view="look" aria-selected="${ui.view === 'look'}">LOOK</button>
       <button role="tab" data-action="hero-view" data-view="achievements" aria-selected="${ui.view === 'achievements'}">ACHIEVEMENTS ${stars}/${hs.achievements.length * 3}</button>
     </div>
-    ${ui.view === 'look' ? lookView(state, sc.level) : ui.view === 'achievements'
+    ${ui.view === 'look' ? lookView(state, sc.level, worn) : ui.view === 'achievements'
       ? `<div class="badges">${hs.achievements.map(badge).join('')}</div>`
       : `<div class="slot-tabs six" role="tablist">${tabs.join('')}</div>
          ${ui.slot === 'trophies'

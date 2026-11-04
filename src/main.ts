@@ -244,6 +244,8 @@ function mark(id: string, m: Mark, d = today()) {
   const bossBefore = hs.boss;
   const chestsBefore = hs.chests.length;
   const wasComplete = dayComplete(d);
+  // Measured before the redraw: a done quest sorts down the list, but its rewards belong where you tapped.
+  const tapped = app.querySelector(`[data-row="${key}"]`)?.getBoundingClientRect();
   day[id] = m;
   commit();
   const after = scored;
@@ -259,9 +261,10 @@ function mark(id: string, m: Mark, d = today()) {
   const a = after.awards[d][id];
   const row = app.querySelector(`[data-row="${key}"]`);
   row?.classList.add('pop', 'stamp');
-  floatText(row, `+${a.xp} XP`);
-  setTimeout(() => floatText(row, `+${a.gold} G`, 'gold'), 180);
-  if (a.comeback) setTimeout(() => floatText(row, 'COMEBACK!', 'hot'), 360);
+  // Stacked, each a line below the last and a beat later, so they never overlap as they rise.
+  floatText(tapped, `+${a.xp} XP`);
+  setTimeout(() => floatText(tapped, `+${a.gold} G`, 'gold', 20), 180);
+  if (a.comeback) setTimeout(() => floatText(tapped, 'COMEBACK!', 'hot', 40), 360);
   sfx(a.milestone ? 'milestone' : a.comeback ? 'combo' : m === 'tiny' ? 'tiny' : 'check');
 
   if (a.milestone) {

@@ -67,7 +67,7 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
 .center { text-align: center; }
 
 /* Pixel frame: stepped corners instead of border-radius. */
-.hud, .quest, .btn, .card, .edit-row, .late-row, .hero-card, .item, .badge, .focus-card, .goal, .sugg, input, select, .icon-pick, .day-pick span {
+.hud, .look-pin, .quest, .btn, .card, .edit-row, .late-row, .hero-card, .item, .badge, .focus-card, .goal, .sugg, input, select, .icon-pick, .day-pick span {
   background: var(--panel);
   border: 0;
   box-shadow:
@@ -83,6 +83,7 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
 .hud-hero::after { content: ''; position: absolute; left: 16px; width: 48px; bottom: -2px; height: 4px; background: #0006; }
 .hud-hero .pet { left: 80px; top: 40px; width: 40px; height: 40px; }
 .hud-main { flex: 1; display: grid; gap: 6px; min-width: 0; }
+.look-pin { position: sticky; top: calc(env(safe-area-inset-top) + 4px); z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 4px 0; padding: 8px 12px; }
 .hud-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .hud-row span { display: inline-flex; gap: 4px; align-items: center; }
 .lv { padding: 3px 5px; background: var(--gold); color: var(--bg); font-size: 10px; box-shadow: 2px 2px 0 var(--danger); }
@@ -455,7 +456,7 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .shake { animation: shake .3s steps(6); }
 
 @keyframes bob { 50% { transform: translateY(-4px); } }
-@keyframes rise { to { transform: translate(-50%, -64px); opacity: 0; } }
+@keyframes rise { to { transform: translate(-50%, -32px); opacity: 0; } }
 @keyframes drop { from { transform: translate(-50%, -40px); } }
 @keyframes flash { from { background: var(--text); } }
 @keyframes blink { 50% { opacity: .2; } }
