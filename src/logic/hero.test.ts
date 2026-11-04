@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './day';
-import { BOSS_GOLD, BOSS_HP, BOSS_WEEKS, BOSSES, bossName, bossOf, bossShare, chestLoot, heroOf } from './hero';
+import { BOSS_GOLD, BOSS_HP, BOSS_WEEKS, BOSSES, bossName, bossOf, bossShare, chestLoot, heroOf, woundStage } from './hero';
 import { expected, isActive } from './score';
 import { TRACKS } from './achievements';
 import { buyBlock, emptyWardrobe, itemById, ITEMS, wornIds } from './items';
 import { score } from './score';
 import { ITEM_ART, PAL } from '../sprites';
-import { ELITE_PALS, LADDER } from '../bosses';
+import { ELITE_PALS, LADDER, wounded } from '../bosses';
 import type { Habit, Log, Mark, State } from './types';
 
 const MON = '2026-11-02';
@@ -189,6 +189,21 @@ describe('weekly boss', () => {
     expect(bossOf(late, { [day(2)]: { h: 'full' }, [day(3)]: { h: 'full' } }, MON, day(6))!.won).toBe(false);
     expect(bossOf(late, { [day(2)]: { h: 'full' }, [day(3)]: { h: 'full' }, [day(4)]: { h: 'full' } }, MON, day(6))!.won).toBe(true);
     expect(bossOf([daily], {}, addDays(MON, -7), day(0))).toBeUndefined();
+  });
+  it('shows wounds in three stages as HP drops, the same every time, growing on the boss itself', () => {
+    expect([0, 29, 30, 59, 60, 89, 90, 119].map((dmg) => woundStage({ dmg, hp: 120, won: false }))).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
+    expect(woundStage({ dmg: 0, hp: 120, won: true })).toBe(3);
+    for (const b of LADDER) {
+      const at = (s: number) => wounded(b.art, s, b.name);
+      expect(at(0)).toBe(b.art);
+      expect(at(2)).toEqual(wounded(b.art, 2, b.name));
+      const hurt = (s: number) => new Set(at(s).flatMap((r, y) => [...r].map((c, x) => (c !== b.art[y][x] ? `${x},${y}` : '')).filter(Boolean)));
+      const [one, two, three] = [hurt(1), hurt(2), hurt(3)];
+      expect(one.size, b.name).toBeGreaterThan(0);
+      expect([...one].every((p) => two.has(p)) && [...two].every((p) => three.has(p)), b.name).toBe(true);
+      expect(three.size, b.name).toBeGreaterThan(one.size);
+      expect([...three].every((p) => { const [x, y] = p.split(',').map(Number); return b.art[y][x] !== '.'; }), b.name).toBe(true);
+    }
   });
   it('has square art for every boss on the ladder, growing as it climbs, in known colors', () => {
     expect(LADDER.map((b) => b.name)).toEqual(BOSSES);

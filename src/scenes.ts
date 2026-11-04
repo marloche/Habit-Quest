@@ -3,7 +3,7 @@ import type { Bg } from './logic/types';
 // Background scenes, painted procedurally onto a small canvas (one canvas pixel = 3-5 screen pixels) so they fit
 // any screen shape. Moving bits are DOM sparks animated with CSS transforms and opacity, so nothing repaints per
 // frame and a hidden tab costs nothing. A spark can carry its own painted sprite (img), e.g. a ship that bobs.
-type Kind = 'flame' | 'twinkle' | 'ember' | 'smoke' | 'glow' | 'fall' | 'rain' | 'wander' | 'glide' | 'bob' | 'breathe' | 'sweep' | 'flash' | 'sway' | 'circle' | 'shoot' | 'haze';
+type Kind = 'flame' | 'twinkle' | 'ember' | 'smoke' | 'glow' | 'fall' | 'rain' | 'wander' | 'glide' | 'bob' | 'breathe' | 'sweep' | 'flash' | 'sway' | 'circle' | 'shoot' | 'haze' | 'halo' | 'flicker' | 'blink' | 'flap';
 // dx, dy: travel in scene pixels; c: color; d: seconds per loop (randomized a little unless t is fixed too); t: start offset.
 type Spark = { x: number; y: number; k: Kind; w?: number; h?: number; img?: string; dx?: number; dy?: number; c?: string; d?: number; t?: number };
 type P = { W: number; H: number; rnd: () => number; rect: (x: number, y: number, w: number, h: number, c: string) => void; ctx: CanvasRenderingContext2D; sparks: Spark[] };
@@ -70,6 +70,21 @@ function sprite(p: P, x: number, y: number, rows: string[], pal: Record<string, 
   rows.forEach((row, dy) => [...row].forEach((ch, dx) => ch !== '.' && p.rect(x + dx * s, y + dy * s, s, s, pal[ch])));
 }
 
+// A soft round light that flickers or pulses over a lamp, window, fire or sun (d: seconds per pulse).
+const halo = (p: P, x: number, y: number, r: number, c: string, d = 2.4) => p.sparks.push({ x: x - r, y: y - r, k: 'halo', w: r * 2 + 1, h: r * 2 + 1, c, d });
+
+// A bird or bat crossing the sky, wings flapping; dx is its travel (negative: right to left).
+function flyer(p: P, rows: string[], c: string, x: number, y: number, dx: number, d: number) {
+  const img = layer(p, rows[0].length, rows.length, (q) => sprite(q, 0, 0, rows, { k: c, w: c }));
+  p.sparks.push({ x, y, k: 'flap', w: rows[0].length, h: rows.length, img, dx, d });
+}
+
+// A small cloud drifting right to left, slowly.
+function drifter(p: P, y: number, d: number, pal: Record<string, string>) {
+  const img = layer(p, 14, 5, (q) => sprite(q, 0, 0, CLOUD, pal));
+  p.sparks.push({ x: p.W + 2, y, k: 'glide', w: 14, h: 5, img, dx: -(p.W + 20), d });
+}
+
 function glowAt(p: P, x: number, y: number, r: number, c: string) {
   p.ctx.globalAlpha = 0.12;
   disc(p, x, y, r, c);
@@ -84,6 +99,7 @@ const torch = (p: P, x: number, y: number) => {
   p.rect(x - 1, y - 1, 3, 3, '#ef7d57'); // the flame when animation is off
   p.rect(x, y, 1, 2, '#ffcd75');
   p.sparks.push({ x: x - 1, y: y - 2, k: 'flame' });
+  halo(p, x, y, 9, '#ef7d57', 1.4);
 };
 
 const banner = (p: P, x: number, y: number, h: number, c: string) => {
@@ -92,6 +108,8 @@ const banner = (p: P, x: number, y: number, h: number, c: string) => {
   p.rect(x + 1, y + h - 1, 1, 1, '#1a1c2c'); // notched tail
 };
 
+const BAT = ['k.....k', 'kk.k.kk', '.kkkkk.', '...k...'];
+const RAT = ['.....kk', 'kkkkkkk', '..k..k.'];
 const SKULL = ['.www.', 'wkwkw', 'wwwww', '.w.w.'];
 const RIBS = ['.s.s.s.', 's.s.s.s', '.s.s.s.'];
 const BONE = ['w...w', '.www.', 'w...w'];
@@ -115,6 +133,7 @@ function castle(p: P) {
   rect(mx + 2, my + 2, 1, 1, '#94b0c2');
   ridge(p, hz, 5, '#20243f', 0.07, 1);
   ridge(p, hz + 5, 3, '#181a2e', 0.12, 3);
+  for (let i = 0; i < 2; i++) flyer(p, BAT, '#0b0c14', W + 4, my - 4 + i * 6, -(W + 16), 14 + i * 5);
 
   const cw = Math.min(Math.round(W * 0.72), 120);
   const cx = Math.round((W - cw) / 2);
@@ -130,7 +149,12 @@ function castle(p: P) {
     tri(p, x + Math.floor(w / 2) - 1, base - h - 8, Math.floor(w / 4), 7, '#b13e53');
     rect(x + Math.floor(w / 2), base - h - 14, 1, 5, '#94b0c2');
     rect(x + Math.floor(w / 2) + 1, base - h - 14, 3, 2, '#b13e53');
-    for (let y = base - h + 4; y < base - 4; y += 6) if (rnd() < 0.7) rect(x + 2 + Math.floor(rnd() * (w - 5)), y, 1, 2, '#ffcd75');
+    for (let y = base - h + 4; y < base - 4; y += 6)
+      if (rnd() < 0.7) {
+        const wx = x + 2 + Math.floor(rnd() * (w - 5));
+        rect(wx, y, 1, 2, '#ffcd75');
+        if (rnd() < 0.5) p.sparks.push({ x: wx, y, k: 'flicker', w: 1, h: 2, c: '#ffcd75', d: 5 });
+      }
   };
   tower(cx - 3, 12, 30);
   tower(cx + cw - 9, 12, 30);
@@ -168,6 +192,7 @@ function dungeon(p: P) {
     const len = 8 + Math.floor(rnd() * floor * 0.3);
     for (let y = 0; y < len; y++) rect(x + (y % 4 < 2 ? 0 : 1), y, 1, 1, y % 2 ? '#566c86' : '#94b0c2');
     rect(x - 1, len, 4, 2, '#566c86');
+    p.sparks.push({ x: x + 1, y: len + 2, k: 'fall', dy: floor - len - 2, c: '#73eff7', d: 2.5 + rnd() * 3 });
   }
   const dw = 18;
   const dx = Math.round(W / 2 - dw / 2);
@@ -185,6 +210,8 @@ function dungeon(p: P) {
   for (let y = floor, r = 0; y < H; y += 6, r++) for (let x = r % 2 ? 5 : 0; x < W; x += 10) rect(x, y, 1, 6, '#1a1c2c');
   sprite(p, Math.round(W * 0.15), floor + 2, SKULL, BONES);
   sprite(p, Math.round(W * 0.8), floor + 4, BONE, BONES);
+  const rat = layer(p, 7, 3, (q) => sprite(q, 0, 0, RAT, { k: '#566c86' }));
+  p.sparks.push({ x: -8, y: floor - 1, k: 'glide', w: 7, h: 3, img: rat, dx: W + 16, d: 22 });
 }
 
 function forest(p: P) {
@@ -200,6 +227,8 @@ function forest(p: P) {
     disc(p, cx + 9, cy, 3, '#f4f4f4');
     rect(cx - 3, cy + 3, 16, 1, '#c2d3df');
   }
+  for (let i = 0; i < 3; i++) drifter(p, Math.round(H * 0.04 + rnd() * hz * 0.3), 70 + rnd() * 40, { w: '#f4f4f4', s: '#c2d3df' });
+  for (let i = 0; i < 2; i++) flyer(p, GULL, '#29366f', W + 4, Math.round(H * (0.14 + i * 0.07)), -(W + 16), 22 + i * 7);
   for (let x = -10; x < W + 10; x += 22 + Math.floor(rnd() * 12)) {
     const h = 14 + Math.floor(rnd() * 12);
     tri(p, x, hz - h, h, h, '#566c86');
@@ -243,6 +272,7 @@ function hell(p: P) {
   ridge(p, hz - 4, 8, '#2a1420', 0.05, 5, 0.08);
   const big = Math.round(W / 2 - 7);
   sprite(p, big, hz - 30, DEMON, { k: '#140a10', y: '#ffcd75' }, 2);
+  for (const ex of [4, 8]) p.sparks.push({ x: big + ex, y: hz - 24, k: 'blink', w: 2, h: 2, c: '#140a10', d: 6, t: -1 });
   for (let i = 0; i < Math.max(2, W / 40); i++)
     sprite(p, Math.floor(rnd() * (W - 8)), hz - 10 - Math.floor(rnd() * 6), DEMON, { k: '#1a0f16', y: '#ef7d57' });
   ridge(p, hz + 6, 5, '#1f0f18', 0.11, 2, 0.04);
@@ -252,7 +282,9 @@ function hell(p: P) {
     rect(fx, hz + 4, 3, lava - hz - 4, '#ef7d57');
     rect(fx + 1, hz + 4, 1, lava - hz - 4, '#ffcd75');
     glowAt(p, fx + 1, lava - 4, 10, '#ef7d57');
+    halo(p, fx + 1, lava - 4, 8, '#ffcd75', 1.8);
   }
+  for (let i = 0; i < 3; i++) p.sparks.push({ x: Math.floor(rnd() * W * 0.6), y: lava - 4 - i * 3, k: 'haze', w: Math.round(W * 0.4), h: 1, c: '#ef7d57', d: 3 });
   glowAt(p, W / 2, lava, Math.round(W * 0.35), '#b13e53');
   rect(0, lava, W, lh, '#ef7d57');
   rect(0, lava, W, 1, '#b13e53');
@@ -320,6 +352,7 @@ function snow(p: P) {
   const sy = Math.round(H * 0.12);
   glowAt(p, sx, sy, 14, '#f4f4f4');
   disc(p, sx, sy, 4, '#f4f4f4');
+  for (let i = 0; i < 2; i++) drifter(p, Math.round(H * 0.05 + rnd() * hz * 0.25), 80 + rnd() * 40, { w: '#c2d3df', s: '#94b0c2' });
   for (let x = -30; x < W + 30; x += 30 + Math.floor(rnd() * 22)) peak(p, x, hz, 30 + Math.floor(rnd() * 22), '#566c86', '#333c57', ['#f4f4f4', '#c2d3df']);
   for (let x = -20; x < W + 20; x += 20 + Math.floor(rnd() * 16)) peak(p, x, hz + 4, 12 + Math.floor(rnd() * 8), '#94b0c2', '#566c86', ['#f4f4f4', '#c2d3df']);
   rect(0, hz + 2, W, H - hz - 2, '#f4f4f4');
@@ -346,6 +379,7 @@ function snow(p: P) {
   rect(cx + 6, cy - 6, 4, 6, '#2b2433');
   rect(cx + 2, cy - 7, 3, 3, '#ffcd75');
   rect(cx + 11, cy - 7, 3, 3, '#ffcd75');
+  for (const wx of [cx + 3, cx + 12]) halo(p, wx, cy - 6, 6, '#ffcd75', 2);
   rect(cx + 12, cy - 19, 2, 6, '#566c86');
   rect(cx + 12, cy - 20, 2, 1, '#f4f4f4');
   tri(p, cx + 8, cy - 17, 10, 8, '#5d3a20');
@@ -417,6 +451,7 @@ function harbor(p: P) {
   rect(lx - 2, lb - 27, 5, 3, '#ffcd75');
   tri(p, lx, lb - 32, 4, 4, '#b13e53');
   glowAt(p, lx, lb - 26, 10, '#ffcd75');
+  halo(p, lx, lb - 26, 7, '#ffcd75', 2);
   const bw = Math.round(W * 0.55);
   p.sparks.push({ x: lx - bw, y: lb - 29, k: 'sweep', w: bw, h: 7, d: 8 });
   // the pier and its lamp
@@ -428,6 +463,9 @@ function harbor(p: P) {
   rect(0, py + 2, pw, 1, '#5d3a20');
   rect(pw - 3, py - 10, 1, 10, '#262b44');
   rect(pw - 4, py - 12, 3, 2, '#ffcd75');
+  halo(p, pw - 3, py - 11, 6, '#ffcd75', 2.6);
+  const streak = layer(p, 24, 3, (q) => { q.rect(0, 0, 24, 2, '#5d275d'); q.rect(3, 2, 18, 1, '#ef7d57'); });
+  for (let i = 0; i < 2; i++) p.sparks.push({ x: W + 2, y: Math.round(H * (0.08 + i * 0.12)), k: 'glide', w: 24, h: 3, img: streak, dx: -(W + 30), d: 90 + i * 30 });
   const ship = layer(p, 16, 12, (q) => sprite(q, 0, 0, SHIP, { r: '#b13e53', m: '#5d3a20', s: '#f4f4f4', S: '#c2d3df', h: '#7a4b2a', H: '#d9b26c', w: '#ffcd75' }));
   const shx = Math.round(W * 0.52);
   const shy = sea + Math.round((H - sea) * 0.16);
@@ -490,6 +528,12 @@ function grove(p: P) {
     rect(x, cy + 10 * s, 1, len, '#257179');
     rect(x, cy + 10 * s + len, 1, 1, '#a7f070');
   }
+  const ox = Math.round(tx + 15 * s);
+  const oy = Math.round(cy + 2 * s);
+  rect(ox - 2, oy - 1, 5, 3, '#16323c');
+  rect(ox - 1, oy, 1, 1, '#ffcd75');
+  rect(ox + 1, oy, 1, 1, '#ffcd75');
+  p.sparks.push({ x: ox - 1, y: oy, k: 'blink', w: 3, h: 1, c: '#16323c', d: 5 });
   // a path of glowing stones to the tree
   for (let y = H - 3, i = 0; y > tb + 2; y -= 4, i++) {
     const x = tx + Math.round(Math.sin(y * 0.07) * 8);
@@ -521,6 +565,8 @@ function desert(p: P) {
   glowAt(p, sx, sy, 18, '#ffcd75');
   disc(p, sx, sy, 7, '#ffcd75');
   disc(p, sx, sy, 5, '#f4f4f4');
+  halo(p, sx, sy, 13, '#ffcd75', 4);
+  for (let i = 0; i < 2; i++) drifter(p, Math.round(H * 0.04 + rnd() * hz * 0.2), 100 + rnd() * 40, { w: '#f4f4f4', s: '#e6eef4' });
   // far mesas in the haze
   for (let x = Math.floor(rnd() * 20); x < W; x += 40 + Math.floor(rnd() * 40)) {
     const w = 14 + Math.floor(rnd() * 18);
@@ -656,6 +702,8 @@ function aurora(p: P) {
   rect(cx + 6, lb + 4, 4, 1, '#5d3a20');
   rect(cx + 7, lb + 2, 2, 2, '#ef7d57');
   p.sparks.push({ x: cx + 7, y: lb + 1, k: 'flame' });
+  halo(p, cx + 8, lb + 2, 9, '#ef7d57', 1.3);
+  p.sparks.push({ x: cx + 8, y: lb - 2, k: 'smoke', d: 6 });
 }
 
 // An ellipse, filled row by row.
@@ -775,6 +823,8 @@ function lair(p: P) {
     p.sparks.push({ x, y: top + 1 + Math.floor(rnd() * 4), k: 'twinkle', c: '#f4f4f4', d: 3 });
   }
   for (let i = 0; i < 10; i++) p.sparks.push({ x: cx - half + Math.floor(rnd() * half * 2), y: floor - 4, k: 'ember' });
+  halo(p, cx, floor - mh, Math.round(half * 0.8), '#ffcd75', 5);
+  for (let i = 0; i < 2; i++) flyer(p, BAT, '#333c57', -8, Math.round(H * (0.18 + i * 0.08)), W + 16, 16 + i * 6);
 }
 
 function storm(p: P) {
@@ -795,6 +845,7 @@ function storm(p: P) {
       if (top) disc(p, x + 3, top, rr - 1, c); // lumpy tops too
     }
   }
+  for (let i = 0; i < 3; i++) drifter(p, Math.round(H * (0.06 + i * 0.1)), 40 + rnd() * 20, { w: '#262b44', s: '#1a1c2c' });
   const bolt = layer(p, 24, Math.round(base * 0.7), (q) => {
     let x = 12;
     for (let y = 0; y < q.H; y += 2) {
@@ -821,6 +872,7 @@ function storm(p: P) {
         const on = rnd() < 0.45;
         rect(wx, wy, 2, 3, on ? '#ffcd75' : '#1a1c2c');
         if (on) lit.push([wx, wy]);
+        if (on && rnd() < 0.35) p.sparks.push({ x: wx, y: wy, k: 'flicker', w: 2, h: 3, c: '#ffcd75', d: 4 });
       }
   };
   for (let x = -3; x < W; ) {
@@ -895,6 +947,7 @@ function isles(p: P) {
   glowAt(p, sx, sy, 16, '#ffcd75');
   disc(p, sx, sy, 5, '#ffcd75');
   disc(p, sx, sy, 3, '#f4f4f4');
+  halo(p, sx, sy, 11, '#ffcd75', 4);
   // hazy islands far off
   for (let i = 0; i < Math.max(3, W / 40); i++) {
     const x = Math.round(W * (0.15 + rnd() * 0.7));
@@ -941,8 +994,7 @@ function isles(p: P) {
   disc(p, fx + 1, ct, 5, '#f4f4f4');
   const cloud = layer(p, 14, 5, (q) => sprite(q, 0, 0, CLOUD, { w: '#f4f4f4', s: '#c2d3df' }));
   for (let i = 0; i < 5; i++) p.sparks.push({ x: W + 2, y: Math.round(H * (0.05 + rnd() * 0.6)), k: 'glide', w: 14, h: 5, img: cloud, dx: -(W + 20), d: 50 + rnd() * 40 });
-  const bird = layer(p, 7, 2, (q) => sprite(q, 0, 0, GULL, { w: '#29366f' }));
-  for (let i = 0; i < 2; i++) p.sparks.push({ x: W + 2, y: Math.round(H * (0.2 + i * 0.1)), k: 'glide', w: 7, h: 2, img: bird, dx: -(W + 14), d: 30 + i * 8 });
+  for (let i = 0; i < 3; i++) flyer(p, GULL, '#29366f', W + 2, Math.round(H * (0.2 + i * 0.07)), -(W + 14), 30 + i * 8);
 }
 
 const PAINT: Record<Exclude<Bg, 'auto' | 'plain'>, (p: P) => void> = { castle, dungeon, forest, hell, snow, harbor, grove, desert, aurora, lair, storm, isles };

@@ -26,8 +26,9 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
     <p class="muted small">AUTO: a day scene from ${DAY_FROM}:00 and a night scene from ${NIGHT_FROM}:00, a different one each day.</p>
     <p class="muted small">STRENGTH</p>
     <div class="slot-tabs three" role="tablist" aria-label="Background strength">${strengths.join('')}</div>
-    <label class="toggle"><input type="checkbox" data-setting="bgAnim" ${d.anim ? 'checked' : ''}> ANIMATE BACKGROUND</label>
-    ${reducedMotion ? '<p class="muted small">Your system asks for reduced motion, so the background starts still. This switch overrides it for the background only.</p>' : ''}
+    <label class="toggle"><input type="checkbox" data-setting="bgAnim" ${d.anim ? 'checked' : ''}> ANIMATIONS</label>
+    <p class="muted small">The background, bosses, pets and trophy shine.</p>
+    ${reducedMotion ? '<p class="muted small">Your system asks for reduced motion, so these start off. Turning them on overrides that for these only; the rest of the app stays calm.</p>' : ''}
     <label class="toggle"><input type="checkbox" data-setting="bossArt" ${d.bossArt ? 'checked' : ''}> SHOW BOSS ART</label>
     <h3>BACKUP</h3>
     <p class="${stale ? 'hot' : 'muted'} small">Last backup: ${age === undefined ? 'never' : age === 0 ? 'today' : `${age} days ago`}</p>

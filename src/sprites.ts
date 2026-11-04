@@ -193,10 +193,15 @@ export function svg(rows: string[], size: number, label = '', pal: Record<string
 
 export const icon = (name: string, size = 24) => svg(ICONS[name] ?? ICONS.star, size);
 
-export function hero(level: number, size = 64, worn: string[] = [], look: Look = CLASSIC) {
+// Pets are the layers drawn right of the hero, from column 16.
+export const petOf = (worn: string[]) => worn.find((id) => ITEM_ART[id]?.x === 16);
+
+// noPet: leave the pet's space empty, for a pet drawn on its own on top.
+export function hero(level: number, size = 64, worn: string[] = [], look: Look = CLASSIC, noPet = false) {
   const t = tierOf(level);
-  const layers = worn.map((id) => ITEM_ART[id]).filter(Boolean);
-  const width = layers.some((l) => l.x + l.rows[0].length > 16) ? 24 : 16;
+  const all = worn.map((id) => ITEM_ART[id]).filter(Boolean);
+  const width = all.some((l) => l.x + l.rows[0].length > 16) ? 24 : 16;
+  const layers = noPet ? all.filter((l) => l.x < 16) : all;
   const grid = [...HEADS[look.style], ...GARB_ROWS[look.garb ?? 0]].map((row) => row.padEnd(width, '.').split(''));
   const outfit = OUTFITS[look.outfit];
   const pal = { ...PAL, f: SKINS[look.skin].c, h: HAIRS[look.hair].c, A: outfit.c, a: outfit.d! };

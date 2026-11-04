@@ -1,12 +1,12 @@
 import { dayLabel } from '../logic/day';
-import { BOSS_GOLD, type HeroState } from '../logic/hero';
-import { buyBlock, ITEMS, RARITY, SLOTS, wornIds, type Item } from '../logic/items';
+import { BOSS_GOLD, woundStage, type HeroState } from '../logic/hero';
+import { buyBlock, itemById, ITEMS, RARITY, SLOTS, wornIds, type Item } from '../logic/items';
 import type { Score } from '../logic/score';
 import type { Look, Slot, State } from '../logic/types';
 import type { Progress } from '../logic/achievements';
 import { CLASSIC, GARBS, HAIRS, OUTFITS, PRESETS, sameLook, SKINS, STYLES, type Swatch } from '../logic/look';
-import { CALENDAR, CHEST, COIN, FLAME, hero, ICONS, nextTier, PAL, SUNRISE, svg, tierOf } from '../sprites';
-import { ELITE_PALS, LADDER } from '../bosses';
+import { CALENDAR, CHEST, COIN, FLAME, hero, ICONS, ITEM_ART, nextTier, PAL, petOf, SUNRISE, svg, tierOf } from '../sprites';
+import { ELITE_PALS, LADDER, wounded } from '../bosses';
 import { CHECK, esc } from './html';
 
 // view: wardrobe, look or achievements; slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
@@ -35,7 +35,7 @@ export function bossBar(hs: HeroState, big = false, art = true) {
   const size = big ? 40 + rows.length : 24;
   const pal = b.lap ? { ...PAL, ...ELITE_PALS[(b.lap - 1) % ELITE_PALS.length] } : PAL;
   return `<div class="boss-bar${big ? ' big' : ''}${b.won ? ' won' : ''}" role="img" aria-label="${said}">
-      ${art ? `<span class="boss-art${b.lap ? ` elite e${(b.lap - 1) % ELITE_PALS.length}` : ''}">${svg(rows, size, '', pal)}</span>` : ''}
+      ${art ? `<span class="boss-art juice b${b.tier}${b.lap ? ` elite e${(b.lap - 1) % ELITE_PALS.length}` : ''}">${svg(wounded(rows, woundStage(b), b.name), size, '', pal)}</span>` : ''}
       <div class="boss-main">
         <div class="hud-row small"><span>${big ? (b.weeks > 1 ? 'BOSS: ' : 'WEEK BOSS: ') : ''}${b.name.toUpperCase()}</span><span class="${b.won ? 'gold' : b.reach ? '' : 'muted'}">${status}</span></div>
         <div class="bar boss"><div style="width:${Math.round((left / b.hp) * 100)}%"></div></div>
@@ -45,6 +45,10 @@ export function bossBar(hs: HeroState, big = false, art = true) {
       </div>
     </div>`;
 }
+
+// The worn pet sits on the hero as its own button, so tapping or rubbing it gets a reaction. 128px hero: 8px a pixel.
+const petButton = (id: string) =>
+  `<button class="pet p-${id}" data-action="pet" data-pet="${id}" aria-label="Pet your ${esc(itemById(id)?.name ?? 'pet')}">${svg(ITEM_ART[id].rows, 64)}</button>`;
 
 const TRACK_ART: Record<string, string[]> = {
   streak: FLAME, perfect: ICONS.star, checks: ICONS.pen, tiny: ICONS.leaf, comeback: ICONS.heart,
@@ -138,10 +142,12 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
   const tabs = [...SLOTS, 'trophies' as const].map((s) => `<button role="tab" data-action="slot" data-slot="${s}" aria-selected="${s === ui.slot}">${s === 'trophies' ? 'TROPHY' : SLOT_NAMES[s]}</button>`);
   const trophies = ITEMS.filter((i) => i.trophy);
   const earned = trophies.filter((i) => hs.trophies.includes(i.id)).length;
+  const worn = wornIds(state.wardrobe, hs.trophies);
+  const pet = petOf(worn);
   return `
     <h2>HERO</h2>
     <div class="hero-card">
-      <div class="hero-big">${hero(sc.level, 128, wornIds(state.wardrobe, hs.trophies), state.look)}</div>
+      <div class="hero-big juice">${hero(sc.level, 128, worn, state.look, true)}${pet ? petButton(pet) : ''}</div>
       <div class="hero-info">
         <b>LV ${sc.level} ${t.title.toUpperCase()}</b>
         <span class="gold${hs.balance < 0 ? ' debt' : ''}">${svg(COIN, 12)} ${goldText(hs)} G</span>

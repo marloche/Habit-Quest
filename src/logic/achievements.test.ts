@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { progressOf, tierGold, TRACKS, trackValues, trophiesOf, trophyAt } from './achievements';
+import { newTiers, progressOf, tierGold, TRACKS, trackValues, trophiesOf, trophyAt } from './achievements';
 import { addDays } from './day';
 import { emptyWardrobe, ITEMS } from './items';
 import { score } from './score';
@@ -59,5 +59,14 @@ describe('achievement tracks', () => {
     const streak = (s: State) => progressOf(trackValues(s, score(s, day(6)), 0)).find((p) => p.track.id === 'streak')!.tier;
     expect(streak(full)).toBe(1);
     expect(streak(state({ ...week, [day(3)]: {} }))).toBe(0);
+  });
+});
+
+describe('new tiers', () => {
+  it('are the tiers above the ones already announced, so a reload or a lost-then-regained tier is handled', () => {
+    const ps = progressOf({ streak: 30, boss: 12, checks: 10 });
+    expect(newTiers({}, ps).map((p) => [p.track.id, p.tier])).toEqual([['streak', 2], ['boss', 3]]);
+    expect(newTiers({ streak: 2, boss: 2 }, ps).map((p) => p.track.id)).toEqual(['boss']);
+    expect(newTiers({ streak: 3, boss: 3 }, ps)).toEqual([]); // tiers lost by unticking: nothing to cheer
   });
 });

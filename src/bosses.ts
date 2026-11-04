@@ -214,6 +214,31 @@ const DRAGON = stamp(mirror([
   '......oyyyyy',
 ]), []);
 
+// Battle damage over the art. Strokes come from the boss's name, so a reload shows the same wounds, and each stage keeps
+// the last one's and adds longer ones (scratches, then cracks). Dark marks on light pixels, red on dark, only on the boss.
+const DARK = new Set(['k', 'd', 'p', 'n', 'E', 'G', 'S', 'r']);
+export function wounded(art: string[], stage: number, name: string) {
+  if (!stage) return art;
+  const grid = art.map((r) => r.split(''));
+  const filled: [number, number][] = [];
+  art.forEach((row, y) => [...row].forEach((ch, x) => ch !== '.' && filled.push([x, y])));
+  let h = 2166136261;
+  for (const c of name) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  const rnd = () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0) / 2 ** 32);
+  const per = Math.ceil(art.length / 12); // 1 for the 8-pixel slime, 2 for the 24-pixel dragon
+  const strokes = [0, 2, 4, 6][stage] * per;
+  for (let i = 0; i < strokes; i++) {
+    const [x0, y0] = filled[Math.floor(rnd() * filled.length)];
+    const dx = rnd() < 0.5 ? -1 : 1;
+    const len = i < 2 * per ? 2 : i < 4 * per ? 3 : 4;
+    for (let j = 0; j < len; j++) {
+      const ch = art[y0 + j]?.[x0 + dx * j];
+      if (ch && ch !== '.') grid[y0 + j][x0 + dx * j] = DARK.has(ch) ? (ch === 'r' ? 'k' : 'r') : 'k';
+    }
+  }
+  return grid.map((r) => r.join(''));
+}
+
 export type BossArt = { name: string; title: string; art: string[] };
 
 export const LADDER: BossArt[] = [

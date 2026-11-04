@@ -57,7 +57,10 @@ export function trackValues(state: State, sc: Score, bossWins: number): Record<s
 export const progressOf = (values: Record<string, number>): Progress[] =>
   TRACKS.map((track) => ({ track, value: values[track.id] ?? 0, tier: track.tiers.filter((t) => (values[track.id] ?? 0) >= t).length }));
 
-export const tierGold = (ps: Progress[]) => ps.reduce((n, p) => n + TIER_GOLD.slice(0, p.tier).reduce((a, b) => a + b, 0), 0);
+// Tiers above the ones already announced (seen: track id -> tier, kept outside the save).
+export const newTiers = (seen: Record<string, number>, ps: Progress[]) => ps.filter((p) => p.tier > (seen[p.track.id] ?? 0));
+
+export const tierGold =(ps: Progress[]) => ps.reduce((n, p) => n + TIER_GOLD.slice(0, p.tier).reduce((a, b) => a + b, 0), 0);
 
 export const trophiesOf = (ps: Progress[]) =>
   ITEMS.filter((i) => i.trophy && (ps.find((p) => p.track.id === i.trophy!.track)?.tier ?? 0) >= i.trophy.tier).map((i) => i.id);

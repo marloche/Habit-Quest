@@ -61,6 +61,9 @@ export function bossOf(habits: Habit[], log: Log, week: string, today: string, b
   return { week, ...who, weeks, end, hp, hit: Math.round(hp / need), dmg, won, wonOn, reach: won || hits + open >= need, daysLeft: daysBetween(today, end) };
 }
 
+// Wounds on the boss art: none until a quarter of its HP is gone, then stages 1-3 at 25 / 50 / 75%; a beaten boss shows the worst.
+export const woundStage = (b: Pick<Boss, 'dmg' | 'hp' | 'won'>) => (b.won ? 3 : Math.min(3, Math.floor((4 * b.dmg) / b.hp)));
+
 // Chests come from streak milestones and boss wins: 25% a chest-only item you don't own yet, else 50-150 gold.
 export const CHEST_ITEM_CHANCE = 0.25;
 export type Chest = { id: string; why: string };

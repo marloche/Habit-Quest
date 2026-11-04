@@ -1,6 +1,6 @@
 import './style.css';
-import { audio, sfx, unlock } from './audio';
-import { banner, floatText, shake, toast } from './fx';
+import { audio, hasSound, sfx, unlock } from './audio';
+import { banner, floatText, hearts, shake, toast } from './fx';
 import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logic/day';
 import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/score';
 import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
@@ -15,7 +15,7 @@ import { BACKUP_DAYS, KEY, backupAge, exportFile, fresh, load, newId, parseState
 import { calendarView } from './ui/calendar';
 import { editListView, formView } from './ui/edit';
 import { heroView, type HeroUi } from './ui/hero';
-import { TIER_GOLD, trophyAt } from './logic/achievements';
+import { newTiers, TIER_GOLD, trophyAt } from './logic/achievements';
 import { nav } from './ui/html';
 import { questView } from './ui/quest';
 import { settingsView } from './ui/settings';
@@ -80,6 +80,7 @@ function applyScene() {
   if (key === sceneKey) return;
   sceneKey = key;
   document.body.classList.toggle('scened', scene !== 'plain');
+  document.body.classList.toggle('still', !d.anim); // the ANIMATIONS switch: background, bosses, pets, trophy shine
   mountScene(bgLayer, scene, px, d.strength, d.anim);
 }
 let resizing = 0;
@@ -106,7 +107,7 @@ function announceTiers() {
     seen = JSON.parse(localStorage.getItem(TIERS_KEY) ?? '{}');
   } catch {} // a broken note just means we cheer again
   const now = Object.fromEntries(hs.achievements.map((p) => [p.track.id, p.tier]));
-  const ups = hs.achievements.filter((p) => p.tier > (seen[p.track.id] ?? 0));
+  const ups = newTiers(seen, hs.achievements);
   if (JSON.stringify(now) !== JSON.stringify(seen)) localStorage.setItem(TIERS_KEY, JSON.stringify(now));
   const quiet = quietTiers;
   quietTiers = false;
@@ -116,12 +117,40 @@ function announceTiers() {
   setTimeout(() => // after the check's own banners
     ups.forEach((p) => {
       const prize = trophyAt(p.track.id, p.tier);
+      const sub = `${p.track.name} ${ROMAN[p.tier - 1]}: +${TIER_GOLD[p.tier - 1]} G${prize ? ' and a trophy' : ''}`;
+      if (!prize) return banner({ title: 'ACHIEVEMENT!', sub, onShow: () => sfx('perfect') });
+      const legend = p.tier === 3;
       banner({
-        title: 'ACHIEVEMENT!', sub: `${p.track.name} ${ROMAN[p.tier - 1]}: +${TIER_GOLD[p.tier - 1]} G${prize ? ' and a trophy' : ''}`,
-        prize: prize && { name: prize.name, tier: p.tier }, onShow: () => sfx('perfect'),
+        title: legend ? 'LEGENDARY TROPHY!' : 'EPIC TROPHY!', sub, prize: { name: prize.name, tier: p.tier }, reveal: true,
+        level: scored.level, worn: [prize.id], look: state.look, onShow: () => sfx(legend ? 'legendary' : 'epic'),
       });
     }));
 }
+
+// Petting: a tap, a click, or a rub (enough back-and-forth over the pet, by finger or mouse) gets hearts, the pet's own
+// little move and its sound. Once per 0.7s, so a long rub or tap spam doesn't stack sounds.
+let pettedAt = 0;
+let rubbed = 0;
+let rubTimer: ReturnType<typeof setTimeout>;
+function pet(el: HTMLElement) {
+  if (Date.now() - pettedAt < 700) return;
+  pettedAt = Date.now();
+  rubbed = 0;
+  const id = el.dataset.pet!;
+  if (hasSound(id)) sfx(id);
+  el.classList.remove('petted');
+  void el.offsetWidth; // restart the animation
+  el.classList.add('petted');
+  hearts(el);
+}
+app.addEventListener('pointermove', (e) => {
+  const el = (e.target as Element).closest<HTMLElement>('.pet');
+  if (!el) return;
+  rubbed += Math.abs(e.movementX) + Math.abs(e.movementY);
+  clearTimeout(rubTimer);
+  rubTimer = setTimeout(() => (rubbed = 0), 500); // a pause ends the rub
+  if (rubbed > 120) pet(el); // more than a single pass across the 64px pet
+});
 
 function tapBadge(id: string) {
   const p = hs.achievements.find((x) => x.track.id === id);
@@ -207,8 +236,11 @@ function mark(id: string, m: Mark, d = today()) {
   commit();
   const after = scored;
   const bossNow = hs.boss;
-  if (bossNow && bossNow.week === bossBefore?.week && bossNow.dmg > bossBefore.dmg) {
+  const sameFight = !!bossNow && bossNow.week === bossBefore?.week;
+  if (sameFight && bossNow.dmg > bossBefore.dmg) {
     floatText(app.querySelector('.boss-bar'), `-${bossNow.dmg - bossBefore.dmg} HP`, 'hot');
+    app.querySelectorAll('.boss-art').forEach((el) => el.classList.add(bossNow.won ? 'fall' : 'hit'));
+    setTimeout(() => sfx('hit'), 90);
   }
   const a = after.awards[d][id];
   const row = app.querySelector(`[data-row="${key}"]`);
@@ -228,8 +260,11 @@ function mark(id: string, m: Mark, d = today()) {
   if (!wasComplete && dayComplete(d)) {
     banner({ title: 'PERFECT DAY!', sub: `${after.perfect}-day perfect run`, onShow: () => sfx('perfect') });
   }
-  if (bossNow?.won && bossBefore && !bossBefore.won && bossNow.week === bossBefore.week) {
-    banner({ title: 'BOSS DEFEATED!', sub: `${bossNow.name} falls! +${BOSS_GOLD * bossNow.weeks} G and ${bossNow.weeks > 1 ? `${bossNow.weeks} chests` : 'a chest'}`, level: after.level, worn: wornIds(state.wardrobe, hs.trophies), look: state.look, onShow: () => { shake(); sfx('levelup'); } });
+  if (sameFight && bossNow.won && !bossBefore.won) {
+    const sub = `${bossNow.name} falls! +${BOSS_GOLD * bossNow.weeks} G and ${bossNow.weeks > 1 ? `${bossNow.weeks} chests` : 'a chest'}`;
+    const worn = wornIds(state.wardrobe, hs.trophies);
+    // Let the knockout play before the banner covers it.
+    setTimeout(() => banner({ title: 'BOSS DEFEATED!', sub, level: after.level, worn, look: state.look, onShow: () => { shake(); sfx('bossdown'); } }), 900);
   }
   if (hs.chests.length > chestsBefore) toast('You earned a chest! Open it on the HERO tab.');
 }
@@ -307,7 +342,7 @@ function tapItem(id: string) {
   w.owned[id] = { day: today(), paid: it.price };
   w.worn[it.slot] = id;
   commit();
-  sfx('milestone');
+  sfx('buy');
   banner({ title: 'NEW GEAR!', sub: `${it.name} equipped`, level: scored.level, worn: wornIds(w, hs.trophies), look: state.look, onShow: shake });
 }
 
@@ -318,10 +353,10 @@ function openChest(id: string) {
   w.opened[id] = { day: today(), ...loot };
   if (loot.item) w.owned[loot.item] = { day: today(), paid: 0 };
   commit();
-  sfx(loot.item ? 'levelup' : 'milestone');
+  sfx('chest');
   if (loot.item) {
-    banner({ title: 'RARE FIND!', sub: `${itemById(loot.item)!.name}! Tap it in the wardrobe to wear it`, level: scored.level, worn: [loot.item], look: state.look, onShow: shake });
-  } else banner({ title: 'CHEST OPENED!', sub: `+${loot.gold} G` });
+    banner({ title: 'RARE FIND!', sub: `${itemById(loot.item)!.name}! Tap it in the wardrobe to wear it`, level: scored.level, worn: [loot.item], look: state.look, onShow: () => { shake(); setTimeout(() => sfx('levelup'), 450); } });
+  } else banner({ title: 'CHEST OPENED!', sub: `+${loot.gold} G`, onShow: () => setTimeout(() => sfx('coin'), 450) });
 }
 
 // Tap a face to set the day's mood; tap the lit one again to clear the entry.
@@ -567,6 +602,7 @@ app.addEventListener('click', (e) => {
     case 'slot': shopSlot = el.dataset.slot as HeroUi['slot']; return render();
     case 'hero-view': heroTab = el.dataset.view as HeroUi['view']; return render();
     case 'badge': return tapBadge(el.dataset.track!);
+    case 'pet': return pet(el);
     case 'item': return tapItem(el.dataset.item!);
     case 'preset': return setLook(PRESETS[Number(el.dataset.preset)].look);
     case 'look': return setLook({ ...(state.look ?? CLASSIC), [el.dataset.part as keyof Look]: Number(el.dataset.val) });
