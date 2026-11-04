@@ -130,7 +130,7 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
         <div class="hud-row small"><span title="Share of your quests done in the last 14 days">x${sc.momentum.toFixed(2)} MOMENTUM</span><span>${svg(FLAME, 12)} ${sc.perfect}d</span></div>
       </div>
     </header>
-    ${bossBar(hs)}
+    ${bossBar(hs, false, state.settings.bossArt !== false)}
     ${focusCard(state, now.getTime(), ui)}
     ${lateView(state, today, now, ui)}
     <h2>${allDone ? 'ALL QUESTS DONE!' : "TODAY'S QUESTS"}</h2>

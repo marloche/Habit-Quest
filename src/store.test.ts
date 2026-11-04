@@ -123,3 +123,13 @@ describe('hero look in the save', () => {
     expect(() => parseState(JSON.stringify({ ...base, look: { skin: 0, style: 0, hair: 0 } }))).toThrow();
   });
 });
+
+describe('display settings in the save', () => {
+  const base = fresh();
+  it('round-trip and are checked', () => {
+    const s = { ...base, settings: { ...base.settings, bg: 'hell', bgStrength: 3, bgAnim: false, bossArt: false } } as State;
+    expect(parseState(JSON.stringify(s)).settings).toEqual(s.settings);
+    expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, bg: 'moon' } }))).toThrow();
+    expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, bgStrength: 4 } }))).toThrow();
+  });
+});

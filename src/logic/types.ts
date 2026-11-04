@@ -18,7 +18,13 @@ export type Habit = {
 export type Mark = 'full' | 'tiny';
 export type Log = Record<string, Record<string, Mark>>; // day key -> habit id -> mark
 
-export type Settings = { rolloverHour: number; muted: boolean; lastBackup?: string; wakeLock?: boolean };
+export type Bg = 'auto' | 'castle' | 'dungeon' | 'forest' | 'hell' | 'plain';
+
+// Display fields are optional; scene.ts fills in the defaults.
+export type Settings = {
+  rolloverHour: number; muted: boolean; lastBackup?: string; wakeLock?: boolean;
+  bg?: Bg; bgStrength?: number; bgAnim?: boolean; bossArt?: boolean;
+};
 
 export type Slot = 'hat' | 'weapon' | 'cape' | 'pet';
 

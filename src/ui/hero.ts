@@ -15,14 +15,14 @@ const SLOT_NAMES: Record<Slot, string> = { hat: 'HAT', weapon: 'WEAPON', cape: '
 export const goldText = (hs: HeroState) => `${hs.balance}${hs.balance < 0 ? ' (debt)' : ''}`;
 
 // The week's boss as an HP bar that empties as you check things off; big on the Hero tab, slim on the Quest screen.
-export function bossBar(hs: HeroState, big = false) {
+export function bossBar(hs: HeroState, big = false, art = true) {
   const b = hs.boss;
   if (!b) return '';
   const left = b.hp - b.dmg;
   const status = b.won ? 'DEFEATED!' : `${left} HP - ${b.daysLeft ? `${b.daysLeft}d left` : 'last day'}`;
   const said = b.won ? `Week boss ${b.name} defeated` : `Week boss ${b.name}, ${left} of ${b.hp} HP left, ${b.daysLeft} days left`;
   return `<div class="boss-bar${big ? ' big' : ''}${b.won ? ' won' : ''}" role="img" aria-label="${said}">
-      <span class="boss-art">${svg(BOSS_ART[b.name], big ? 48 : 24)}</span>
+      ${art ? `<span class="boss-art">${svg(BOSS_ART[b.name], big ? 48 : 24)}</span>` : ''}
       <div class="boss-main">
         <div class="hud-row small"><span>${big ? 'WEEK BOSS: ' : ''}${b.name.toUpperCase()}</span><span class="${b.won ? 'gold' : ''}">${status}</span></div>
         <div class="bar boss"><div style="width:${Math.round((left / b.hp) * 100)}%"></div></div>
@@ -109,7 +109,7 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
         <span class="muted small">${next ? `Next: ${next.title.toUpperCase()} at LV ${next.from}` : 'Highest tier!'}</span>
       </div>
     </div>
-    ${bossBar(hs, true)}
+    ${bossBar(hs, true, state.settings.bossArt !== false)}
     ${hs.chests.length ? `<button class="btn wide chest-btn" data-action="open-chest" data-chest="${hs.chests[0].id}">
       ${svg(CHEST, 32)}<span>OPEN CHEST${hs.chests.length > 1 ? ` (${hs.chests.length})` : ''}<small>${esc(hs.chests[0].why)}</small></span></button>` : ''}
     <div class="slot-tabs three" role="tablist">

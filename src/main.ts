@@ -7,7 +7,9 @@ import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
 import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
 import { JOURNAL_GOLD, JOURNAL_MAX } from './logic/journal';
-import type { Look, Mark, Mood, Schedule, Slot, State } from './logic/types';
+import type { Bg, Look, Mark, Mood, Schedule, Slot, State } from './logic/types';
+import { display, sceneFor } from './logic/scene';
+import { mountScene } from './scenes';
 import { CLASSIC, PRESETS, randomLook } from './logic/look';
 import { BACKUP_DAYS, KEY, backupAge, exportFile, fresh, load, newId, parseState, save } from './store';
 import { calendarView } from './ui/calendar';
@@ -56,10 +58,34 @@ function render() {
     form: () => formView(state.habits.find((h) => h.id === editingId)),
     suggest: () => suggestView(state, sugg),
     stats: () => statsView(state, sc, hs, t),
-    settings: () => settingsView(state, t),
+    settings: () => settingsView(state, t, reducedMotion.matches),
   };
   app.innerHTML = `<main>${views[tab]()}</main>${nav(tab === 'edit' || tab === 'form' || tab === 'suggest' ? 'quest' : tab)}`;
+  applyScene();
 }
+
+// The background layer, repainted only when the scene, screen size or a display setting changes (AUTO flips on a render).
+const bgLayer = document.createElement('div');
+bgLayer.id = 'bg';
+bgLayer.setAttribute('aria-hidden', 'true');
+document.body.prepend(bgLayer);
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let sceneKey = '';
+function applyScene() {
+  const d = display(state.settings, reducedMotion.matches);
+  const scene = sceneFor(d.bg, new Date().getHours());
+  const px = innerWidth < 700 ? 3 : 5;
+  const key = [scene, px, Math.ceil(innerWidth / px), Math.ceil(innerHeight / px), d.strength, d.anim].join();
+  if (key === sceneKey) return;
+  sceneKey = key;
+  document.body.classList.toggle('scened', scene !== 'plain');
+  mountScene(bgLayer, scene, px, d.strength, d.anim);
+}
+let resizing = 0;
+addEventListener('resize', () => {
+  clearTimeout(resizing);
+  resizing = window.setTimeout(applyScene, 200);
+});
 
 function go(to: Tab) {
   if (to === 'calendar' && tab !== 'calendar') pickDay(today());
@@ -541,6 +567,8 @@ app.addEventListener('click', (e) => {
     case 'preset': return setLook(PRESETS[Number(el.dataset.preset)].look);
     case 'look': return setLook({ ...(state.look ?? CLASSIC), [el.dataset.part as keyof Look]: Number(el.dataset.val) });
     case 'look-random': return setLook(randomLook());
+    case 'bg': state.settings.bg = el.dataset.bg as Bg; return commit();
+    case 'bg-strength': state.settings.bgStrength = Number(el.dataset.val); return commit();
     case 'open-chest': return openChest(el.dataset.chest!);
   }
 });
@@ -574,6 +602,7 @@ app.addEventListener('change', (e) => {
   if (t.dataset.action === 'import') return void importFile(t);
   if (!t.dataset.setting) return; // habit form fields save on submit
   if (t.dataset.setting === 'muted') audio.muted = state.settings.muted = t.checked;
+  if (t.dataset.setting === 'bgAnim' || t.dataset.setting === 'bossArt') state.settings[t.dataset.setting] = t.checked;
   if (t.dataset.setting === 'wakeLock') {
     if (t.checked) state.settings.wakeLock = true;
     else delete state.settings.wakeLock;

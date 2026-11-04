@@ -3,6 +3,7 @@ import { emptyWardrobe, SLOTS } from './logic/items';
 import { FOCUS_MAX } from './logic/focus';
 import { JOURNAL_MAX } from './logic/journal';
 import { PARTS } from './logic/look';
+import { BGS } from './logic/scene';
 import type { Settings, State } from './logic/types';
 
 export const KEY = 'habit-quest';
@@ -65,7 +66,8 @@ export function parseState(text: string): State {
     x && isInt(x.v, 1, 5) &&
     (x.v < 3 || validWardrobe(x.wardrobe)) && (x.v < 4 || validJournal(x.journal)) && (x.v < 5 || validFocus(x.focus)) &&
     s && isInt(s.rolloverHour, 0, 23) && typeof s.muted === 'boolean' && optional(s.lastBackup, isDay) &&
-    optional(s.wakeLock, (w) => typeof w === 'boolean') &&
+    [s.wakeLock, s.bgAnim, s.bossArt].every((b) => optional(b, (v) => typeof v === 'boolean')) &&
+    optional(s.bg, (b) => (BGS as unknown[]).includes(b)) && optional(s.bgStrength, (n) => isInt(n, 1, 3)) &&
     optional(x.lastOpened, isDay) && optional(x.look, validLook) &&
     Array.isArray(x.habits) && x.habits.every(validHabit) &&
     x.log && typeof x.log === 'object' && !Array.isArray(x.log) &&
