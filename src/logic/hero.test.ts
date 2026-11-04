@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './day';
-import { BOSS_GOLD, BOSSES, bossOf, chestLoot, heroOf } from './hero';
+import { BOSS_GOLD, BOSSES, bossName, bossOf, chestLoot, heroOf } from './hero';
 import { buyBlock, emptyWardrobe, itemById, ITEMS, wornIds } from './items';
 import { score } from './score';
-import { BOSS_ART, ITEM_ART, PAL } from '../sprites';
+import { ITEM_ART, PAL } from '../sprites';
+import { ELITE_PALS, LADDER } from '../bosses';
 import type { Habit, Log, Mark, State } from './types';
 
 const MON = '2026-11-02';
@@ -98,12 +99,29 @@ describe('weekly boss', () => {
     expect(bossOf([{ ...daily, created: day(2) }], {}, MON, day(2))!.hp).toBe(35);
     expect(bossOf([daily], {}, addDays(MON, -7), day(0))).toBeUndefined();
   });
-  it('has art for every boss', () => {
-    expect(BOSSES.every((n) => BOSS_ART[n]?.length === 8)).toBe(true);
+  it('has square art for every boss on the ladder, growing as it climbs, in known colors', () => {
+    expect(LADDER.map((b) => b.name)).toEqual(BOSSES);
+    const colors = new RegExp(`^[${Object.keys(PAL).join('')}]+$`);
+    for (const b of LADDER) {
+      expect(b.art.every((r) => r.length === b.art.length), b.name).toBe(true);
+      expect(b.art.join('').replace(/\./g, ''), b.name).toMatch(colors);
+    }
+    expect(LADDER.every((b, i) => i === 0 || b.art.length >= LADDER[i - 1].art.length)).toBe(true);
+    expect(ELITE_PALS.every((p) => Object.keys(p).every((k) => k in PAL))).toBe(true);
   });
-  it('rotates the roster weekly', () => {
-    const names = [0, 7, 14].map((n) => bossOf([daily], {}, day(n), day(n))!.name);
-    expect(new Set(names).size).toBe(3);
+  it('climbs one boss per win, then repeats as elite laps', () => {
+    expect(bossName(0)).toEqual({ tier: 0, lap: 0, name: 'Slime' });
+    expect(bossName(11).name).toBe('Elder Dragon');
+    expect(bossName(12)).toEqual({ tier: 0, lap: 1, name: 'Elite Slime' });
+    expect(bossName(25)).toEqual({ tier: 1, lap: 2, name: 'Elite II Cave Rat' });
+    expect(bossName(12 * 9).name).toBe('Elite 9 Slime');
+  });
+  it('brings a meaner boss after a win and a rematch after a loss', () => {
+    const five = ['full', 'full', 'full', 'full', 'full'] as Mark[];
+    const log = { ...week(five), ...Object.fromEntries(five.map((m, i) => [day(14 + i), { h: m }])) }; // win, lose, win
+    const s = state(log);
+    const names = [6, 13, 20, 27].map((n) => heroOf(s, score(s, day(n)), day(n)).boss!.name);
+    expect(names).toEqual(['Slime', 'Cave Rat', 'Cave Rat', 'Bat Swarm']);
   });
   it('gives a chest per win and per streak milestone; opened ones pay out while still earned', () => {
     const marks = week(['full', 'full', 'full', 'full', 'full', 'full', 'full']); // a win and a 7-day milestone

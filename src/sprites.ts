@@ -5,7 +5,7 @@ import type { Look } from './logic/types';
 export const PAL: Record<string, string> = {
   k: '#1a1c2c', p: '#5d275d', r: '#b13e53', o: '#ef7d57', y: '#ffcd75', l: '#a7f070', g: '#38b764', G: '#257179',
   n: '#29366f', b: '#3b5dc9', c: '#41a6f6', C: '#73eff7', w: '#f4f4f4', s: '#94b0c2', S: '#566c86', d: '#333c57',
-  f: '#e8b796',
+  f: '#e8b796', v: '#9b5fc0',
 };
 
 export const COIN = ['..yyyy..', '.yyoyyy.', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', '.yyoyyy.', '..yyyy..'];
@@ -22,14 +22,6 @@ export const ICONS: Record<string, string[]> = {
   pen: ['.....www', '....wwsw', '....wsw.', '...wsw..', '..ks....', '.nkn....', 'nbbbn...', 'nnnnn...'], // a quill in an ink pot, so it can't pass for the sword
   apple: ['....g...', '...g....', '.rrrrr..', 'rrwrrrr.', 'rwrrrrr.', 'rrrrrrr.', 'rrrrrrr.', '.rr.rr..'],
   coin: COIN,
-};
-
-export const BOSS_ART: Record<string, string[]> = {
-  'Slime King': ['.y.y.y..', '.yyyyy..', '.gggggg.', 'gglggggg', 'gkggkggg', 'gggggggg', 'gggrrggg', '.GGGGGG.'],
-  Goblin: ['g......g', 'gg.gg.gg', '.gggggg.', '.grggrg.', '.gggggg.', '..gwwg..', '.SSSSSS.', '.S.SS.S.'],
-  Skeleton: ['..wwww..', '.wwwwww.', '.wkwwkw.', '.wwwwww.', '..wkkw..', '...ww...', '.wwwwww.', '.w.ww.w.'],
-  Wraith: ['..CCCC..', '.CCCCCC.', '.CkCCkC.', '.CCCCCC.', 'CCCkkCCC', 'CCCCCCCC', 'C.CC.CC.', '...C..C.'],
-  Dragon: ['r......r', 'rr....rr', '.rrrrrr.', 'rryrryrr', 'rrrrrrrr', '.rwrwrr.', '..rrrr..', '.rr..rr.'],
 };
 
 export const CHEST = ['........', '.oooooo.', 'oooooooo', 'yyyyyyyy', 'oooyyooo', 'oooyyooo', 'oooooooo', '.oooooo.'];

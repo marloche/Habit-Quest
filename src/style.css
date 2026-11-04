@@ -235,6 +235,8 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .boss-bar { display: flex; align-items: center; gap: 10px; margin: 16px 4px 0; padding: 8px 10px; background: #2a1f33; box-shadow: 0 0 0 4px #5d275d; }
 .boss-bar.big { margin-top: 24px; padding: 12px; }
 .boss-bar.won { box-shadow: 0 0 0 4px var(--gold); }
+.boss-art.elite.e0 { filter: drop-shadow(0 0 3px #73eff7); } /* elite laps glow: frost, then void */
+.boss-art.elite.e1 { filter: drop-shadow(0 0 3px #a7f070); }
 .boss-main { flex: 1; display: grid; gap: 6px; min-width: 0; }
 .boss-main .hud-row { flex-wrap: wrap; }
 .bar.boss > div { background: repeating-linear-gradient(90deg, var(--danger) 0 8px, var(--hot) 8px 10px); }

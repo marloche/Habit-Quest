@@ -4,7 +4,8 @@ import type { Score } from '../logic/score';
 import type { Look, Slot, State } from '../logic/types';
 import type { Progress } from '../logic/achievements';
 import { CLASSIC, HAIRS, OUTFITS, PRESETS, sameLook, SKINS, STYLES, type Swatch } from '../logic/look';
-import { BOSS_ART, CHEST, COIN, FLAME, hero, ICONS, nextTier, PAL, svg, tierOf } from '../sprites';
+import { CHEST, COIN, FLAME, hero, ICONS, nextTier, PAL, svg, tierOf } from '../sprites';
+import { ELITE_PALS, LADDER } from '../bosses';
 import { CHECK, esc } from './html';
 
 // view: wardrobe, look or achievements; slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
@@ -21,19 +22,24 @@ export function bossBar(hs: HeroState, big = false, art = true) {
   const left = b.hp - b.dmg;
   const status = b.won ? 'DEFEATED!' : `${left} HP - ${b.daysLeft ? `${b.daysLeft}d left` : 'last day'}`;
   const said = b.won ? `Week boss ${b.name} defeated` : `Week boss ${b.name}, ${left} of ${b.hp} HP left, ${b.daysLeft} days left`;
+  const { art: rows, title } = LADDER[b.tier];
+  // Bigger bosses also draw bigger on the HERO tab: 48px for the 8-pixel slime up to 64px for the dragon.
+  const size = big ? 40 + rows.length : 24;
+  const pal = b.lap ? { ...PAL, ...ELITE_PALS[(b.lap - 1) % ELITE_PALS.length] } : PAL;
   return `<div class="boss-bar${big ? ' big' : ''}${b.won ? ' won' : ''}" role="img" aria-label="${said}">
-      ${art ? `<span class="boss-art">${svg(BOSS_ART[b.name], big ? 48 : 24)}</span>` : ''}
+      ${art ? `<span class="boss-art${b.lap ? ` elite e${(b.lap - 1) % ELITE_PALS.length}` : ''}">${svg(rows, size, '', pal)}</span>` : ''}
       <div class="boss-main">
         <div class="hud-row small"><span>${big ? 'WEEK BOSS: ' : ''}${b.name.toUpperCase()}</span><span class="${b.won ? 'gold' : ''}">${status}</span></div>
         <div class="bar boss"><div style="width:${Math.round((left / b.hp) * 100)}%"></div></div>
-        ${big ? `<div class="small muted">${b.won ? `+${BOSS_GOLD} G and a chest earned.` : `Beat it by Sunday: +${BOSS_GOLD} G and a chest.`} Bosses beaten: ${hs.wins}</div>` : ''}
+        ${big ? `<div class="small hot">"${title}"</div>
+        <div class="small muted">${b.won ? `+${BOSS_GOLD} G and a chest earned. A meaner boss comes Monday.` : `Beat it by Sunday: +${BOSS_GOLD} G and a chest. Miss, and it comes back for a rematch.`} Bosses beaten: ${hs.wins}</div>` : ''}
       </div>
     </div>`;
 }
 
 const TRACK_ART: Record<string, string[]> = {
   streak: FLAME, perfect: ICONS.star, checks: ICONS.pen, tiny: ICONS.leaf, comeback: ICONS.heart,
-  boss: BOSS_ART['Slime King'], level: ICONS.sword, planner: ICONS.moon, collector: COIN, treasure: CHEST,
+  boss: LADDER[0].art, level: ICONS.sword, planner: ICONS.moon, collector: COIN, treasure: CHEST,
 };
 const DIM = { ...PAL, y: PAL.S }; // an unearned star
 

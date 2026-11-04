@@ -9,12 +9,21 @@ import type { Habit, Log, Mark, State, Wardrobe } from './types';
 export const BOSS_SHARE = 0.7;
 export const BOSS_GOLD = 50;
 export const BOSS_DAMAGE: Record<Mark, number> = { full: 10, tiny: 5 };
-export const BOSSES = ['Slime King', 'Goblin', 'Skeleton', 'Wraith', 'Dragon'];
-const EPOCH = '2026-01-05'; // a Monday; the roster rotates one boss per week from here
+// The ladder: each win brings the next, meaner boss; a lost week brings the same one back for a rematch.
+// After the last, the ladder repeats as ELITE laps (art recolored in the UI).
+export const BOSSES = ['Slime', 'Cave Rat', 'Bat Swarm', 'Skeleton', 'Goblin Raider', 'Orc Brute', 'Wraith', 'Dark Knight', 'Troll', 'Lich', 'Demon Lord', 'Elder Dragon'];
+const LAP = ['', 'Elite', 'Elite II', 'Elite III', 'Elite IV', 'Elite V'];
 
-export type Boss = { week: string; name: string; hp: number; dmg: number; won: boolean; daysLeft: number };
+// tier: index into BOSSES; lap: 0 for the first climb, 1+ for elite laps.
+export type Boss = { week: string; name: string; tier: number; lap: number; hp: number; dmg: number; won: boolean; daysLeft: number };
 
-export function bossOf(habits: Habit[], log: Log, week: string, today: string): Boss | undefined {
+export function bossName(beaten: number) {
+  const tier = beaten % BOSSES.length;
+  const lap = Math.floor(beaten / BOSSES.length);
+  return { tier, lap, name: lap ? `${LAP[lap] ?? `Elite ${lap}`} ${BOSSES[tier]}` : BOSSES[tier] };
+}
+
+export function bossOf(habits: Habit[], log: Log, week: string, today: string, beaten = 0): Boss | undefined {
   let want = 0;
   let dmg = 0;
   for (let i = 0; i < 7; i++) {
@@ -27,8 +36,7 @@ export function bossOf(habits: Habit[], log: Log, week: string, today: string): 
   }
   const hp = Math.round(10 * BOSS_SHARE * want);
   if (!hp) return undefined;
-  const n = Math.floor(daysBetween(EPOCH, week) / 7) % BOSSES.length;
-  return { week, name: BOSSES[(n + BOSSES.length) % BOSSES.length], hp, dmg: Math.min(dmg, hp), won: dmg >= hp, daysLeft: daysBetween(today, addDays(week, 6)) };
+  return { week, ...bossName(beaten), hp, dmg: Math.min(dmg, hp), won: dmg >= hp, daysLeft: daysBetween(today, addDays(week, 6)) };
 }
 
 // Chests come from streak milestones and boss wins: 25% a chest-only item you don't own yet, else 50-150 gold.
@@ -62,7 +70,7 @@ export function heroOf(state: State, sc: Score, today: string): HeroState {
   let wins = 0;
   let boss: Boss | undefined;
   for (let w = weekStart(start); w <= today; w = addDays(w, 7)) {
-    const b = bossOf(state.habits, state.log, w, today);
+    const b = bossOf(state.habits, state.log, w, today, wins); // wins so far pick this week's boss
     if (b?.won) {
       wins++;
       earnedChests.push({ id: `b-${w}`, why: `Beat ${b.name}` });
