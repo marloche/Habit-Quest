@@ -261,10 +261,10 @@ function mark(id: string, m: Mark, d = today()) {
   const a = after.awards[d][id];
   const row = app.querySelector(`[data-row="${key}"]`);
   row?.classList.add('pop', 'stamp');
-  // Stacked, each a line below the last and a beat later, so they never overlap as they rise.
+  // Stacked bottom to top, each a line above the last and a beat later; all rise at one speed, so they never overlap.
   floatText(tapped, `+${a.xp} XP`);
-  setTimeout(() => floatText(tapped, `+${a.gold} G`, 'gold', 20), 180);
-  if (a.comeback) setTimeout(() => floatText(tapped, 'COMEBACK!', 'hot', 40), 360);
+  setTimeout(() => floatText(tapped, `+${a.gold} G`, 'gold', -22), 180);
+  if (a.comeback) setTimeout(() => floatText(tapped, 'COMEBACK!', 'hot', -44), 360);
   sfx(a.milestone ? 'milestone' : a.comeback ? 'combo' : m === 'tiny' ? 'tiny' : 'check');
 
   if (a.milestone) {

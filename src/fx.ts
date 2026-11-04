@@ -5,16 +5,16 @@ import { esc } from './ui/html';
 // Effects live in #fx, outside #app, so re-renders don't cut them off.
 const layer = () => document.getElementById('fx')!;
 
-// from: an element, or a spot measured earlier (the page may have redrawn since). dy: push it down, to stack several.
+// from: an element, or a spot measured earlier (the page may have redrawn since). dy: shift it, to stack several.
 export function floatText(from: Element | DOMRect | null | undefined, text: string, cls = '', dy = 0) {
   const r = from instanceof Element ? from.getBoundingClientRect() : from;
   const el = document.createElement('div');
-  el.className = `float ${cls}`;
+  el.className = `float juice ${cls}`;
   el.textContent = text;
   el.style.left = `${r ? r.left + r.width / 2 : innerWidth / 2}px`;
   el.style.top = `${(r ? r.top : innerHeight / 2) + dy}px`;
   layer().append(el);
-  setTimeout(() => el.remove(), 1200);
+  setTimeout(() => el.remove(), 1700); // after the 1.6s fade, so it's already invisible
 }
 
 // A few pixel hearts float up from a petted pet.

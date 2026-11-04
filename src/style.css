@@ -436,8 +436,10 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 #fx { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 .float {
   position: fixed; transform: translateX(-50%); font-size: 14px; color: var(--accent-2);
-  text-shadow: 2px 2px 0 var(--bg); animation: rise 1.2s steps(12) forwards; white-space: nowrap;
+  text-shadow: 2px 2px 0 var(--bg); animation: rise 1.6s ease-out forwards; white-space: nowrap;
 }
+/* ANIMATIONS off: no drift, but still a gentle fade rather than vanishing. */
+body.still .float.juice { animation: fade 1.6s ease-out forwards !important; }
 .float.gold { color: var(--gold); }
 .float.hot { color: var(--hot); }
 .toast {
@@ -456,7 +458,9 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .shake { animation: shake .3s steps(6); }
 
 @keyframes bob { 50% { transform: translateY(-4px); } }
-@keyframes rise { to { transform: translate(-50%, -32px); opacity: 0; } }
+/* Fades in, holds to read, then drifts up as it fades out: smooth, unlike the stepped pixel animations. */
+@keyframes rise { 0% { opacity: 0; } 10%, 50% { opacity: 1; } 100% { transform: translate(-50%, -36px); opacity: 0; } }
+@keyframes fade { 0% { opacity: 0; } 10%, 50% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes drop { from { transform: translate(-50%, -40px); } }
 @keyframes flash { from { background: var(--text); } }
 @keyframes blink { 50% { opacity: .2; } }
@@ -466,7 +470,6 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 @media (prefers-reduced-motion: reduce) {
   /* Exempt: the background and the juice (hero, bosses, pets, trophy shine, reveals); the ANIMATIONS switch decides those. */
   *:not(.spark, .juice, .juice *, .rare), *::before, *::after { animation: none !important; transition: none !important; }
-  .float { transform: translate(-50%, -32px); }
 }
 
 /* Welcome and quest suggestions */
