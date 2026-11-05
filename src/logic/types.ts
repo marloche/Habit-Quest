@@ -25,7 +25,9 @@ export type Bg = 'auto' | 'castle' | 'dungeon' | 'forest' | 'hell' | 'plain'
 export type Settings = {
   rolloverHour: number; muted: boolean; lastBackup?: string; wakeLock?: boolean;
   bg?: Bg; bgStrength?: number; bgAnim?: boolean; bossArt?: boolean;
-  sfxVol?: number; music?: boolean; musicVol?: number; ambience?: boolean; ambVol?: number; // volumes are 1-3
+  music?: boolean; ambience?: boolean;
+  sfxPct?: number; musicPct?: number; ambPct?: number; // volume sliders, 0-100
+  sfxVol?: number; musicVol?: number; ambVol?: number; // the old LOW / MEDIUM / HIGH (1-3); a slider replaces it once moved
 };
 
 export type Slot = 'hat' | 'armor' | 'weapon' | 'cape' | 'pet';

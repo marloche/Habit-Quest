@@ -1,6 +1,7 @@
 import { daysBetween } from '../logic/day';
 import type { State } from '../logic/types';
 import { BG_NAMES, BGS, DAY_FROM, display, NIGHT_FROM } from '../logic/scene';
+import { pctOf, type VolKey } from '../logic/volume';
 import { BACKUP_DAYS, backupAge } from '../store';
 
 export function settingsView(state: State, today: string, reducedMotion: boolean) {
@@ -10,10 +11,9 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
   const d = display(state.settings, reducedMotion);
   const bgs = BGS.map((b) => `<button role="tab" data-action="bg" data-bg="${b}" aria-selected="${b === d.bg}">${BG_NAMES[b] ?? b.toUpperCase()}</button>`);
   const strengths = ['LOW', 'MEDIUM', 'HIGH'].map((s, i) => `<button role="tab" data-action="bg-strength" data-val="${i + 1}" aria-selected="${i + 1 === d.strength}">${s}</button>`);
-  const vols = (kind: 'sfxVol' | 'musicVol' | 'ambVol', label: string) => {
-    const cur = state.settings[kind] ?? 2;
-    const tabs = ['LOW', 'MEDIUM', 'HIGH'].map((s, i) => `<button role="tab" data-action="vol" data-kind="${kind}" data-val="${i + 1}" aria-selected="${i + 1 === cur}">${s}</button>`);
-    return `<div class="slot-tabs three" role="tablist" aria-label="${label}">${tabs.join('')}</div>`;
+  const vols = (key: VolKey, label: string) => {
+    const p = pctOf(state.settings, key);
+    return `<div class="vol"><input type="range" min="0" max="100" step="1" value="${p}" data-setting="${key}" aria-label="${label}" aria-valuetext="${p}%"><span class="vol-pct small">${p}%</span></div>`;
   };
   const hours = [0, 1, 2, 3, 4, 5, 6].map((h) => `<option value="${h}" ${h === rolloverHour ? 'selected' : ''}>${h === 0 ? '12' : h}:00 AM</option>`);
   return `
@@ -26,12 +26,12 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
     <p class="muted small">Uses more battery. Without it, a locked phone can't play the end sound; the quest still gets checked when you come back.</p>
     <h3>SOUND</h3>
     <label class="toggle"><input type="checkbox" data-setting="sfx" ${muted ? '' : 'checked'}> SOUND EFFECTS</label>
-    ${vols('sfxVol', 'Sound effects volume')}
+    ${vols('sfxPct', 'Sound effects volume')}
     <label class="toggle"><input type="checkbox" data-setting="music" ${state.settings.music ? 'checked' : ''}> MUSIC</label>
-    ${vols('musicVol', 'Music volume')}
+    ${vols('musicPct', 'Music volume')}
     <p class="muted small">A chiptune for each background scene; it changes when the scene does.</p>
     <label class="toggle"><input type="checkbox" data-setting="ambience" ${state.settings.ambience ? 'checked' : ''}> AMBIENCE</label>
-    ${vols('ambVol', 'Ambience volume')}
+    ${vols('ambPct', 'Ambience volume')}
     <p class="muted small">Scene sounds: rain, waves, wind, fire, birds.</p>
     <p class="muted small">Music pauses while the app is hidden. On iPhone the silent switch mutes everything.</p>
     <h3>DISPLAY</h3>

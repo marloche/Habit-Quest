@@ -1,6 +1,7 @@
 import { startAmbience } from './ambience';
 import type { Scene } from './logic/music';
 import type { Settings } from './logic/types';
+import { gainOf } from './logic/volume';
 import { startMusic, stopMusic } from './music';
 
 // Chiptune effects synthesized live: [frequency Hz, start s, duration s, slide to Hz]. vol scales a sound (1 = normal).
@@ -58,12 +59,9 @@ const SONGS = {
 } satisfies Record<string, { wave: OscillatorType; notes: Note[]; vol?: number }>;
 export type Sound = keyof typeof SONGS;
 
-const SFX_VOL = [0.5, 1, 1.6]; // LOW / MEDIUM / HIGH
-const MUSIC_VOL = [0.4, 0.7, 1]; // music and ambience
-
 let ctx: AudioContext | undefined;
 let bus: { sfx: GainNode; music: GainNode; amb: GainNode } | undefined;
-export const audio = { muted: false, sfxVol: 2, music: false, musicVol: 2, ambience: false, ambVol: 2 };
+export const audio = { muted: false, sfx: 1, music: false, musicGain: 0.7, ambience: false, ambGain: 0.7 };
 let scene: Scene = 'plain';
 let amb: { scene: Scene; stop: () => void } | undefined;
 
@@ -71,9 +69,9 @@ let amb: { scene: Scene; stop: () => void } | undefined;
 function sync() {
   if (!ctx || !bus) return; // nothing plays before the first tap
   const t = ctx.currentTime;
-  bus.sfx.gain.setTargetAtTime(SFX_VOL[audio.sfxVol - 1] ?? 1, t, 0.05);
-  bus.music.gain.setTargetAtTime(MUSIC_VOL[audio.musicVol - 1] ?? 0.7, t, 0.05);
-  bus.amb.gain.setTargetAtTime(MUSIC_VOL[audio.ambVol - 1] ?? 0.7, t, 0.05);
+  bus.sfx.gain.setTargetAtTime(audio.sfx, t, 0.05);
+  bus.music.gain.setTargetAtTime(audio.musicGain, t, 0.05);
+  bus.amb.gain.setTargetAtTime(audio.ambGain, t, 0.05);
   const shown = document.visibilityState === 'visible';
   if (audio.music && shown) startMusic(ctx, bus.music, scene);
   else stopMusic(ctx);
@@ -102,11 +100,11 @@ export function unlock() {
 
 export function configureAudio(s: Settings) {
   audio.muted = s.muted;
-  audio.sfxVol = s.sfxVol ?? 2;
+  audio.sfx = gainOf(s, 'sfxPct');
   audio.music = !!s.music;
-  audio.musicVol = s.musicVol ?? 2;
+  audio.musicGain = gainOf(s, 'musicPct');
   audio.ambience = !!s.ambience;
-  audio.ambVol = s.ambVol ?? 2;
+  audio.ambGain = gainOf(s, 'ambPct');
   sync();
 }
 

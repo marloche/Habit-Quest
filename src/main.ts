@@ -7,7 +7,8 @@ import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
 import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
 import { JOURNAL_GOLD, JOURNAL_MAX } from './logic/journal';
-import type { Bg, Chapter, Epic, EpicBy, Look, Mark, Mood, Schedule, Slot, State } from './logic/types';
+import type { Bg, Chapter, Epic, EpicBy, Look, Mark, Mood, Schedule, Settings, Slot, State } from './logic/types';
+import type { VolKey } from './logic/volume';
 import { display, sceneFor } from './logic/scene';
 import { mountScene } from './scenes';
 import { CLASSIC, PRESETS, randomLook } from './logic/look';
@@ -865,11 +866,6 @@ app.addEventListener('click', (e) => {
     case 'look-random': return setLook(randomLook());
     case 'bg': state.settings.bg = el.dataset.bg as Bg; return commit();
     case 'bg-strength': state.settings.bgStrength = Number(el.dataset.val); return commit();
-    case 'vol':
-      state.settings[el.dataset.kind as 'sfxVol' | 'musicVol' | 'ambVol'] = Number(el.dataset.val);
-      configureAudio(state.settings);
-      sfx('tap');
-      return commit();
     case 'open-chest': return openChest(el.dataset.chest!);
     case 'epic-open': return openEpic(id);
     case 'epic-list': epicUi = { list: el.dataset.list as EpicUi['list'] }; return render();
@@ -912,10 +908,32 @@ app.addEventListener('submit', (e) => {
   else saveHabit(form);
 });
 
+// Volume sliders change the sound live while dragging; letting go saves (without a re-render, so keyboard focus stays).
+const VOLS: Record<string, keyof Settings> = { sfxPct: 'sfxVol', musicPct: 'musicVol', ambPct: 'ambVol' };
+function slideVolume(t: HTMLInputElement) {
+  const k = t.dataset.setting as VolKey;
+  state.settings[k] = Number(t.value);
+  delete state.settings[VOLS[k]]; // the old LOW / MEDIUM / HIGH
+  configureAudio(state.settings);
+  t.setAttribute('aria-valuetext', `${t.value}%`);
+  const out = t.nextElementSibling;
+  if (out) out.textContent = `${t.value}%`;
+}
+app.addEventListener('input', (e) => {
+  const t = e.target as HTMLInputElement;
+  if (t.type === 'range' && t.dataset.setting) slideVolume(t);
+});
+
 app.addEventListener('change', (e) => {
   const t = e.target as HTMLInputElement;
   if (t.dataset.action === 'import') return void importFile(t);
   if (!t.dataset.setting) return; // habit form fields save on submit
+  if (t.type === 'range') {
+    slideVolume(t);
+    save(state);
+    if (t.dataset.setting === 'sfxPct') sfx('tap'); // hear the new level
+    return;
+  }
   if (t.dataset.setting === 'sfx') state.settings.muted = !t.checked;
   if (t.dataset.setting === 'music' || t.dataset.setting === 'ambience') state.settings[t.dataset.setting] = t.checked;
   if (t.dataset.setting === 'bgAnim' || t.dataset.setting === 'bossArt') state.settings[t.dataset.setting] = t.checked;

@@ -199,6 +199,9 @@ form:has(option[value='days']:checked) .days { display: grid; }
 form:has(option[value='weekly']:checked) .times { display: grid; }
 .toggle { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
 .toggle input { width: 24px; min-height: 24px; accent-color: var(--accent); }
+.vol { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.vol input { flex: 1; min-height: 44px; accent-color: var(--accent); }
+.vol-pct { min-width: 5ch; text-align: right; }
 
 /* Stats */
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 4px; }

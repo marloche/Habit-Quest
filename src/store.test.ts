@@ -182,5 +182,9 @@ describe('display settings in the save', () => {
     expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, ambVol: 4 } }))).toThrow();
     expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, sfxVol: 2.5 } }))).toThrow();
     expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, music: 'yes' } }))).toThrow();
+    const p = { ...base, settings: { ...base.settings, sfxPct: 0, musicPct: 100, ambPct: 37 } } as State;
+    expect(parseState(JSON.stringify(p)).settings).toEqual(p.settings);
+    expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, musicPct: 101 } }))).toThrow();
+    expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, ambPct: 12.5 } }))).toThrow();
   });
 });
