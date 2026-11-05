@@ -10,7 +10,7 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
   const d = display(state.settings, reducedMotion);
   const bgs = BGS.map((b) => `<button role="tab" data-action="bg" data-bg="${b}" aria-selected="${b === d.bg}">${BG_NAMES[b] ?? b.toUpperCase()}</button>`);
   const strengths = ['LOW', 'MEDIUM', 'HIGH'].map((s, i) => `<button role="tab" data-action="bg-strength" data-val="${i + 1}" aria-selected="${i + 1 === d.strength}">${s}</button>`);
-  const vols = (kind: 'sfxVol' | 'musicVol', label: string) => {
+  const vols = (kind: 'sfxVol' | 'musicVol' | 'ambVol', label: string) => {
     const cur = state.settings[kind] ?? 2;
     const tabs = ['LOW', 'MEDIUM', 'HIGH'].map((s, i) => `<button role="tab" data-action="vol" data-kind="${kind}" data-val="${i + 1}" aria-selected="${i + 1 === cur}">${s}</button>`);
     return `<div class="slot-tabs three" role="tablist" aria-label="${label}">${tabs.join('')}</div>`;
@@ -28,10 +28,11 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
     <label class="toggle"><input type="checkbox" data-setting="sfx" ${muted ? '' : 'checked'}> SOUND EFFECTS</label>
     ${vols('sfxVol', 'Sound effects volume')}
     <label class="toggle"><input type="checkbox" data-setting="music" ${state.settings.music ? 'checked' : ''}> MUSIC</label>
+    ${vols('musicVol', 'Music volume')}
     <p class="muted small">A chiptune for each background scene; it changes when the scene does.</p>
     <label class="toggle"><input type="checkbox" data-setting="ambience" ${state.settings.ambience ? 'checked' : ''}> AMBIENCE</label>
-    <p class="muted small">Scene sounds: rain, waves, wind, fire, birds. Plays at the music volume.</p>
-    ${vols('musicVol', 'Music and ambience volume')}
+    ${vols('ambVol', 'Ambience volume')}
+    <p class="muted small">Scene sounds: rain, waves, wind, fire, birds.</p>
     <p class="muted small">Music pauses while the app is hidden. On iPhone the silent switch mutes everything.</p>
     <h3>DISPLAY</h3>
     <p class="muted small">BACKGROUND</p>

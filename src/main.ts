@@ -866,7 +866,7 @@ app.addEventListener('click', (e) => {
     case 'bg': state.settings.bg = el.dataset.bg as Bg; return commit();
     case 'bg-strength': state.settings.bgStrength = Number(el.dataset.val); return commit();
     case 'vol':
-      state.settings[el.dataset.kind as 'sfxVol' | 'musicVol'] = Number(el.dataset.val);
+      state.settings[el.dataset.kind as 'sfxVol' | 'musicVol' | 'ambVol'] = Number(el.dataset.val);
       configureAudio(state.settings);
       sfx('tap');
       return commit();

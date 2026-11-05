@@ -63,7 +63,7 @@ const MUSIC_VOL = [0.4, 0.7, 1]; // music and ambience
 
 let ctx: AudioContext | undefined;
 let bus: { sfx: GainNode; music: GainNode; amb: GainNode } | undefined;
-export const audio = { muted: false, sfxVol: 2, music: false, musicVol: 2, ambience: false };
+export const audio = { muted: false, sfxVol: 2, music: false, musicVol: 2, ambience: false, ambVol: 2 };
 let scene: Scene = 'plain';
 let amb: { scene: Scene; stop: () => void } | undefined;
 
@@ -73,7 +73,7 @@ function sync() {
   const t = ctx.currentTime;
   bus.sfx.gain.setTargetAtTime(SFX_VOL[audio.sfxVol - 1] ?? 1, t, 0.05);
   bus.music.gain.setTargetAtTime(MUSIC_VOL[audio.musicVol - 1] ?? 0.7, t, 0.05);
-  bus.amb.gain.setTargetAtTime(MUSIC_VOL[audio.musicVol - 1] ?? 0.7, t, 0.05);
+  bus.amb.gain.setTargetAtTime(MUSIC_VOL[audio.ambVol - 1] ?? 0.7, t, 0.05);
   const shown = document.visibilityState === 'visible';
   if (audio.music && shown) startMusic(ctx, bus.music, scene);
   else stopMusic(ctx);
@@ -106,6 +106,7 @@ export function configureAudio(s: Settings) {
   audio.music = !!s.music;
   audio.musicVol = s.musicVol ?? 2;
   audio.ambience = !!s.ambience;
+  audio.ambVol = s.ambVol ?? 2;
   sync();
 }
 

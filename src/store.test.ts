@@ -176,9 +176,10 @@ describe('display settings in the save', () => {
     expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, bgStrength: 4 } }))).toThrow();
   });
   it('sound settings round-trip and are checked', () => {
-    const s = { ...base, settings: { ...base.settings, sfxVol: 1, music: true, musicVol: 3, ambience: false } } as State;
+    const s = { ...base, settings: { ...base.settings, sfxVol: 1, music: true, musicVol: 3, ambience: false, ambVol: 1 } } as State;
     expect(parseState(JSON.stringify(s)).settings).toEqual(s.settings);
     expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, musicVol: 0 } }))).toThrow();
+    expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, ambVol: 4 } }))).toThrow();
     expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, sfxVol: 2.5 } }))).toThrow();
     expect(() => parseState(JSON.stringify({ ...base, settings: { ...base.settings, music: 'yes' } }))).toThrow();
   });

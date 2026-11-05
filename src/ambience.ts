@@ -79,7 +79,8 @@ const PENTA = [1047, 1175, 1319, 1568, 1760, 2093];
 const wind = (x: Ctx, vol = 0.03) => bed(x, 'bandpass', 500, vol, { rate: 0.07, depth: vol * 0.6 }, { rate: 0.05, depth: 250 });
 const fire = (x: Ctx, vol = 0.012, pops = 0.03) => {
   bed(x, 'lowpass', 700, vol);
-  every(x, 0.08, 0.5, (t) => burst(x, 'highpass', 2500, t, rand(0.01, 0.04), rand(0.3, 1) * pops));
+  // Sparse, low, soft pops: high fast ones sounded like ticking.
+  every(x, 0.4, 1.6, (t) => burst(x, 'bandpass', 1100, t, rand(0.03, 0.07), rand(0.3, 1) * pops * 0.5));
 };
 const birds = (x: Ctx) => every(x, 2, 7, (t) => {
   for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) chirp(x, 'sine', rand(2200, 3200), rand(3000, 4200), t + i * 0.12, 0.08, 0.012);
