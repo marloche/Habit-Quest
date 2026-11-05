@@ -1,5 +1,5 @@
 import './style.css';
-import { audio, hasSound, sfx, unlock } from './audio';
+import { configureAudio, hasSound, setScene, sfx, unlock } from './audio';
 import { banner, floatText, hearts, shake, toast } from './fx';
 import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logic/day';
 import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/score';
@@ -46,7 +46,7 @@ let heroTab: HeroUi['view'] = 'wardrobe';
 let epicUi: EpicUi = { list: 'active' };
 let epicDraft: Epic | undefined; // the epic in the editor: a copy, so CANCEL changes nothing
 let epicAddQuest: string | undefined; // a quest idea the draft wants linked that you don't have yet
-audio.muted = state.settings.muted;
+configureAudio(state.settings);
 
 const today = () => dayKey(new Date(), state.settings.rolloverHour);
 
@@ -86,6 +86,7 @@ function applyScene() {
   const d = display(state.settings, reducedMotion.matches);
   const now = new Date();
   const scene = sceneFor(d.bg, now.getHours(), Math.floor((now.getTime() - now.getTimezoneOffset() * 60000) / 864e5));
+  setScene(scene); // music follows the scene
   const px = innerWidth < 700 ? 3 : 5;
   const key = [scene, px, Math.ceil(innerWidth / px), Math.ceil(innerHeight / px), d.strength, d.anim].join();
   if (key === sceneKey) return;
@@ -403,7 +404,7 @@ function setMood(d: string, mood: Mood) {
   }
   state.journal[d] = { ...cur, mood };
   commit();
-  sfx('tiny');
+  sfx(`mood${mood}` as const);
   if (cur) return;
   const face = app.querySelector(`[data-action="mood"][data-day="${d}"][data-mood="${mood}"]`);
   if (face) floatText(face, `+${JOURNAL_GOLD} G`, 'gold');
@@ -453,7 +454,7 @@ function startFocus(id: string) {
   endTimer();
   const now = Date.now();
   setTimer({ habit: id, day: today(), start: now, end: now + h.focus * MINUTE });
-  sfx('tiny');
+  sfx('focus-start');
   render();
 }
 
@@ -465,9 +466,11 @@ function tickFocus() {
     const name = state.habits.find((h) => h.id === timer!.habit)?.name ?? 'Your quest';
     const min = focusedMinutes(timer, now);
     endTimer('full');
-    banner({ title: 'FOCUS DONE!', sub: `${name}: ${min} min focused`, onShow: () => sfx('perfect') });
+    banner({ title: 'FOCUS DONE!', sub: `${name}: ${min} min focused`, onShow: () => sfx('focus-done') });
     return;
   }
+  const left = timeLeft(timer, now);
+  if (left <= 10_000 && document.visibilityState === 'visible') sfx('tick'); // the last ten seconds
   const time = app.querySelector('.focus-time');
   if (time) time.textContent = clock(timeLeft(timer, now));
   const fill = app.querySelector<HTMLElement>('.focus-fill');
@@ -584,11 +587,11 @@ function cheerEpics(before: EpicMarks) {
     if (p.finished && !b.finished) {
       banner({
         title: 'EPIC QUEST COMPLETE!', sub: `${e.name}: ${LADDER[e.guardian].name} is beaten! +${gold} G`, reveal: true,
-        level: scored.level, worn: wornIds(state.wardrobe, hs.trophies), look: state.look, onShow: () => { shake(); sfx('legendary'); },
+        level: scored.level, worn: wornIds(state.wardrobe, hs.trophies), look: state.look, onShow: () => { shake(); sfx('guardian'); },
       });
     } else if (p.reached.filter(Boolean).length > b.reached) {
       const last = p.reached.reduce((best, d, i) => (d && (best < 0 || d >= p.reached[best]!) ? i : best), -1);
-      banner({ title: 'CHAPTER COMPLETE!', sub: `${e.name}: ${e.chapters[last].name}. +${gold} G`, onShow: () => sfx('milestone') });
+      banner({ title: 'CHAPTER COMPLETE!', sub: `${e.name}: ${e.chapters[last].name}. +${gold} G`, onShow: () => sfx('chapter') });
     }
   }
 }
@@ -686,7 +689,7 @@ function saveEpic(form: HTMLFormElement) {
   epicAddQuest = undefined;
   epicUi = { list: listOf(e, epicProgress(e, state.log)), open: e.id };
   save(state);
-  sfx(i >= 0 ? 'tiny' : 'milestone');
+  sfx(i >= 0 ? 'tiny' : 'begin');
   go('epics');
   if (i < 0) toast(idea ? `Epic quest begun! "${idea.name}" was added to your quests.` : 'Epic quest begun! The road is long; every step counts.');
   cheerEpics(before);
@@ -754,7 +757,7 @@ function toggleInn(id: string) {
   if (e.status === 'inn') delete e.main;
   epicUi = { list: e.status, open: id };
   commit();
-  sfx('tiny');
+  sfx(e.status === 'inn' ? 'inn' : 'road');
   toast(e.status === 'inn' ? `${e.name} rests at the INN. Its linked quests still count.` : `${e.name} is back on the road!`);
 }
 
@@ -766,7 +769,7 @@ function retire(id: string) {
   delete e.main;
   epicUi = { list: 'hall', open: id };
   commit();
-  sfx('perfect');
+  sfx('retire');
   toast('Retired with honor. Every chapter you reached stays in the HALL.');
 }
 
@@ -801,7 +804,7 @@ async function importFile(input: HTMLInputElement) {
     const next = parseState(await file.text());
     if (!confirm('Replace everything on this device with this save file?')) return;
     state = next;
-    audio.muted = state.settings.muted;
+    configureAudio(state.settings);
     commit();
     toast('Save loaded!');
   } catch {
@@ -809,11 +812,18 @@ async function importFile(input: HTMLInputElement) {
   }
 }
 
+// Quiet clicks for taps that only move around; the ones that change your save have their own sounds.
+const TAPS = new Set(['cal-month', 'cal-day', 'cal-view', 'slot', 'hero-view', 'epic-list', 'epic-open', 'epic-new', 'epic-edit', 'epic-idea',
+  'new', 'edit-habit', 'sugg-show', 'sugg-back', 'sugg-toggle', 'goal', 'budget', 'bg', 'bg-strength', 'preset', 'look', 'look-random',
+  'focus-stop', 'focus-keep', 'badge', 'suggest', 'move']);
+
 app.addEventListener('click', (e) => {
   unlock();
   const el = (e.target as Element).closest<HTMLElement>('[data-action]');
   if (!el || el.tagName === 'INPUT') return;
   const id = el.dataset.id ?? '';
+  if (el.dataset.action === 'tab') sfx('tab');
+  else if (TAPS.has(el.dataset.action!)) sfx('tap');
   switch (el.dataset.action) {
     case 'mark': return mark(id, el.dataset.mark as Mark, el.dataset.day);
     case 'tab': return go(el.dataset.tab as Tab);
@@ -855,6 +865,11 @@ app.addEventListener('click', (e) => {
     case 'look-random': return setLook(randomLook());
     case 'bg': state.settings.bg = el.dataset.bg as Bg; return commit();
     case 'bg-strength': state.settings.bgStrength = Number(el.dataset.val); return commit();
+    case 'vol':
+      state.settings[el.dataset.kind as 'sfxVol' | 'musicVol'] = Number(el.dataset.val);
+      configureAudio(state.settings);
+      sfx('tap');
+      return commit();
     case 'open-chest': return openChest(el.dataset.chest!);
     case 'epic-open': return openEpic(id);
     case 'epic-list': epicUi = { list: el.dataset.list as EpicUi['list'] }; return render();
@@ -901,7 +916,8 @@ app.addEventListener('change', (e) => {
   const t = e.target as HTMLInputElement;
   if (t.dataset.action === 'import') return void importFile(t);
   if (!t.dataset.setting) return; // habit form fields save on submit
-  if (t.dataset.setting === 'muted') audio.muted = state.settings.muted = t.checked;
+  if (t.dataset.setting === 'sfx') state.settings.muted = !t.checked;
+  if (t.dataset.setting === 'music' || t.dataset.setting === 'ambience') state.settings[t.dataset.setting] = t.checked;
   if (t.dataset.setting === 'bgAnim' || t.dataset.setting === 'bossArt') state.settings[t.dataset.setting] = t.checked;
   if (t.dataset.setting === 'wakeLock') {
     if (t.checked) state.settings.wakeLock = true;
@@ -918,6 +934,8 @@ app.addEventListener('change', (e) => {
     shownDay = '';
     checkNewDay();
   }
+  configureAudio(state.settings);
+  if (t.type === 'checkbox') sfx(t.checked ? 'on' : 'off');
   commit();
 });
 
@@ -938,7 +956,7 @@ addEventListener('storage', (e) => {
     return;
   }
   quietTiers = true;
-  audio.muted = state.settings.muted;
+  configureAudio(state.settings);
   if (tab !== 'form' && tab !== 'epic-form') render(); // don't wipe a half-typed quest
 });
 

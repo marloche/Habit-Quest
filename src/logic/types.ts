@@ -25,6 +25,7 @@ export type Bg = 'auto' | 'castle' | 'dungeon' | 'forest' | 'hell' | 'plain'
 export type Settings = {
   rolloverHour: number; muted: boolean; lastBackup?: string; wakeLock?: boolean;
   bg?: Bg; bgStrength?: number; bgAnim?: boolean; bossArt?: boolean;
+  sfxVol?: number; music?: boolean; musicVol?: number; ambience?: boolean; // volumes are 1-3
 };
 
 export type Slot = 'hat' | 'armor' | 'weapon' | 'cape' | 'pet';

@@ -1,4 +1,9 @@
-// Chiptune effects synthesized live: [frequency Hz, start s, duration s, slide to Hz].
+import { startAmbience } from './ambience';
+import type { Scene } from './logic/music';
+import type { Settings } from './logic/types';
+import { startMusic, stopMusic } from './music';
+
+// Chiptune effects synthesized live: [frequency Hz, start s, duration s, slide to Hz]. vol scales a sound (1 = normal).
 type Note = [number, number, number, number?];
 const SONGS = {
   check: { wave: 'square', notes: [[988, 0, 0.07], [1319, 0.07, 0.22]] },
@@ -16,6 +21,28 @@ const SONGS = {
   buy: { wave: 'triangle', notes: [[659, 0, 0.07], [880, 0.07, 0.07], [1319, 0.14, 0.3]] },
   epic: { wave: 'triangle', notes: [[523, 0, 0.1], [659, 0.1, 0.1], [784, 0.2, 0.1], [1047, 0.3, 0.12], [988, 0.45, 0.08], [1319, 0.53, 0.6]] },
   legendary: { wave: 'square', notes: [[392, 0, 0.1], [392, 0.13, 0.07], [392, 0.22, 0.07], [523, 0.32, 0.36], [466, 0.72, 0.1], [523, 0.84, 0.1], [659, 0.96, 0.1], [784, 1.08, 0.8]] },
+  // Menus: quieter than rewards
+  tap: { wave: 'square', notes: [[1200, 0, 0.025]], vol: 0.35 },
+  tab: { wave: 'triangle', notes: [[660, 0, 0.03], [990, 0.03, 0.05]], vol: 0.6 },
+  on: { wave: 'square', notes: [[660, 0, 0.04], [990, 0.04, 0.07]], vol: 0.5 },
+  off: { wave: 'square', notes: [[990, 0, 0.04], [660, 0.04, 0.07]], vol: 0.5 },
+  // Epic quests
+  log: { wave: 'triangle', notes: [[880, 0, 0.05], [1175, 0.05, 0.14]] },
+  chapter: { wave: 'triangle', notes: [[523, 0, 0.09], [784, 0.09, 0.09], [1047, 0.18, 0.09], [1319, 0.3, 0.09], [1175, 0.39, 0.09], [1568, 0.48, 0.45]] },
+  guardian: { wave: 'square', notes: [[262, 0, 0.12], [330, 0.12, 0.12], [392, 0.24, 0.12], [523, 0.36, 0.3], [392, 0.7, 0.1], [523, 0.82, 0.1], [659, 0.94, 0.1], [784, 1.06, 0.12], [1047, 1.22, 0.9]] },
+  inn: { wave: 'sine', notes: [[784, 0, 0.18], [659, 0.2, 0.18], [523, 0.4, 0.45]], vol: 1.4 },
+  road: { wave: 'triangle', notes: [[523, 0, 0.08], [659, 0.08, 0.08], [784, 0.16, 0.22]] },
+  retire: { wave: 'triangle', notes: [[659, 0, 0.15], [784, 0.17, 0.15], [988, 0.34, 0.15], [1319, 0.52, 0.7]] },
+  begin: { wave: 'square', notes: [[392, 0, 0.08], [523, 0.1, 0.08], [659, 0.2, 0.08], [784, 0.3, 0.3]] },
+  // Focus timer and journal
+  'focus-start': { wave: 'triangle', notes: [[523, 0, 0.1], [1047, 0.1, 0.25]] },
+  tick: { wave: 'square', notes: [[2000, 0, 0.015]], vol: 0.3 },
+  'focus-done': { wave: 'sine', notes: [[1047, 0, 0.7], [1319, 0.15, 0.7], [1568, 0.3, 1]], vol: 1.4 },
+  mood1: { wave: 'triangle', notes: [[392, 0, 0.18, 300]] },
+  mood2: { wave: 'triangle', notes: [[440, 0, 0.14]] },
+  mood3: { wave: 'triangle', notes: [[523, 0, 0.14]] },
+  mood4: { wave: 'triangle', notes: [[587, 0, 0.07], [784, 0.07, 0.12]] },
+  mood5: { wave: 'triangle', notes: [[659, 0, 0.06], [880, 0.06, 0.06], [1047, 0.12, 0.16]] },
   // Pets, one voice each
   frog: { wave: 'square', notes: [[300, 0, 0.06, 190], [280, 0.09, 0.09, 170]] },
   fox: { wave: 'triangle', notes: [[900, 0, 0.08, 1500], [1400, 0.1, 0.1, 900]] },
@@ -28,17 +55,66 @@ const SONGS = {
   'baby-dragon': { wave: 'sawtooth', notes: [[260, 0, 0.12, 520], [520, 0.12, 0.22, 200]] },
   'wise-owl': { wave: 'sine', notes: [[520, 0, 0.16, 440], [500, 0.26, 0.24, 410]] },
   phoenix: { wave: 'triangle', notes: [[784, 0, 0.07], [1047, 0.07, 0.07], [1319, 0.14, 0.07], [1760, 0.21, 0.3, 2093]] },
-} satisfies Record<string, { wave: OscillatorType; notes: Note[] }>;
+} satisfies Record<string, { wave: OscillatorType; notes: Note[]; vol?: number }>;
 export type Sound = keyof typeof SONGS;
 
+const SFX_VOL = [0.5, 1, 1.6]; // LOW / MEDIUM / HIGH
+const MUSIC_VOL = [0.4, 0.7, 1]; // music and ambience
+
 let ctx: AudioContext | undefined;
-export const audio = { muted: false };
+let bus: { sfx: GainNode; music: GainNode; amb: GainNode } | undefined;
+export const audio = { muted: false, sfxVol: 2, music: false, musicVol: 2, ambience: false };
+let scene: Scene = 'plain';
+let amb: { scene: Scene; stop: () => void } | undefined;
+
+// Starts, stops or swaps music and ambience to match the settings, the scene and whether the app is on screen.
+function sync() {
+  if (!ctx || !bus) return; // nothing plays before the first tap
+  const t = ctx.currentTime;
+  bus.sfx.gain.setTargetAtTime(SFX_VOL[audio.sfxVol - 1] ?? 1, t, 0.05);
+  bus.music.gain.setTargetAtTime(MUSIC_VOL[audio.musicVol - 1] ?? 0.7, t, 0.05);
+  bus.amb.gain.setTargetAtTime(MUSIC_VOL[audio.musicVol - 1] ?? 0.7, t, 0.05);
+  const shown = document.visibilityState === 'visible';
+  if (audio.music && shown) startMusic(ctx, bus.music, scene);
+  else stopMusic(ctx);
+  if (amb && (!audio.ambience || !shown || amb.scene !== scene)) {
+    amb.stop();
+    amb = undefined;
+  }
+  if (!amb && audio.ambience && shown) amb = { scene, stop: startAmbience(ctx, bus.amb, scene) };
+}
 
 // iOS only allows audio after a user gesture, so this runs inside tap handlers.
 export function unlock() {
-  ctx ??= new AudioContext();
-  if (ctx.state === 'suspended') void ctx.resume();
+  if (!ctx) {
+    ctx = new AudioContext();
+    const out = (v: number) => {
+      const g = ctx!.createGain();
+      g.gain.value = v;
+      g.connect(ctx!.destination);
+      return g;
+    };
+    bus = { sfx: out(1), music: out(0.7), amb: out(0.7) };
+  }
+  if (ctx.state !== 'running') void ctx.resume(); // 'interrupted' on iOS after a call or Siri
+  sync();
 }
+
+export function configureAudio(s: Settings) {
+  audio.muted = s.muted;
+  audio.sfxVol = s.sfxVol ?? 2;
+  audio.music = !!s.music;
+  audio.musicVol = s.musicVol ?? 2;
+  audio.ambience = !!s.ambience;
+  sync();
+}
+
+export function setScene(s: Scene) {
+  scene = s;
+  sync();
+}
+
+document.addEventListener('visibilitychange', sync); // music pauses while the app is hidden
 
 export const hasSound = (name: string): name is Sound => name in SONGS;
 
@@ -46,7 +122,7 @@ export function sfx(name: Sound) {
   if (audio.muted) return;
   unlock();
   const c = ctx!;
-  const { wave, notes } = SONGS[name] as { wave: OscillatorType; notes: Note[] };
+  const { wave, notes, vol = 1 } = SONGS[name] as { wave: OscillatorType; notes: Note[]; vol?: number };
   const t0 = c.currentTime + 0.01;
   for (const [freq, start, dur, to] of notes) {
     const osc = c.createOscillator();
@@ -55,9 +131,9 @@ export function sfx(name: Sound) {
     osc.frequency.setValueAtTime(freq, t0 + start);
     if (to) osc.frequency.exponentialRampToValueAtTime(to, t0 + start + dur);
     // Sawtooth is the harshest wave, so it plays a little softer.
-    gain.gain.setValueAtTime(wave === 'sawtooth' ? 0.045 : 0.07, t0 + start);
+    gain.gain.setValueAtTime((wave === 'sawtooth' ? 0.045 : 0.07) * vol, t0 + start);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + start + dur);
-    osc.connect(gain).connect(c.destination);
+    osc.connect(gain).connect(bus!.sfx);
     osc.start(t0 + start);
     osc.stop(t0 + start + dur);
   }

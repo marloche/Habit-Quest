@@ -83,8 +83,9 @@ export function parseState(text: string): State {
     (x.v < 3 || validWardrobe(x.wardrobe)) && (x.v < 4 || validJournal(x.journal)) && (x.v < 5 || validFocus(x.focus)) &&
     (x.v < 6 || (Array.isArray(x.epics) && x.epics.every(validEpic))) &&
     s && isInt(s.rolloverHour, 0, 23) && typeof s.muted === 'boolean' && optional(s.lastBackup, isDay) &&
-    [s.wakeLock, s.bgAnim, s.bossArt].every((b) => optional(b, (v) => typeof v === 'boolean')) &&
+    [s.wakeLock, s.bgAnim, s.bossArt, s.music, s.ambience].every((b) => optional(b, (v) => typeof v === 'boolean')) &&
     optional(s.bg, (b) => (BGS as unknown[]).includes(b)) && optional(s.bgStrength, (n) => isInt(n, 1, 3)) &&
+    optional(s.sfxVol, (n) => isInt(n, 1, 3)) && optional(s.musicVol, (n) => isInt(n, 1, 3)) &&
     optional(x.lastOpened, isDay) && optional(x.look, validLook) &&
     Array.isArray(x.habits) && x.habits.every(validHabit) &&
     x.log && typeof x.log === 'object' && !Array.isArray(x.log) &&

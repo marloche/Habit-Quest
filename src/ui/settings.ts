@@ -10,6 +10,11 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
   const d = display(state.settings, reducedMotion);
   const bgs = BGS.map((b) => `<button role="tab" data-action="bg" data-bg="${b}" aria-selected="${b === d.bg}">${BG_NAMES[b] ?? b.toUpperCase()}</button>`);
   const strengths = ['LOW', 'MEDIUM', 'HIGH'].map((s, i) => `<button role="tab" data-action="bg-strength" data-val="${i + 1}" aria-selected="${i + 1 === d.strength}">${s}</button>`);
+  const vols = (kind: 'sfxVol' | 'musicVol', label: string) => {
+    const cur = state.settings[kind] ?? 2;
+    const tabs = ['LOW', 'MEDIUM', 'HIGH'].map((s, i) => `<button role="tab" data-action="vol" data-kind="${kind}" data-val="${i + 1}" aria-selected="${i + 1 === cur}">${s}</button>`);
+    return `<div class="slot-tabs three" role="tablist" aria-label="${label}">${tabs.join('')}</div>`;
+  };
   const hours = [0, 1, 2, 3, 4, 5, 6].map((h) => `<option value="${h}" ${h === rolloverHour ? 'selected' : ''}>${h === 0 ? '12' : h}:00 AM</option>`);
   return `
     <h2>SETUP</h2>
@@ -17,9 +22,17 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
       <select data-setting="rolloverHour">${hours.join('')}</select>
     </label>
     <p class="muted small">Checks before this hour count for the day before, so late nights still count.</p>
-    <label class="toggle"><input type="checkbox" data-setting="muted" ${muted ? 'checked' : ''}> MUTE SOUNDS</label>
     <label class="toggle"><input type="checkbox" data-setting="wakeLock" ${state.settings.wakeLock ? 'checked' : ''}> KEEP SCREEN ON WHILE FOCUSING</label>
     <p class="muted small">Uses more battery. Without it, a locked phone can't play the end sound; the quest still gets checked when you come back.</p>
+    <h3>SOUND</h3>
+    <label class="toggle"><input type="checkbox" data-setting="sfx" ${muted ? '' : 'checked'}> SOUND EFFECTS</label>
+    ${vols('sfxVol', 'Sound effects volume')}
+    <label class="toggle"><input type="checkbox" data-setting="music" ${state.settings.music ? 'checked' : ''}> MUSIC</label>
+    <p class="muted small">A chiptune for each background scene; it changes when the scene does.</p>
+    <label class="toggle"><input type="checkbox" data-setting="ambience" ${state.settings.ambience ? 'checked' : ''}> AMBIENCE</label>
+    <p class="muted small">Scene sounds: rain, waves, wind, fire, birds. Plays at the music volume.</p>
+    ${vols('musicVol', 'Music and ambience volume')}
+    <p class="muted small">Music pauses while the app is hidden. On iPhone the silent switch mutes everything.</p>
     <h3>DISPLAY</h3>
     <p class="muted small">BACKGROUND</p>
     <div class="slot-tabs three" role="tablist" aria-label="Background">${bgs.join('')}</div>
