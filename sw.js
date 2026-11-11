@@ -23,6 +23,8 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(
       fetch(req)
         .then((res) => {
+          // A server error page (a 404 mid-deploy, a 503) must never replace the saved app: show the saved one instead.
+          if (!res.ok) return caches.match('./', { ignoreVary: true }).then((hit) => hit || res);
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put('./', copy));
           return res;

@@ -7,7 +7,7 @@ import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
 import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
 import { JOURNAL_GOLD, JOURNAL_MAX } from './logic/journal';
-import type { Bg, Chapter, Epic, EpicBy, Look, Mark, Mood, Schedule, Settings, Slot, State } from './logic/types';
+import type { Bg, Chapter, Epic, EpicBy, Look, Mark, Mood, Schedule, Settings, State } from './logic/types';
 import type { VolKey } from './logic/volume';
 import { display, sceneFor } from './logic/scene';
 import { mountScene } from './scenes';
@@ -72,8 +72,34 @@ function render() {
     'epic-form': () => epicFormView(epicDraft, state.habits, !state.epics.some((e) => e.id === epicDraft?.id), epicAddQuest),
     'epic-ideas': () => epicIdeasView(),
   };
+  const restore = hold();
   app.innerHTML = `<main>${views[tab]()}</main>${nav((UNDER_QUEST.includes(tab) ? 'quest' : UNDER_EPICS.includes(tab) ? 'epics' : tab) as NavTab)}`;
+  restore();
   applyScene();
+}
+
+// A redraw replaces every element. This puts back what it would otherwise drop: keyboard focus on the button you just
+// pressed (so a keyboard or screen reader isn't thrown to the top), and a journal line typed but not saved yet.
+function hold() {
+  const a = document.activeElement;
+  const attrs = a instanceof HTMLButtonElement && app.contains(a)
+    ? Object.entries(a.dataset).map(([k, v]) => [k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`), v] as const)
+    : [];
+  // Today's row has no data-day; without the :not, the same quest's "yesterday" row would match first.
+  const pick = (skip?: string) => `button${attrs.filter(([k]) => k !== skip).map(([k, v]) => `[data-${k}="${CSS.escape(v ?? '')}"]`).join('')}${attrs.some(([k]) => k === 'day') ? '' : ':not([data-day])'}`;
+  const draftOf = (day: string) => `form[data-form="journal"][data-day="${day}"] input`;
+  const drafts = [...app.querySelectorAll<HTMLInputElement>('form[data-form="journal"] input')]
+    .filter((i) => i.value !== i.defaultValue)
+    .map((i) => [draftOf(i.form!.dataset.day!), i.value] as const);
+  return () => {
+    for (const [sel, text] of drafts) {
+      const i = app.querySelector<HTMLInputElement>(sel);
+      if (i) i.value = text;
+    }
+    if (!attrs.length) return;
+    // A TINY button is gone once its quest is checked: fall back to the quest's main button.
+    (app.querySelector<HTMLElement>(pick()) ?? app.querySelector<HTMLElement>(pick('mark')))?.focus({ preventScroll: true });
+  };
 }
 
 // The background layer, repainted only when the scene, screen size or a display setting changes (AUTO flips on a render).

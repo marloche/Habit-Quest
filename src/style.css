@@ -197,7 +197,7 @@ legend { font-size: 10px; margin-bottom: 12px; }
 .times { display: none; }
 form:has(option[value='days']:checked) .days { display: grid; }
 form:has(option[value='weekly']:checked) .times { display: grid; }
-.toggle { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+.toggle { display: flex; align-items: center; gap: 12px; margin-top: 16px; min-height: 44px; }
 .toggle input { width: 24px; min-height: 24px; accent-color: var(--accent); }
 .vol { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .vol input { flex: 1; min-height: 44px; accent-color: var(--accent); }
@@ -357,7 +357,7 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .chest-btn small { display: block; margin-top: 6px; font-size: 8px; }
 .slot-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 4px 16px; }
 .slot-tabs button { min-height: 44px; background: var(--panel); border: 0; color: var(--muted); font: inherit; font-size: 8px; cursor: pointer; }
-.slot-tabs button[aria-selected='true'] { background: var(--blue); color: var(--gold); }
+.slot-tabs button[aria-selected='true'] { background: var(--blue); color: var(--text); } /* gold on this blue is 4.0:1; white is 5.3:1 */
 .items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 4px; }
 .item { display: grid; justify-items: center; align-content: start; gap: 8px; padding: 12px 4px; color: var(--text); font: inherit; cursor: pointer; }
 .item:active { transform: translateY(2px); }
