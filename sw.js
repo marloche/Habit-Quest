@@ -16,12 +16,14 @@ self.addEventListener('activate', (e) => {
 });
 
 // Pages: network first so updates land; everything else: cache first (file names are hashed).
+// cache: 'no-cache' makes the page fetch ask the server every time (a tiny "not modified" when nothing changed),
+// because GitHub Pages lets browsers reuse the page for 10 minutes, which kept reloads on the old build after a deploy.
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-cache' })
         .then((res) => {
           // A server error page (a 404 mid-deploy, a 503) must never replace the saved app: show the saved one instead.
           if (!res.ok) return caches.match('./', { ignoreVary: true }).then((hit) => hit || res);
