@@ -148,7 +148,7 @@ export function foley(name: Foley) {
     src.start(t + start, Math.random() * 0.5);
     src.stop(t + start + dur + 0.02);
   };
-  if (name === 'quill') hiss('bandpass', r(3500, 5500), 0, r(0.025, 0.055), 0.05);
+  if (name === 'quill') hiss('bandpass', r(3500, 5500), 0, r(0.025, 0.055), 0.03);
   else if (name === 'page') {
     hiss('bandpass', 1200, 0, 0.35, 0.07, 4200);
     hiss('highpass', 5000, 0.06, 0.22, 0.03);

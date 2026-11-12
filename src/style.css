@@ -665,7 +665,7 @@ body.scened .keep :is(h3, p, label, .empty) { text-shadow: none; }
 .keep .props > div { position: absolute; bottom: -14px; }
 .keep .props svg { display: block; }
 .keep .candle { left: 14px; }
-.keep .flame { margin-left: 13px; transform-origin: bottom center; animation: k-flick .45s steps(2) infinite; }
+.keep .flame { margin-left: 4px; /* the candle is 36px wide and the flame 28px, so this puts the flame on the wick */ transform-origin: bottom center; animation: k-flick .45s steps(2) infinite; }
 @keyframes k-flick { 50% { transform: scaleX(.78) scaleY(1.14); } }
 .keep .ink { left: 66px; }
 .keep .glass { right: 20px; }
@@ -818,7 +818,7 @@ body.keep-on .tabs button[aria-current] { color: #f2d38a; text-shadow: 0 0 6px r
 @keyframes k-smoke { 0% { transform: translate(0, 0); opacity: .7; } 50% { transform: translate(3px, -14px); opacity: .4; } 100% { transform: translate(-2px, -28px); opacity: 0; } }
 .keep .drip { position: absolute; left: 10px; top: 36px; width: 2px; height: 0; background: #fff6d5; animation: k-drip 40s steps(10) infinite; }
 @keyframes k-drip { 90% { height: 12px; opacity: 1; } 100% { height: 12px; opacity: 0; } }
-.keep .moth { position: absolute; left: 13px; top: 10px; width: 0; height: 0; animation: k-orbit 3.6s steps(24) infinite; }
+.keep .moth { position: absolute; left: 18px; top: 10px; width: 0; height: 0; animation: k-orbit 3.6s steps(24) infinite; }
 .keep .moth svg { transform: translate(14px, -4px); animation: k-flutter .2s steps(2) infinite; }
 @keyframes k-orbit { to { transform: rotate(360deg); } }
 @keyframes k-flutter { 50% { transform: translate(14px, -4px) scaleX(.5); } }
