@@ -1,3 +1,4 @@
+import { isNight, rainy, tolls } from './logic/keep';
 import type { Scene } from './logic/music';
 import { noise } from './music';
 
@@ -87,7 +88,52 @@ const birds = (x: Ctx) => every(x, 2, 7, (t) => {
 });
 const rumble = (x: Ctx, vol = 0.05) => bed(x, 'lowpass', 120, vol, { rate: 0.18, depth: vol * 0.7 }); // slow breathing
 
-const SCENES: Record<Scene, (x: Ctx) => void> = {
+// The Keep: a hearth and a candle, the weather at the window, a clock and an owl after dark, a far bell on the hour.
+const hour = () => new Date().getHours();
+function bell(x: Ctx, t: number) {
+  for (const [f, v] of [[392, 0.02], [784, 0.008], [1176, 0.004]] as const) chirp(x, 'sine', f, f * 0.998, t, 3.2, v);
+}
+function onTheHour(x: Ctx) {
+  let timer = 0;
+  const arm = () => {
+    const now = new Date();
+    const next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1).getTime();
+    timer = window.setTimeout(() => {
+      const t = x.c.currentTime + 0.05;
+      for (let i = 0; i < tolls(hour()); i++) bell(x, t + i * 2.4);
+      arm();
+    }, next - now.getTime() + 200);
+  };
+  arm();
+  x.stops.push(() => clearTimeout(timer));
+}
+function keep(x: Ctx) {
+  fire(x, 0.009, 0.022); // the hearth's hush and pops
+  every(x, 14, 34, (t) => burst(x, 'lowpass', 260, t, rand(0.3, 0.6), 0.05)); // a log settles
+  bed(x, 'bandpass', 900, 0.003, { rate: 0.6, depth: 0.002 }); // the candle flutters
+  if (rainy(new Date())) {
+    bed(x, 'highpass', 3000, 0.012, { rate: 0.11, depth: 0.005 }); // rain on the glass
+    every(x, 0.3, 1.2, (t) => chirp(x, 'sine', rand(2500, 4000), rand(1200, 2000), t, 0.03, 0.006)); // drips
+  } else bed(x, 'bandpass', 380, 0.009, { rate: 0.05, depth: 0.006 }, { rate: 0.03, depth: 150 }); // wind against stone
+  // After dark: a slow clock, tick and tock, and now and then an owl.
+  let n = 0;
+  const tick = window.setInterval(() => {
+    if (!isNight(hour())) return;
+    burst(x, 'bandpass', n++ % 2 ? 1900 : 2400, x.c.currentTime + 0.02, 0.025, 0.012);
+  }, 1000);
+  x.stops.push(() => clearInterval(tick));
+  every(x, 35, 90, (t) => {
+    if (!isNight(hour())) return;
+    chirp(x, 'sine', 430, 390, t, 0.35, 0.02);
+    chirp(x, 'sine', 410, 370, t + 0.55, 0.5, 0.018);
+  });
+  onTheHour(x);
+}
+
+export type Room = Scene | 'keep';
+
+const SCENES: Record<Room, (x: Ctx) => void> = {
+  keep,
   castle: (x) => { wind(x, 0.015); fire(x, 0.006, 0.015); },
   dungeon: (x) => { fire(x, 0.008, 0.02); every(x, 1.5, 5, (t) => chirp(x, 'sine', rand(1100, 1500), rand(500, 700), t, 0.12, 0.03)); },
   forest: (x) => { wind(x, 0.008); birds(x); },
@@ -109,7 +155,7 @@ const SCENES: Record<Scene, (x: Ctx) => void> = {
   isles: (x) => { wind(x, 0.02); birds(x); },
 };
 
-export function startAmbience(c: AudioContext, bus: AudioNode, scene: Scene): () => void {
+export function startAmbience(c: AudioContext, bus: AudioNode, scene: Room): () => void {
   const out = c.createGain();
   out.gain.setValueAtTime(0, c.currentTime);
   out.gain.linearRampToValueAtTime(1, c.currentTime + 1.5);

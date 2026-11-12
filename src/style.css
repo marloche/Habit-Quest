@@ -476,8 +476,8 @@ body.still .float.juice { animation: fade 1.6s ease-out forwards !important; }
 @keyframes shake { 25% { transform: translate(-4px, 2px); } 50% { transform: translate(4px, -2px); } 75% { transform: translate(-2px, 0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Exempt: the background and the juice (hero, bosses, pets, trophy shine, reveals); the ANIMATIONS switch decides those. */
-  *:not(.spark, .juice, .juice *, .rare), *::before, *::after { animation: none !important; transition: none !important; }
+  /* Exempt: the background, the juice (hero, bosses, pets, trophy shine, reveals) and the Keep; the ANIMATIONS switch decides those. */
+  *:not(.spark, .juice, .juice *, .rare, .keep, .keep *), *:not(.keep *)::before, *:not(.keep *)::after { animation: none !important; transition: none !important; }
 }
 
 /* Welcome and quest suggestions */
@@ -697,7 +697,7 @@ body.scened .keep :is(h3, p, label, .empty) { text-shadow: none; }
 .keep .page { min-height: 0; }
 .keep .page.l { flex: none; width: var(--lw); padding: 12px 8px 10px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; overflow: hidden; }
 .keep .page.r { flex: 1; min-width: 0; padding: 12px 12px 10px 18px; display: flex; flex-direction: column; }
-.keep .page.r.scroll { overflow-y: auto; overscroll-behavior: contain; }
+.keep .page.r.scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(90,58,30,.45) transparent; }
 .keep .gutter { position: absolute; top: 0; bottom: 0; width: 18px; pointer-events: none; }
 .keep .page.l .gutter { right: 0; background: linear-gradient(90deg, transparent, rgba(70,40,15,.45)); }
 .keep .page.r .gutter { left: 0; background: linear-gradient(90deg, rgba(70,40,15,.55), transparent); }
@@ -758,17 +758,90 @@ body.scened .keep :is(h3, p, label, .empty) { text-shadow: none; }
 .keep .seal:active { transform: translateY(3px) scale(.96); box-shadow: 0 0 0 3px #6e141b, 0 0 0 5px rgba(0,0,0,.4), 0 1px 0 #3a0a0e; }
 .keep :is(.brass, .seal):focus-visible { outline: 3px solid var(--brass-hi); outline-offset: 3px; }
 
-/* The seal stamps the page, then it turns; reading turns pages too. */
-.keep .turn { position: absolute; inset: 0; z-index: 3; transform-origin: left; pointer-events: none; animation: k-turn .7s steps(6) forwards; }
+/* The seal stamps the page, then it turns; reading turns pages too. Both rest invisible, so if their animation
+   never runs (an old browser, a setting) they can't sit on top of the page and hide the text. */
+.keep .turn { position: absolute; inset: 0; z-index: 3; transform-origin: left; pointer-events: none; opacity: 0; transform: scaleX(0); animation: k-turn .7s steps(6); }
 .keep .turn.prev { transform-origin: right; }
 @keyframes k-turn { from { transform: scaleX(1); opacity: 1; } to { transform: scaleX(0); opacity: .6; } }
 .keep .stamp-mark { position: absolute; left: 50%; top: 40%; z-index: 4; pointer-events: none; font-family: 'Jacquarda Bastarda 9', serif; font-size: 64px; color: #8e1e26;
-  transform: translate(-50%, -50%); animation: k-stamp 1s steps(5) forwards; }
+  opacity: 0; transform: translate(-50%, -50%); animation: k-stamp 1s steps(5); }
 @keyframes k-stamp { 0% { transform: translate(-50%, -50%) scale(2); opacity: 0; } 30% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
-body.still .keep * { animation: none !important; }
+body.still .keep *, body.still .keep *::before, body.still .keep *::after { animation: none !important; }
 body.still .keep :is(.turn, .stamp-mark) { display: none; }
 
 /* The nav turns to dark oak on this tab. */
 body.keep-on .tabs { background: linear-gradient(#3a2412, #24160a); border-top-color: #8a5a36; box-shadow: inset 0 3px 0 rgba(217,164,65,.25); }
 body.keep-on .tabs button { color: #c9a76a; }
 body.keep-on .tabs button[aria-current] { color: #f2d38a; text-shadow: 0 0 6px rgba(242,211,138,.6); }
+
+/* Keep ambience: the window and its weather, living candlelight, little life, your pet asleep on the desk. */
+.keep .kwin { position: absolute; top: 16%; right: max(44px, 8%); height: 62%; aspect-ratio: 5 / 7; overflow: hidden;
+  border: 4px solid #6b5a48; border-radius: 50% 50% 0 0 / 30% 30% 0 0; box-shadow: 0 0 0 2px #2a1a0c, inset 0 0 8px rgba(0,0,0,.55); }
+.keep .kwin .sky { position: absolute; inset: 0; }
+.keep .kwin.s-night .sky { background: linear-gradient(#0b1030, #1d2a5a); }
+.keep .kwin.s-dawn .sky { background: linear-gradient(#6a7fb8, #e88aa0 55%, #f3b07a); }
+.keep .kwin.s-day .sky { background: linear-gradient(#8fd0f0, #d4f0fa); }
+.keep .kwin.s-dusk .sky { background: linear-gradient(#2a2350, #b04a6a 55%, #f0a050); }
+.keep .kwin.rain .sky { filter: saturate(.35) brightness(.7); }
+.keep .kwin .lead { position: absolute; inset: 0; opacity: .85;
+  background: linear-gradient(90deg, transparent calc(50% - 1.5px), #3a2a1c 0 calc(50% + 1.5px), transparent 0),
+    repeating-linear-gradient(45deg, transparent 0 7px, #2a1a0c 7px 8px), repeating-linear-gradient(-45deg, transparent 0 7px, #2a1a0c 7px 8px); }
+.keep .kwin svg { display: block; }
+.keep .moon { position: absolute; right: 16%; top: 16%; filter: drop-shadow(0 0 4px rgba(255,246,213,.7)); }
+.keep .sun { position: absolute; left: 22%; top: 18%; filter: drop-shadow(0 0 6px rgba(255,220,140,.9)); }
+.keep .stars i { position: absolute; width: 2px; height: 2px; background: #fff6d5; animation: k-twinkle 2.8s steps(2) infinite; }
+@keyframes k-twinkle { 50% { opacity: .2; } }
+.keep .rainfall { position: absolute; inset: -20px 0 0; transform: skewX(-10deg); opacity: .7;
+  background: repeating-linear-gradient(to bottom, rgba(210,225,255,.6) 0 5px, transparent 5px 14px) 0 0 / 6px 14px,
+              repeating-linear-gradient(to bottom, rgba(210,225,255,.4) 0 4px, transparent 4px 11px) 3px 5px / 6px 11px;
+  animation: k-rain .45s linear infinite; }
+@keyframes k-rain { to { background-position: 0 28px, 3px 27px; } }
+.keep .shaft { position: absolute; top: 40%; right: max(44px, 8%); width: 46%; height: 75%; pointer-events: none;
+  background: linear-gradient(200deg, rgba(255,232,170,.22), rgba(255,232,170,.05) 60%, transparent);
+  clip-path: polygon(100% 0, 78% 0, 0 100%, 52% 100%); animation: k-breathe 6s steps(4) infinite; }
+.keep.s-dawn .shaft { background: linear-gradient(200deg, rgba(255,190,190,.22), transparent); }
+.keep.s-night .haze { background: radial-gradient(ellipse 60% 120% at 22% 100%, rgba(255,170,80,.3), rgba(255,140,60,.08) 55%, transparent 75%),
+  linear-gradient(rgba(8,6,16,.72), rgba(10,8,14,.35) 60%, rgba(10,6,4,.6)); }
+.keep.s-day .haze { background: radial-gradient(ellipse 60% 120% at 22% 100%, rgba(255,190,110,.2), transparent 75%),
+  linear-gradient(rgba(20,12,6,.35), rgba(20,12,6,.05) 60%, rgba(20,12,6,.3)); }
+
+/* A spider drops from the cobweb now and then, and climbs back. */
+.keep .spider { position: absolute; left: 12px; top: 8px; animation: k-spider 26s steps(10) infinite; }
+.keep .spider .thread { position: absolute; left: 4px; bottom: 100%; width: 1px; height: 70px; background: rgba(210,205,190,.45); }
+@keyframes k-spider { 0%, 68% { transform: translateY(0); } 76%, 88% { transform: translateY(36px); } 96%, 100% { transform: translateY(0); } }
+
+/* Candlelight: smoke curls up, wax drips, a moth circles at night, and the light breathes over the book. */
+.keep .candle { position: absolute; }
+.keep .smoke { position: absolute; left: 17px; top: -6px; }
+.keep .smoke i { position: absolute; width: 2px; height: 2px; background: rgba(210,200,180,.55); opacity: 0; animation: k-smoke 3s linear infinite; }
+.keep .smoke i:nth-child(2) { animation-delay: 1s; } .keep .smoke i:nth-child(3) { animation-delay: 2s; }
+@keyframes k-smoke { 0% { transform: translate(0, 0); opacity: .7; } 50% { transform: translate(3px, -14px); opacity: .4; } 100% { transform: translate(-2px, -28px); opacity: 0; } }
+.keep .drip { position: absolute; left: 10px; top: 36px; width: 2px; height: 0; background: #fff6d5; animation: k-drip 40s steps(10) infinite; }
+@keyframes k-drip { 90% { height: 12px; opacity: 1; } 100% { height: 12px; opacity: 0; } }
+.keep .moth { position: absolute; left: 13px; top: 10px; width: 0; height: 0; animation: k-orbit 3.6s steps(24) infinite; }
+.keep .moth svg { transform: translate(14px, -4px); animation: k-flutter .2s steps(2) infinite; }
+@keyframes k-orbit { to { transform: rotate(360deg); } }
+@keyframes k-flutter { 50% { transform: translate(14px, -4px) scaleX(.5); } }
+.keep .glass-turn { position: relative; animation: k-flip 45s steps(1) infinite; }
+.keep .glass-turn .sand { position: absolute; left: 14px; top: 12px; width: 2px; height: 8px; background: #ffcd75; animation: k-trickle .5s steps(2) infinite; }
+@keyframes k-trickle { 50% { opacity: .3; } }
+@keyframes k-flip { 0%, 97% { transform: rotate(0); } 98% { transform: rotate(90deg); } 99%, 100% { transform: rotate(180deg); } }
+.keep .glowpool { position: absolute; inset: 0; z-index: 3; pointer-events: none; mix-blend-mode: screen;
+  background: radial-gradient(ellipse 60% 45% at 16% 2%, rgba(255,190,110,.24), rgba(255,170,90,.06) 60%, transparent 75%);
+  animation: k-glow 1.9s steps(3) infinite; }
+.keep.s-night .glowpool { background: radial-gradient(ellipse 65% 50% at 16% 2%, rgba(255,180,100,.34), rgba(255,160,80,.08) 60%, transparent 78%); }
+.keep.s-day .glowpool { opacity: .6; }
+@keyframes k-glow { 33% { opacity: .78; transform: translate(1px, 0); } 66% { opacity: .92; transform: translate(-1px, 1px); } }
+.keep .cover::after { content: ''; position: absolute; left: 6%; right: 6%; bottom: -24px; height: 16px; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse, rgba(0,0,0,.55), transparent 70%); animation: k-sway 3.2s steps(4) infinite; }
+@keyframes k-sway { 50% { transform: translateX(6px) scaleX(1.04); } }
+
+/* Your pet, asleep on the desk; tap it for hearts as anywhere else. */
+.keep .kpet { position: absolute; top: -24px; left: calc(50% - min(50%, 300px) + 104px); z-index: 3; }
+.keep .kpet .pet { position: relative; left: 0; top: 0; width: 36px; height: 36px; }
+.keep .kpet .pet:not(.petted) svg { animation: k-sleep 3s steps(3) infinite; }
+@keyframes k-sleep { 50% { transform: scaleY(.92); } }
+.keep .zz { position: absolute; right: -8px; top: -6px; pointer-events: none; }
+.keep .zz i { position: absolute; font-style: normal; font-size: 7px; color: #e8cf9a; text-shadow: 1px 1px 0 #000; opacity: 0; animation: k-zz 3.6s steps(6) infinite; }
+.keep .zz i + i { animation-delay: 1.8s; font-size: 9px; }
+@keyframes k-zz { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(8px, -16px); opacity: 0; } }

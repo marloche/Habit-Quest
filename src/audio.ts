@@ -1,8 +1,8 @@
-import { startAmbience } from './ambience';
+import { startAmbience, type Room } from './ambience';
 import type { Scene } from './logic/music';
 import type { Settings } from './logic/types';
 import { gainOf } from './logic/volume';
-import { startMusic, stopMusic } from './music';
+import { noise, startMusic, stopMusic } from './music';
 
 // Chiptune effects synthesized live: [frequency Hz, start s, duration s, slide to Hz]. vol scales a sound (1 = normal).
 type Note = [number, number, number, number?];
@@ -63,7 +63,8 @@ let ctx: AudioContext | undefined;
 let bus: { sfx: GainNode; music: GainNode; amb: GainNode } | undefined;
 export const audio = { muted: false, sfx: 1, music: false, musicGain: 0.7, ambience: false, ambGain: 0.7 };
 let scene: Scene = 'plain';
-let amb: { scene: Scene; stop: () => void } | undefined;
+let room: Room | undefined; // a place with its own sound (the Keep) replaces the scene's ambience while you're in it
+let amb: { scene: Room; stop: () => void } | undefined;
 
 // Starts, stops or swaps music and ambience to match the settings, the scene and whether the app is on screen.
 function sync() {
@@ -75,11 +76,18 @@ function sync() {
   const shown = document.visibilityState === 'visible';
   if (audio.music && shown) startMusic(ctx, bus.music, scene);
   else stopMusic(ctx);
-  if (amb && (!audio.ambience || !shown || amb.scene !== scene)) {
+  const want = room ?? scene;
+  if (amb && (!audio.ambience || !shown || amb.scene !== want)) {
     amb.stop();
     amb = undefined;
   }
-  if (!amb && audio.ambience && shown) amb = { scene, stop: startAmbience(ctx, bus.amb, scene) };
+  if (!amb && audio.ambience && shown) amb = { scene: want, stop: startAmbience(ctx, bus.amb, want) };
+}
+
+export function setRoom(r?: Room) {
+  if (r === room) return;
+  room = r;
+  sync();
 }
 
 // iOS only allows audio after a user gesture, so this runs inside tap handlers.
@@ -116,6 +124,49 @@ export function setScene(s: Scene) {
 document.addEventListener('visibilitychange', sync); // music pauses while the app is hidden
 
 export const hasSound = (name: string): name is Sound => name in SONGS;
+
+// Writing sounds in the Keep, made from filtered noise: a quill scratch per keystroke, a page rustle, a wax seal.
+// Effects bus, so they follow SOUND EFFECTS like every other tap.
+export type Foley = 'quill' | 'page' | 'seal';
+export function foley(name: Foley) {
+  if (audio.muted) return;
+  unlock();
+  const c = ctx!;
+  const t = c.currentTime + 0.01;
+  const r = (a: number, b: number) => a + Math.random() * (b - a);
+  const hiss = (type: BiquadFilterType, freq: number, start: number, dur: number, vol: number, to?: number) => {
+    const src = c.createBufferSource();
+    src.buffer = noise(c);
+    const f = c.createBiquadFilter();
+    f.type = type;
+    f.frequency.setValueAtTime(freq, t + start);
+    if (to) f.frequency.exponentialRampToValueAtTime(to, t + start + dur);
+    const g = c.createGain();
+    g.gain.setValueAtTime(vol, t + start);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + start + dur);
+    src.connect(f).connect(g).connect(bus!.sfx);
+    src.start(t + start, Math.random() * 0.5);
+    src.stop(t + start + dur + 0.02);
+  };
+  if (name === 'quill') hiss('bandpass', r(3500, 5500), 0, r(0.025, 0.055), 0.05);
+  else if (name === 'page') {
+    hiss('bandpass', 1200, 0, 0.35, 0.07, 4200);
+    hiss('highpass', 5000, 0.06, 0.22, 0.03);
+  } else {
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(140, t);
+    o.frequency.exponentialRampToValueAtTime(55, t + 0.18);
+    g.gain.setValueAtTime(0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    o.connect(g).connect(bus!.sfx);
+    o.start(t);
+    o.stop(t + 0.22);
+    hiss('lowpass', 500, 0, 0.1, 0.1);
+    hiss('bandpass', 1800, 0.03, 0.06, 0.03); // the wax gives
+  }
+}
 
 export function sfx(name: Sound) {
   if (audio.muted) return;

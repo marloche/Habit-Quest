@@ -1,5 +1,5 @@
 import './style.css';
-import { configureAudio, hasSound, setScene, sfx, unlock } from './audio';
+import { configureAudio, foley, hasSound, setRoom, setScene, sfx, unlock } from './audio';
 import { banner, floatText, hearts, shake, toast } from './fx';
 import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logic/day';
 import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/score';
@@ -8,6 +8,7 @@ import { buyBlock, itemById, wornIds } from './logic/items';
 import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
 import { clockOf, dropEntry, editEntry, ENTRIES_MAX, ENTRY_MAX, JOURNAL_GOLD, JOURNAL_MAX, pageId, pages, sealEntry, stamp } from './logic/journal';
 import { journalView, type Draft, type KeepUi } from './ui/journal';
+import { petOf } from './sprites';
 import type { Bg, Chapter, Epic, EpicBy, Look, LookPart, Mark, Mood, Schedule, Settings, State } from './logic/types';
 import type { VolKey } from './logic/volume';
 import { display, sceneFor } from './logic/scene';
@@ -70,7 +71,8 @@ function render() {
   const views: Record<Tab, () => string> = {
     quest: () => questView(state, sc, hs, t, new Date(), { arming, lateTouched, timer, stopping }),
     calendar: () => calendarView(state, sc, t, { month: calMonth, day: calDay, mood: calMood, arming }),
-    journal: () => journalView(state, t, { view: keepView, draft: draftOr(t), reading: keepReading, arming: keepArm, fx: keepFx }),
+    journal: () => journalView(state, t, { view: keepView, draft: draftOr(t), reading: keepReading, arming: keepArm, fx: keepFx },
+      { now: new Date(), pet: petOf(wornIds(state.wardrobe, hs.trophies)) }),
     hero: () => heroView(state, sc, hs, { view: heroTab, slot: shopSlot, buying }),
     edit: () => editListView(state.habits),
     form: () => formView(state.habits.find((h) => h.id === editingId)),
@@ -85,6 +87,7 @@ function render() {
   app.innerHTML = `<main>${views[tab]()}</main>${nav((UNDER_QUEST.includes(tab) ? 'quest' : UNDER_EPICS.includes(tab) ? 'epics' : tab) as NavTab)}`;
   keepFx = undefined; // a seal or page turn plays once
   document.body.classList.toggle('keep-on', tab === 'journal');
+  setRoom(tab === 'journal' ? 'keep' : undefined); // the Keep has its own room sound
   restore();
   applyScene();
 }
@@ -477,7 +480,12 @@ function writeDraft(d?: Draft) {
 // The page on the desk: the unsealed one, else a blank one dated when the Keep was opened.
 const draftOr = (t: string): Draft => readDraft() ?? { day: t, at: keepOpened || stamp(new Date()), text: '' };
 
+let scratched = 0; // the quill scratches at most every 60 ms, so fast typing or a paste doesn't buzz
 function typeKeep(el: HTMLInputElement | HTMLTextAreaElement) {
+  if (Date.now() - scratched > 60) {
+    scratched = Date.now();
+    foley('quill');
+  }
   const d = draftOr(today());
   if (el.dataset.keep === 'text') d.text = el.value.slice(0, ENTRY_MAX);
   else d.word = el.value.slice(0, JOURNAL_MAX);
@@ -515,7 +523,7 @@ function sealKeep() {
     keepView = 'read';
     keepFx = 'next';
     commit();
-    sfx('tiny');
+    foley('seal');
     return toast('Resealed. Its time stays as written.');
   }
   if (!d.text.trim()) {
@@ -523,7 +531,7 @@ function sealKeep() {
       setWord(d.day, d.word);
       writeDraft(undefined);
       commit();
-      sfx('tiny');
+      foley('seal');
       return toast('The day’s word is kept.');
     }
     return toast('The page is blank. Write a few words first.');
@@ -543,7 +551,7 @@ function sealKeep() {
   keepOpened = stamp(new Date());
   keepFx = 'seal';
   commit();
-  sfx('tiny');
+  foley('seal');
   toast(`Sealed at ${clockOf(d.at)}. Read it back in the ARCHIVE.`);
 }
 
@@ -561,7 +569,7 @@ function turnPage(dir: number) {
   const i = ps.findIndex((p) => pageId(p) === keepReading);
   const next = ps[i + dir];
   if (!next) return;
-  sfx('tap');
+  foley('page');
   readPage(pageId(next), dir > 0 ? 'next' : 'prev');
 }
 
@@ -1032,7 +1040,8 @@ async function importFile(input: HTMLInputElement) {
 // Quiet clicks for taps that only move around; the ones that change your save have their own sounds.
 const TAPS = new Set(['cal-month', 'cal-day', 'cal-view', 'slot', 'hero-view', 'epic-list', 'epic-open', 'epic-new', 'epic-edit', 'epic-idea',
   'new', 'edit-habit', 'sugg-show', 'sugg-back', 'sugg-toggle', 'goal', 'budget', 'bg', 'bg-strength', 'preset', 'look', 'look-random',
-  'focus-stop', 'focus-keep', 'badge', 'suggest', 'move', 'keep-archive', 'keep-write', 'keep-read', 'keep-edit', 'keep-cancel', 'open-journal', 'ch-more']);
+  'focus-stop', 'focus-keep', 'badge', 'suggest', 'move', 'keep-edit', 'keep-cancel', 'open-journal', 'ch-more']);
+const PAGES = new Set(['keep-archive', 'keep-write', 'keep-read']); // moving around the book rustles a page
 
 app.addEventListener('click', (e) => {
   unlock();
@@ -1041,6 +1050,7 @@ app.addEventListener('click', (e) => {
   const id = el.dataset.id ?? '';
   if (el.dataset.action === 'tab') sfx('tab');
   else if (TAPS.has(el.dataset.action!)) sfx('tap');
+  else if (PAGES.has(el.dataset.action!)) foley('page');
   switch (el.dataset.action) {
     case 'mark': return mark(id, el.dataset.mark as Mark, el.dataset.day);
     case 'tab': return go(el.dataset.tab as Tab);

@@ -1,7 +1,9 @@
 import { weekdayName } from '../logic/day';
 import { byMonth, clockOf, ENTRY_MAX, JOURNAL_MAX, MOODS, pageId, pages, type Page } from '../logic/journal';
+import { rainy, skyOf, type Sky } from '../logic/keep';
 import type { State } from '../logic/types';
 import { moodFace, svg } from '../sprites';
+import { petButton } from './hero';
 import { esc } from './html';
 
 // The Keep: a dusty library lit by one candle, an antique book open on the reading desk.
@@ -32,6 +34,10 @@ const INK = ['..kkk..', '.kSsSk.', 'kkkkkkk', 'kBBBBBk', 'kBkkkBk', 'kBBBBBk', '
 const GLASS = ['kgggggk', '.kwwwk.', '.kyyyk.', '..kyk..', '..kwk..', '.kwywk.', '.kyyyk.', 'kgggggk'];
 const CORNER = ['ggggg', 'gGGgk', 'gG...', 'gg...', 'gk...'];
 const WEB = ['xx.....x', '.x.x..x.', '..xx.x..', 'xxxxx...', '..x.x...', '.x..x...', 'x...x...', '....x...'];
+const MOON = ['..WWW.', '.WWWs.', 'WWWs..', 'WWWs..', '.WWWs.', '..WWW.'];
+const SUN = ['..yy..', '.yWWy.', 'yWWWWy', 'yWWWWy', '.yWWy.', '..yy..'];
+const MOTH = ['s.s', '.k.', 's.s'];
+const SPIDER = ['k.k.k', '.kkk.', 'kkkkk', '.kkk.', 'k.k.k'];
 
 // A seeded generator, so the shelves and the ragged page edges look the same on every visit.
 function seeded(seed: number) {
@@ -93,19 +99,43 @@ const EDGE_R = deckle('r', 23);
 
 const DUST = [8, 19, 30, 14, 41, 25, 5].map((x, i) => `<i style="left:${x}%;top:${55 + (i % 3) * 12}%;animation-delay:${i * 1.2}s"></i>`).join('');
 
+// What the room looks like right now: the window's sky and weather, and your pet asleep on the desk.
+export type KeepEnv = { now: Date; pet?: string };
+let env: { sky: Sky; rain: boolean; pet?: string } = { sky: 'night', rain: false };
+
+const STARS = [[12, 18], [30, 10], [52, 22], [70, 12], [22, 40], [64, 44]].map(([x, y], i) => `<i style="left:${x}%;top:${y}%;animation-delay:${i * 0.7}s"></i>`).join('');
+
+// A leaded, arched window set into the shelves: dawn, day, dusk or night outside, and rain in its spells.
+function windowArt() {
+  const { sky, rain } = env;
+  const body = sky === 'night' ? `<span class="moon">${art(MOON, 18)}</span><span class="stars">${STARS}</span>`
+    : sky === 'day' && !rain ? `<span class="sun">${art(SUN, 18)}</span>` : '';
+  return `<div class="kwin s-${sky}${rain ? ' rain' : ''}"><div class="sky">${body}${rain ? '<div class="rainfall"></div>' : ''}</div><div class="lead"></div></div>
+    ${(sky === 'day' || sky === 'dawn') && !rain ? '<div class="shaft"></div>' : ''}`;
+}
+
 function room(sub: string, book: string, controls: string) {
-  return `<div class="keep">
+  const { sky, rain, pet } = env;
+  return `<div class="keep s-${sky}${rain ? ' rain' : ''}">
     <h2 class="sr-only">JOURNAL</h2>
     <div class="lib" style="background-image:${SHELF}" aria-hidden="true">
-      <div class="web">${art(WEB, 32)}</div><div class="haze"></div><div class="dust">${DUST}</div>
+      ${windowArt()}
+      <div class="web">${art(WEB, 32)}<div class="spider"><i class="thread"></i>${art(SPIDER, 10)}</div></div>
+      <div class="haze"></div><div class="dust">${DUST}</div>
     </div>
     <div class="plaque"><b>The Keep</b><small>${sub}</small></div>
     <div class="desk">
       <div class="props" aria-hidden="true">
-        <div class="candle"><div class="flame">${art(FLAME, 28)}</div>${art(CANDLE, 52)}</div>
+        <div class="candle">
+          <div class="smoke"><i></i><i></i><i></i></div>
+          <div class="flame">${art(FLAME, 28)}</div>${art(CANDLE, 52)}<i class="drip"></i>
+          ${sky === 'night' ? `<div class="moth">${art(MOTH, 9)}</div>` : ''}
+        </div>
         <div class="ink">${art(INK, 28)}</div>
-        <div class="glass">${art(GLASS, 32)}</div>
+        <div class="glass"><div class="glass-turn">${art(GLASS, 32)}<i class="sand"></i></div></div>
       </div>
+      ${pet ? `<div class="kpet">${petButton(pet, 36)}<span class="zz" aria-hidden="true"><i>z</i><i>z</i></span></div>` : ''}
+      <div class="glowpool" aria-hidden="true"></div>
       <div class="book">
         <div class="cover" aria-hidden="true"></div>
         <div class="corner tl" aria-hidden="true">${art(CORNER, 20)}</div><div class="corner tr" aria-hidden="true">${art(flip(CORNER, true), 20)}</div>
@@ -205,7 +235,8 @@ function readView(state: State, today: string, ui: KeepUi) {
   return room(`${weekdayName(p.day).slice(0, 3)} ${Number(p.day.slice(8))} ${monthName(p.day).slice(0, 3).toUpperCase()} · READING`, left + right, controls);
 }
 
-export function journalView(state: State, today: string, ui: KeepUi) {
+export function journalView(state: State, today: string, ui: KeepUi, room: KeepEnv) {
+  env = { sky: skyOf(room.now.getHours()), rain: rainy(room.now), pet: room.pet };
   if (ui.view === 'archive') return archiveView(state, today);
   if (ui.view === 'read') return readView(state, today, ui);
   return writeView(state, ui);
