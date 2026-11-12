@@ -624,3 +624,4 @@ button.ch-box { width: 44px; height: 44px; cursor: pointer; }
 .color-pick { min-height: 44px; }
 .color-pick span { display: block; width: 20px; height: 20px; box-shadow: 0 0 0 2px var(--bg); }
 .mq.none { box-shadow: 0 0 0 4px var(--gold), inset 0 0 0 2px #ffcd7544; }
+.sync-token summary { min-height: 44px; display: flex; align-items: center; margin: 12px 4px 0; cursor: pointer; color: var(--muted); }

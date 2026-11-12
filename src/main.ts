@@ -12,14 +12,15 @@ import type { VolKey } from './logic/volume';
 import { display, sceneFor } from './logic/scene';
 import { mountScene } from './scenes';
 import { CLASSIC, PRESETS, randomLook } from './logic/look';
-import { BACKUP_DAYS, KEY, backupAge, exportFile, fresh, load, newId, parseState, save } from './store';
+import { afterSave, BACKUP_DAYS, KEY, backupAge, exportFile, fresh, load, newId, parseState, save } from './store';
+import { connect, disconnect, initSync, noteSave, replaceToken, syncNow, syncStatus } from './sync';
 import { calendarView } from './ui/calendar';
 import { editListView, formView } from './ui/edit';
 import { heroView, type HeroUi } from './ui/hero';
 import { newTiers, TIER_GOLD, trophyAt } from './logic/achievements';
 import { nav, type NavTab } from './ui/html';
 import { questView } from './ui/quest';
-import { settingsView } from './ui/settings';
+import { settingsView, syncText } from './ui/settings';
 import { statsView } from './ui/stats';
 import { picks, suggestView, type SuggestUi } from './ui/suggest';
 import { EPIC_IDEAS, epicFromIdea, GOALS, goalsFromText, IDEAS, ideaToHabit, type Budget } from './logic/suggest';
@@ -67,7 +68,7 @@ function render() {
     form: () => formView(state.habits.find((h) => h.id === editingId)),
     suggest: () => suggestView(state, sugg),
     stats: () => statsView(state, sc, hs, t),
-    settings: () => settingsView(state, t, reducedMotion.matches),
+    settings: () => settingsView(state, t, reducedMotion.matches, syncStatus()),
     epics: () => epicsView(state, t, epicUi, sc.level, wornIds(state.wardrobe, hs.trophies), state.look),
     'epic-form': () => epicFormView(epicDraft, state.habits, !state.epics.some((e) => e.id === epicDraft?.id), epicAddQuest),
     'epic-ideas': () => epicIdeasView(),
@@ -558,7 +559,8 @@ function setLook(look: Look) {
 }
 
 function newGame() {
-  const typed = prompt('NEW GAME wipes all quests, XP, gold, items, journal and focus minutes. Settings stay.\nExport a backup first if you might want them back.\n\nType RESET to start over.');
+  const everywhere = syncStatus().on ? '\nSync is on: your other devices are wiped too.' : '';
+  const typed = prompt(`NEW GAME wipes all quests, XP, gold, items, journal and focus minutes. Settings stay.${everywhere}\nExport a backup first if you might want them back.\n\nType RESET to start over.`);
   if (typed?.trim().toUpperCase() !== 'RESET') return toast('Nothing was reset.');
   setTimer(undefined);
   state = { ...fresh(state.settings), look: state.look }; // your hero's look is yours, like settings
@@ -905,6 +907,11 @@ app.addEventListener('click', (e) => {
     case 'epic-inn': return toggleInn(id);
     case 'epic-retire': return retire(id);
     case 'epic-delete': return deleteEpic(id);
+    case 'sync-now': return void syncNow();
+    case 'sync-off':
+      if (!confirm('Turn sync off on this device? Your progress here stays; the other devices keep theirs.')) return;
+      disconnect();
+      return render();
   }
 });
 
@@ -931,6 +938,8 @@ app.addEventListener('submit', (e) => {
   else if (form.dataset.form === 'intent') matchIntent(form);
   else if (form.dataset.form === 'epic') saveEpic(form);
   else if (form.dataset.form === 'epic-log') logEpic(form);
+  else if (form.dataset.form === 'sync') void connectSync(form);
+  else if (form.dataset.form === 'sync-token') void newToken(form);
   else saveHabit(form);
 });
 
@@ -1003,6 +1012,58 @@ addEventListener('storage', (e) => {
   configureAudio(state.settings);
   if (tab !== 'form' && tab !== 'epic-form') render(); // don't wipe a half-typed quest
 });
+
+// Sync: another device's progress arrives here, already merged with this one's and checked.
+let syncToast = '';
+afterSave.fn = noteSave;
+initSync({
+  get: () => state,
+  apply: (s) => {
+    const hourMoved = s.settings.rolloverHour !== state.settings.rolloverHour;
+    state = s;
+    save(state);
+    quietTiers = true; // the other device already cheered these
+    if (hourMoved) shownDay = '';
+    if (tab !== 'form' && tab !== 'epic-form') render(); // don't wipe a half-typed quest
+  },
+  changed: () => {
+    const s = syncStatus();
+    const el = app.querySelector('.sync-status');
+    if (el) {
+      el.textContent = syncText(s);
+      el.classList.toggle('hot', s.state === 'error');
+    }
+    // Errors say so once, wherever you are; a token that expired shouldn't fail silently for weeks.
+    if (s.state === 'error' && s.msg && s.msg !== syncToast) toast(s.msg);
+    syncToast = s.state === 'error' ? s.msg ?? '' : '';
+  },
+});
+
+async function newToken(form: HTMLFormElement) {
+  const err = await replaceToken(String(new FormData(form).get('token') ?? ''));
+  if (err) return toast(err);
+  toast('Token saved.');
+  render();
+}
+
+async function connectSync(form: HTMLFormElement) {
+  const f = new FormData(form);
+  const button = form.querySelector('button');
+  if (button) button.disabled = true;
+  const sizeOf = (s: { habits: { archived?: string }[]; log: object }) =>
+    `${s.habits.filter((h) => !h.archived).length} quests, ${Object.keys(s.log).length} days of checks`;
+  const err = await connect(String(f.get('repo') ?? ''), String(f.get('token') ?? ''), (theirs) =>
+    !state.habits.length || confirm(`GitHub already holds a save.
+
+This device: ${sizeOf(state)}
+On GitHub: ${sizeOf(theirs)}
+
+They will be joined: checks from both are kept. Continue?`));
+  if (button) button.disabled = false;
+  if (err) return toast(err);
+  toast('Sync is on!');
+  render();
+}
 
 render();
 checkNewDay();

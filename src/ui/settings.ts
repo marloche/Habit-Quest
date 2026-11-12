@@ -3,8 +3,18 @@ import type { State } from '../logic/types';
 import { BG_NAMES, BGS, DAY_FROM, display, NIGHT_FROM } from '../logic/scene';
 import { pctOf, type VolKey } from '../logic/volume';
 import { BACKUP_DAYS, backupAge } from '../store';
+import type { SyncStatus } from '../sync';
+import { esc } from './html';
 
-export function settingsView(state: State, today: string, reducedMotion: boolean) {
+export function syncText(s: SyncStatus, now = Date.now()) {
+  if (s.state === 'syncing') return 'SYNCING...';
+  if (s.state === 'error' || s.state === 'offline') return s.msg ?? 'Sync failed.';
+  if (!s.last) return 'Not synced yet.';
+  const min = Math.floor((now - s.last) / 60_000);
+  return `Synced ${min < 1 ? 'just now' : min < 60 ? `${min} min ago` : `${Math.floor(min / 60)} h ago`}.`;
+}
+
+export function settingsView(state: State, today: string, reducedMotion: boolean, sync: SyncStatus) {
   const { rolloverHour, muted, lastBackup } = state.settings;
   const age = lastBackup ? daysBetween(lastBackup, today) : undefined;
   const stale = (backupAge(state, today) ?? 0) > BACKUP_DAYS;
@@ -44,13 +54,33 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
     <p class="muted small">The background, bosses, pets and trophy shine.</p>
     ${reducedMotion ? '<p class="muted small">Your system asks for reduced motion, so these start off. Turning them on overrides that for these only; the rest of the app stays calm.</p>' : ''}
     <label class="toggle"><input type="checkbox" data-setting="bossArt" ${d.bossArt ? 'checked' : ''}> SHOW BOSS ART</label>
+    <h3>SYNC</h3>
+    ${sync.on ? `
+    <p class="small">Synced through <b>${esc(sync.repo ?? '')}</b>. Progress and the new-day hour are shared; sound and display stay per device.</p>
+    <p class="small sync-status${sync.state === 'error' ? ' hot' : ''}" role="status">${esc(syncText(sync))}</p>
+    <button class="btn wide" data-action="sync-now">SYNC NOW</button>
+    <details class="sync-token"${sync.state === 'error' ? ' open' : ''}>
+      <summary class="small">NEW TOKEN</summary>
+      <form class="sync-form" data-form="sync-token">
+        <label>TOKEN<input name="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+        <button class="btn wide" type="submit">SAVE TOKEN</button>
+      </form>
+    </details>
+    <button class="btn wide ghost" data-action="sync-off">DISCONNECT</button>` : `
+    <p class="muted small">Keep your devices the same through a private GitHub repo you own. Nothing else leaves the device.</p>
+    <form class="sync-form" data-form="sync">
+      <label>REPO<input name="repo" placeholder="yourname/habit-quest-save" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <label>TOKEN<input name="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <button class="btn wide" type="submit">CONNECT</button>
+    </form>
+    <p class="muted small">1. On GitHub, make a new PRIVATE repo. 2. Make a fine-grained token for only that repo, with Contents: read and write. 3. Paste both here, on every device. On iPhone, paste inside the home-screen app, not Safari.</p>`}
     <h3>BACKUP</h3>
     <p class="${stale ? 'hot' : 'muted'} small">Last backup: ${age === undefined ? 'never' : age === 0 ? 'today' : `${age} days ago`}</p>
     <p class="muted small">Your save lives only on this device. On iPhone the home-screen app keeps its own save, separate from Safari.</p>
     <button class="btn wide" data-action="export">EXPORT SAVE</button>
     <label class="btn wide">IMPORT SAVE<input type="file" accept=".json,application/json" data-action="import" hidden></label>
     <h3>NEW GAME</h3>
-    <p class="muted small">Start over from a clean slate: wipes quests, XP, gold, items, journal and focus minutes. Settings stay. Export first if you might want them back.</p>
+    <p class="muted small">Start over from a clean slate: wipes quests, XP, gold, items, journal and focus minutes. Settings stay. Export first if you might want them back.${sync.on ? ' With sync on, it wipes your other devices too.' : ''}</p>
     <button class="btn wide danger" data-action="new-game">NEW GAME</button>
     <h3 class="kbd-help">KEYBOARD</h3>
     <p class="kbd-help muted small">1-9: check quest N (in your order). Shift+1-9: its tiny version. Press again twice to undo. Q / C / G / H / S / E: quests, calendar, goals (epics), hero, stats, edit.</p>

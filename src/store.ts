@@ -115,7 +115,12 @@ export function load(): State {
   }
 }
 
-export const save = (s: State) => localStorage.setItem(KEY, JSON.stringify(s));
+// afterSave: sync listens here, so every save on this device gets synced.
+export const afterSave: { fn?: () => void } = {};
+export const save = (s: State) => {
+  localStorage.setItem(KEY, JSON.stringify(s));
+  afterSave.fn?.();
+};
 
 export const BACKUP_DAYS = 7;
 
