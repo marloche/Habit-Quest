@@ -107,9 +107,12 @@ function chapterList(e: Epic, p: EpicProgress, story = false) {
   if (!e.chapters.length) return '';
   const rows = e.chapters.map((c, i) => {
     const d = p.reached[i];
+    // Amount epics: an unreached chapter can be ticked too; it logs what's missing to reach it (undo with CLEAR TODAY).
     const box = e.by === 'chapters' && !story
       ? `<button class="ch-box" data-action="epic-chapter" data-id="${e.id}" data-ch="${i}" aria-pressed="${!!d}" aria-label="${esc(c.name)}${d ? ', done. Tap to undo' : ', tap when done'}">${d ? CHECK : ''}</button>`
-      : `<span class="ch-box" aria-hidden="true">${d ? CHECK : ''}</span>`;
+      : e.by === 'count' && !story && !d
+        ? `<button class="ch-box" data-action="epic-reach" data-id="${e.id}" data-ch="${i}" aria-pressed="false" aria-label="${esc(c.name)}: tap when done, logs what's missing to reach it"></button>`
+        : `<span class="ch-box" aria-hidden="true">${d ? CHECK : ''}</span>`;
     const when = d ? short(d) : e.by !== 'chapters' ? `at ${num(chapterAt(e, i))} ${unitOf(e)}` : '';
     return `<li class="ch-row${d ? ' done' : ''}">${box}
         <span class="ch-text"><span>${esc(c.name)}</span>${c.note ? `<span class="small muted">"${esc(c.note)}"</span>` : ''}</span>
@@ -232,10 +235,11 @@ export function epicFormView(e: Epic | undefined, habits: Habit[], isNew: boolea
   const links = linkable.map((h) => `
     <label class="link-pick"><input type="checkbox" name="link" value="${h.id}" ${e?.links?.includes(h.id) ? 'checked' : ''}>${icon(h.icon, 16)}<span>${esc(h.name)}</span></label>`);
   if (addQuest) links.push(`<label class="link-pick"><input type="checkbox" name="add-quest" value="${esc(addQuest)}" checked><span class="gold">+ ADD QUEST: ${esc(addQuest)}</span></label>`);
-  const rows = Math.min(CHAPTERS_MAX, (e?.chapters.length ?? 0) + 3);
-  const chapters = Array.from({ length: rows }, (_, i) => {
+  // All 12 rows are in the form; the filled ones and one blank show, and + CHAPTER reveals the next without a redraw.
+  const shown = Math.min(CHAPTERS_MAX, (e?.chapters.length ?? 0) + 1);
+  const chapters = Array.from({ length: CHAPTERS_MAX }, (_, i) => {
     const c = e?.chapters[i];
-    return `<div class="ch-edit"><input name="ch-name" maxlength="${NAME_MAX}" value="${esc(c?.name ?? '')}" placeholder="Chapter ${i + 1}" aria-label="Chapter ${i + 1} name">
+    return `<div class="ch-edit"${i < shown ? '' : ' hidden'}><input name="ch-name" maxlength="${NAME_MAX}" value="${esc(c?.name ?? '')}" placeholder="Chapter ${i + 1}" aria-label="Chapter ${i + 1} name">
       <input class="ch-at" type="number" name="ch-at" min="1" max="${AMOUNT_MAX}" step="0.1" value="${c?.at ?? ''}" placeholder="auto" aria-label="Chapter ${i + 1} reached at"></div>`;
   });
   const guardians = LADDER.map((b, i) => `<option value="${i}" ${!isNew && e?.guardian === i ? 'selected' : ''}>${b.name}</option>`);
@@ -258,6 +262,7 @@ export function epicFormView(e: Epic | undefined, habits: Habit[], isNew: boolea
       <fieldset><legend>CHAPTERS <span class="muted">(up to ${CHAPTERS_MAX})</span></legend>
         <span class="small muted ch-hint">Leave the amount blank to space them evenly.</span>
         ${chapters.join('')}
+        <button class="btn small ghost ch-more" type="button" data-action="ch-more"${shown < CHAPTERS_MAX ? '' : ' hidden'}>+ CHAPTER</button>
       </fieldset>
       <label>TARGET DATE <span class="muted">(optional, no penalty)</span><input type="date" name="due" value="${e?.due ?? ''}"></label>
       <label>GUARDIAN <span class="muted">(waits at the end)</span>

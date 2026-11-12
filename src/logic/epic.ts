@@ -63,7 +63,14 @@ export function epicProgress(e: Epic, log: Log): EpicProgress {
   return { value, goal, pct: goal ? Math.min(1, value / goal) : 0, reached, finished, gold: chapterGold + finishGold };
 }
 
-export const epicGold = (epics: Epic[], log: Log) => epics.reduce((n, e) => n + epicProgress(e, log).gold, 0);
+// An amount epic's chapter ticked by hand: what to log today to reach it (0 if it's already reached).
+// Logging it, rather than marking the chapter, keeps the number and the chapters in agreement.
+export function toReach(e: Epic, log: Log, i: number): number {
+  if (e.by !== 'count' || !e.chapters[i]) return 0;
+  return Math.max(0, Math.round((chapterAt(e, i) - epicProgress(e, log).value) * 10) / 10);
+}
+
+export const epicGold =(epics: Epic[], log: Log) => epics.reduce((n, e) => n + epicProgress(e, log).gold, 0);
 export const epicsFinished = (epics: Epic[], log: Log) => epics.filter((e) => epicProgress(e, log).finished).length;
 
 // Still on the road: not finished, not retired. At the INN it's resting, but linked checks keep counting.

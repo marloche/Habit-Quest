@@ -25,8 +25,8 @@ import { settingsView, syncText } from './ui/settings';
 import { statsView } from './ui/stats';
 import { picks, suggestView, type SuggestUi } from './ui/suggest';
 import { EPIC_IDEAS, epicFromIdea, GOALS, goalsFromText, IDEAS, ideaToHabit, type Budget } from './logic/suggest';
-import { AMOUNT_MAX, defaultGuardian, epicProgress, epicsOfHabit, NAME_MAX, NOTE_MAX, UNIT_MAX, WHY_MAX } from './logic/epic';
-import { epicFormView, epicIdeasView, epicsView, listOf, type EpicUi } from './ui/epic';
+import { AMOUNT_MAX, defaultGuardian, epicProgress, epicsOfHabit, NAME_MAX, NOTE_MAX, toReach, UNIT_MAX, WHY_MAX } from './logic/epic';
+import { epicFormView, epicIdeasView, epicsView, listOf, unitOf, type EpicUi } from './ui/epic';
 import { LADDER } from './bosses';
 
 type Tab = 'quest' | 'calendar' | 'journal' | 'hero' | 'edit' | 'form' | 'suggest' | 'stats' | 'settings' | 'epics' | 'epic-form' | 'epic-ideas';
@@ -904,6 +904,27 @@ function logEpic(form: HTMLFormElement) {
   floatText(at, `+${n}`, 'epic');
 }
 
+// A chapter of an amount epic ticked by hand: log what's missing to reach it today. Jumping past more than the next
+// chapter asks first, since one stray tap on the last chapter would finish the epic.
+function reachChapter(id: string, i: number) {
+  const e = state.epics.find((x) => x.id === id);
+  const n = e ? toReach(e, state.log, i) : 0;
+  if (!e || !(n > 0)) return;
+  const p = epicProgress(e, state.log);
+  const next = p.reached.findIndex((d) => !d);
+  const u = unitOf(e) || 'progress';
+  if (i > next && !confirm(`Log +${n} ${u} to reach "${e.chapters[i].name}"? That also passes ${i - next} earlier chapter${i - next === 1 ? '' : 's'}.`)) return;
+  const at = app.querySelector(`[data-action="epic-reach"][data-ch="${i}"]`)?.getBoundingClientRect();
+  epicChange(id, (x) => {
+    x.logs ??= {};
+    const t = today();
+    x.logs[t] = Math.min(AMOUNT_MAX, Math.round(((x.logs[t] ?? 0) + n) * 10) / 10);
+  });
+  sfx('check');
+  floatText(at, `+${n}`, 'epic');
+  toast(`Logged +${n} ${u} to reach it. CLEAR TODAY undoes today's log.`);
+}
+
 function unlogEpic(id: string) {
   const e = state.epics.find((x) => x.id === id);
   const t = today();
@@ -1011,7 +1032,7 @@ async function importFile(input: HTMLInputElement) {
 // Quiet clicks for taps that only move around; the ones that change your save have their own sounds.
 const TAPS = new Set(['cal-month', 'cal-day', 'cal-view', 'slot', 'hero-view', 'epic-list', 'epic-open', 'epic-new', 'epic-edit', 'epic-idea',
   'new', 'edit-habit', 'sugg-show', 'sugg-back', 'sugg-toggle', 'goal', 'budget', 'bg', 'bg-strength', 'preset', 'look', 'look-random',
-  'focus-stop', 'focus-keep', 'badge', 'suggest', 'move', 'keep-archive', 'keep-write', 'keep-read', 'keep-edit', 'keep-cancel', 'open-journal']);
+  'focus-stop', 'focus-keep', 'badge', 'suggest', 'move', 'keep-archive', 'keep-write', 'keep-read', 'keep-edit', 'keep-cancel', 'open-journal', 'ch-more']);
 
 app.addEventListener('click', (e) => {
   unlock();
@@ -1089,6 +1110,17 @@ app.addEventListener('click', (e) => {
     case 'epic-edit': return editEpic(id);
     case 'epic-idea': return takeIdea(Number(el.dataset.idea));
     case 'epic-chapter': return tickChapter(id, Number(el.dataset.ch));
+    case 'epic-reach': return reachChapter(id, Number(el.dataset.ch));
+    case 'ch-more': {
+      // Reveal the next blank chapter row in place: a redraw would wipe the half-filled form.
+      const row = el.closest('fieldset')?.querySelector<HTMLElement>('.ch-edit[hidden]');
+      if (row) {
+        row.hidden = false;
+        row.querySelector('input')?.focus();
+      }
+      if (!el.closest('fieldset')?.querySelector('.ch-edit[hidden]')) el.hidden = true;
+      return;
+    }
     case 'epic-note': return noteChapter(id, Number(el.dataset.ch));
     case 'epic-unlog': return unlogEpic(id);
     case 'epic-main': return setMain(id);

@@ -623,6 +623,8 @@ button.ch-box { width: 44px; height: 44px; cursor: pointer; }
 .link-pick input { width: 20px; height: 20px; box-shadow: none; accent-color: var(--accent); }
 .ch-edit { display: grid; grid-template-columns: 1fr 80px; gap: 12px; padding: 4px; }
 .epic-form:has(option[value='chapters']:checked) .ch-edit { grid-template-columns: 1fr; }
+.ch-edit[hidden], .ch-more[hidden] { display: none; }
+.ch-more { justify-self: start; margin: 4px; }
 .icon-grid.colors { grid-template-columns: repeat(8, 1fr); margin-top: 8px; }
 .color-pick { min-height: 44px; }
 .color-pick span { display: block; width: 20px; height: 20px; box-shadow: 0 0 0 2px var(--bg); }

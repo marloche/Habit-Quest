@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chapterAt, defaultGuardian, dueNote, epicGold, epicProgress, epicsFinished, epicsOfHabit, mainEpic, CHAPTER_GOLD, FINISH_GOLD, QUICK_GOLD } from './epic';
+import { chapterAt, defaultGuardian, dueNote, epicGold, epicProgress, epicsFinished, epicsOfHabit, mainEpic, toReach, CHAPTER_GOLD, FINISH_GOLD, QUICK_GOLD } from './epic';
 import { addDays } from './day';
 import type { Epic, Log } from './types';
 
@@ -52,6 +52,20 @@ describe('count mode', () => {
   it('sums logged amounts, decimals too', () => {
     const e = ep({ by: 'count', target: 10, unit: 'km', logs: { [day(0)]: 2.5, [day(5)]: 3.2, [day(-3)]: 99 } });
     expect(epicProgress(e, {}).value).toBe(5.7);
+  });
+  it('a chapter ticked by hand needs just what is missing to reach it', () => {
+    const chapters = Array.from({ length: 12 }, (_, i) => ({ name: `Videos ${i * 10 + 1}-${i * 10 + 10}` }));
+    const e = ep({ by: 'count', target: 120, unit: 'videos', chapters, logs: { [day(0)]: 23 } });
+    expect(chapterAt(e, 2)).toBe(30); // evenly spaced: every 10
+    expect(toReach(e, {}, 2)).toBe(7);
+    expect(toReach(e, {}, 11)).toBe(97);
+    expect(toReach(e, {}, 1)).toBe(0); // already reached
+    expect(toReach(ep({ ...e, logs: { [day(0)]: 23.4 } }), {}, 2)).toBe(6.6);
+    // logging it reaches the chapter, and only that far
+    const after = epicProgress(ep({ ...e, logs: { [day(0)]: 30 } }), {});
+    expect(after.reached.filter(Boolean)).toHaveLength(3);
+    expect(toReach(ep({ by: 'chapters', chapters }), {}, 0)).toBe(0); // only amount epics
+    expect(toReach(e, {}, 12)).toBe(0); // no such chapter
   });
 });
 
