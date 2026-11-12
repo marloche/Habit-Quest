@@ -188,7 +188,9 @@ fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; }
 legend { font-size: 10px; margin-bottom: 12px; }
 .icon-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 4px; }
 .icon-pick { display: grid; place-content: center; min-height: 52px; cursor: pointer; }
-.icon-pick input, .day-pick input { position: absolute; opacity: 0; pointer-events: none; }
+/* The real radio/checkbox hides inside its tile: 1px and anchored, or the global input width (100%) pushes the page sideways on phones. */
+.icon-pick, .day-pick { position: relative; }
+.icon-pick input, .day-pick input { position: absolute; left: 0; top: 0; width: 1px; height: 1px; min-height: 0; margin: 0; padding: 0; opacity: 0; pointer-events: none; }
 .icon-pick:has(input:checked) { background: var(--blue); box-shadow: 0 0 0 4px var(--gold); }
 .icon-pick:has(input:focus-visible), .day-pick:has(input:focus-visible) span { outline: 4px solid var(--gold); }
 .days { display: none; grid-template-columns: repeat(7, 1fr); gap: 8px; padding: 4px; }
