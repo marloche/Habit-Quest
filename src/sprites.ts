@@ -1,7 +1,7 @@
 import { CLASSIC, EYES, HAIRS, OUTFITS, SKINS } from './logic/look.ts'; // .ts: scripts/make-icons.mjs loads this file in plain Node
 import type { Look } from './logic/types';
 import { compose } from './hero32.ts';
-import { GARBS32, ITEM32, PETS32, TRIMS32, type Layer32 } from './art32.ts';
+import { GARBS32, ITEM32, PET, PETS32, TRIMS32, type Layer32 } from './art32.ts';
 
 // Pixel art as rows of palette letters ('.' = transparent), rendered to crisp SVG.
 export const PAL: Record<string, string> = {
@@ -115,7 +115,7 @@ export function lookPal(look: Look, glow = false): Record<string, string> {
 export function hero(level: number, size = 64, worn: string[] = [], look: Look = CLASSIC, noPet = false) {
   const t = tierOf(level);
   const ids = worn.filter((id) => ITEM32[id]);
-  const width = ids.some((id) => PETS32[id]) ? 48 : 32;
+  const width = ids.some((id) => PETS32[id]) ? 32 + PET : 32;
   const shown = noPet ? ids.filter((id) => !PETS32[id]) : ids;
   const grid = compose(look, GARBS32[look.garb ?? 0] ?? GARBS32[0], width, shown.some((id) => ITEM32[id].cover));
   for (const l of TRIMS32[t.title]) stamp32(grid, l);

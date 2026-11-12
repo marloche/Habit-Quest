@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BEARDS, CLASSIC, cleanName, FACES, GARBS, MARKS, PARTS, PRESETS, randomLook, sameLook, STYLES, validName } from './look';
 import { hero, heroHead, titleOf } from '../sprites';
 import * as art from '../hero32';
-import { GARBS32, ITEM32, PETS32 } from '../art32';
+import { GARBS32, ITEM32, PET, PETS32 } from '../art32';
 import type { Look, LookPart } from './types';
 
 const OPTIONAL = ['garb', 'eye', 'beard', 'mark', 'face'];
@@ -33,7 +33,7 @@ describe('hero look', () => {
       expect(rowsOk(g), GARBS[i]).toBe(true);
       expect([8, 9, 22, 23].map((x) => g[25]![x]), GARBS[i]).toEqual(['f', 'f', 'f', 'f']);
     }
-    for (const [id, rows] of Object.entries(PETS32)) expect(rows.length === 16 && rows.every((r) => r.length === 16), id).toBe(true);
+    for (const [id, rows] of Object.entries(PETS32)) expect(rows.length === PET && rows.every((r) => r.length === PET), id).toBe(true);
   });
   it('has 11 distinct presets, all valid, each class in its own outfit shape after the classic squire', () => {
     expect(PRESETS.length).toBe(11);

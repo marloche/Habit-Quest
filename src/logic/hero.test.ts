@@ -6,7 +6,7 @@ import { TRACKS } from './achievements';
 import { buyBlock, emptyWardrobe, itemById, ITEMS, wornIds } from './items';
 import { score } from './score';
 import { PAL } from '../sprites';
-import { ITEM32, PETS32 } from '../art32';
+import { ITEM32, PET, PETS32 } from '../art32';
 import { ELITE_PALS, LADDER, wounded } from '../bosses';
 import type { Habit, Log, Mark, State } from './types';
 
@@ -46,7 +46,7 @@ describe('item art', () => {
       const art = ITEM32[i.id];
       expect(art, i.id).toBeDefined();
       expect(art.rows.length, i.id).toBe(32);
-      const w = i.slot === 'pet' ? 48 : 32;
+      const w = i.slot === 'pet' ? 32 + PET : 32;
       expect(art.rows.every((r) => !r || r.length === w), i.id).toBe(true);
       expect(i.slot === 'pet', i.id).toBe(!!PETS32[i.id]);
       expect(art.rows.filter(Boolean).join('').replace(/\./g, ''), i.id).toMatch(colors);

@@ -170,19 +170,21 @@ const ARMOR: Record<string, Layer32> = {
 };
 
 // ---------- weapons, held in the right hand (columns 22-23, row 25); grips at columns 24-25 ----------
+// Blades are 3px (columns 23-25: edge e, then b twice) inside a dark outline; the grip leaves the hand uncovered.
 const sword = (top: number, e: string, b: string, g: string, h: string, p: string): Layer32 => ({
-  rows: place(22, top, [`..${e}...`, ...Array(22 - top - 1).fill(`..${e}${b}..`), `.k${g}${g}${g}k`, `..${h}${h}..`, `..${h}${h}..`, `..${h}${h}..`, `..${p}${p}..`]),
+  rows: place(21, top, [`...k...`, `..k${e}k..`, ...Array(22 - top - 2).fill(`.k${e}${b}${b}k.`), `k${g.repeat(5)}k`,
+    `...${h}${h}k.`, `...${h}${h}k.`, `...${h}${h}k.`, `...${p}${p}..`]),
 });
 const staff = (head: string[], shaft: string): Layer32 => ({ rows: place(23, 2, [...head, ...Array(30 - head.length).fill(`.${shaft}.`)]) });
 const WEAPONS: Record<string, Layer32> = {
   'wood-sword': sword(10, 'o', 'e', 'E', 'p', 'k'),
   dagger: sword(17, 'w', 's', 'y', 'o', 'k'),
-  'flame-blade': { rows: paint(sword(8, 'y', 'o', 'r', 'r', 'y').rows, [[23, 10, 'o'], [27, 12, 'r'], [23, 14, 'r'], [27, 16, 'o'], [23, 18, 'o'], [27, 20, 'r']]) },
-  'second-wind': { rows: paint(sword(8, 'w', 'c', 'y', 'r', 'y').rows, [[27, 7, 'C'], [28, 6, 'C'], [22, 11, 'C'], [28, 14, 'C']]) },
-  'starforged-blade': { rows: paint(sword(8, 'w', 's', 'y', 'v', 'y').rows, [[24, 5, 'y'], [23, 6, 'y'], [24, 6, 'y'], [25, 6, 'y'], [24, 7, 'y'], [27, 12, 'C'], [22, 17, 'C']]) },
+  'flame-blade': { rows: paint(sword(8, 'y', 'o', 'r', 'r', 'y').rows, [[22, 10, 'o'], [26, 12, 'r'], [22, 14, 'r'], [26, 16, 'o'], [22, 18, 'o'], [26, 20, 'r'], [27, 11, 'y'], [21, 17, 'y']]) },
+  'second-wind': { rows: paint(sword(8, 'w', 'c', 'y', 'r', 'y').rows, [[27, 7, 'C'], [28, 6, 'C'], [21, 11, 'C'], [28, 14, 'C']]) },
+  'starforged-blade': { rows: paint(sword(8, 'w', 's', 'y', 'v', 'y').rows, [[24, 5, 'y'], [23, 6, 'y'], [24, 6, 'y'], [25, 6, 'y'], [24, 7, 'y'], [27, 12, 'C'], [21, 17, 'C']]) },
   dragonslayer: {
     rows: place(21, 4, [
-      '...ww...', ...Array(17).fill('..wsSk..'), 'kryyyyrk', '...rr...', '...rr...', '...rr...', '..kyyk..',
+      '..kwwk..', ...Array(17).fill('.kwsSk..'), 'kryyyyrk', '...rr...', '...rr...', '...rr...', '..kyyk..',
     ]),
   },
   mace: { rows: place(22, 8, ['...S..', '..SsS.', '.SswsS', '..SsS.', '...S..', ...Array(13).fill('..oe..'), '..kk..']) },
@@ -238,33 +240,142 @@ const CAPES: Record<string, Layer32> = {
   'ember-cape': robe('r', 'o', 'y'),
 };
 
-// ---------- pets: 16x16, beside the hero from column 32, feet on the bottom row ----------
+// ---------- pets: 20x20, beside the hero from column 32, feet on the bottom row ----------
+export const PET = 20;
+// Chibi pets: a left half (10 wide) mirrored, sitting on the bottom row. eye [row, col]: two 2x2 eyes with a
+// sparkle top-left; extra: one-sided touches like a tail, as [row, col, color] in the same rows.
+const pet = (half: string[], eye: [number, number], extra: [number, number, string][] = [], hl = 'w'): string[] => {
+  const top = PET - half.length;
+  const g = [...Array(top).fill('.'.repeat(10)), ...half].map((h) => [...M(h)]);
+  const y = top + eye[0], c = eye[1];
+  for (const [x, w] of [[c, c + 1], [18 - c, 19 - c]]) (g[y][x] = hl, g[y][w] = 'k', g[y + 1][x] = 'k', g[y + 1][w] = 'k');
+  for (const [r, x, ch] of extra) g[top + r][x] = ch;
+  return g.map((r) => r.join(''));
+};
+// Side-on pets face left, toward the hero: rows up to 20 wide, sitting on the bottom row.
+const side = (rows: string[]): string[] => {
+  for (const r of rows) if (r.length > PET) throw new Error(`pet row too wide: ${r}`);
+  return [...Array(PET - rows.length).fill(''), ...rows].map((r) => r.padEnd(PET, '.'));
+};
 export const PETS32: Record<string, string[]> = {
-  frog: ['................', '................', '................', '................', '................', '...kkk....kkk...', '..kwwwkkkkwwwk..', '..kwkwkggkwkwk..',
-    '.kggggggggggggk.', '.kgugggggggguGk.', '.kggggkkkkgggGk.', '.kGggggggggggGk.', '..kllllllllllk..', '.kGgllllllllgGk.', 'kGGk.kk..kk.kGGk', 'kkkk........kkkk'],
-  slime: ['................', '................', '................', '................', '................', '......kkkk......', '....kkllggkk....', '...kglllgggGk...',
-    '..kgllgggggGGk..', '..kggkgggkgGGk..', '.kgggkgggkggGGk.', '.kguggggggguGGk.', 'kggggggkkggggGGk', 'kGgggggggggggGGk', 'kGGGgggggggGGGGk', '.kkkkkkkkkkkkkk.'],
-  fox: ['................', '................', '................', '..kk.....kk.....', '..kok...kok.....', '..kookkkook.....', '.koooooooook....', '.kokoooookok....',
-    '.kowwwkwwwok..kk', '..kuwwwwwuk..kok', '...kowwwok..kowk', '..kooowwook.kowk', '..koowwwookkoowk', '..koooooooookok.', '..kokoooookokk..', '...kk.....kk....'],
-  cat: ['................', '................', '................', '..k.......k.....', '..kk.....kk.....', '..kokkkkkok.....', '.kooooooooook...', '.kokoooookook...',
-    '.kooookkooook...', '..kuoowwooukk...', '...kooooook..kk.', '..kooooooook.kok', '..koowwwwook.kok', '..koowwwwookkok.', '..kokooookokkk..', '...kk....kk.....'],
-  'little-ghost': ['................', '................', '................', '.....kkkkkk.....', '....kwwwwwwk....', '...kwwwwwwwwk...', '..kwwwwwwwwwwk..', '..kwwkwwwwkwwk..',
-    '..kwwkwwwwkwwk..', '..kwuwwwwwwuwk..', '..kwwwwkkwwwwk..', '..kwwwwwwwwwwk..', '..kwwwwwwwwwwk..', '..kwwwwwwwwwwk..', '..kwkwwkkwwkwk..', '...k.kk..kk.k...'],
-  'baby-dragon': ['................', '................', '...........ll...', '..........lggl..', '.........kggkgk.', '.........kggggk.', '...l.....kguggk.', '..lyl...kgggkk..',
-    '..lyyl.kggggk...', '...lyykgglggk...', '....kgggllggk...', '....kgglllgggk..', '.....kgllllggk..', '.....kggkkggk...', '.....kGGk.kGGk..', '......kk...kk...'],
-  griffin: ['................', '................', '...kkk..........', '..kwwwk.........', '.kwkwwwk........', 'yykwwwwk...kss..', '.kkwwwwwk.ksssk.', '...kwwwwkksssk..',
-    '...kwwwwwsssk...', '..kyyyyyyyyk....', '.kyyyyyyyyyyk...', '.kyyyyyyyyyyyk..', '.kyyyyyyyyyyyok.', '..kykyyyykyk.kk.', '..koko..koko....', '...k.k...k.k....'],
-  phoenix: ['................', '.......o........', '......oyo.......', '.....oykoo......', '....ooyyyook....', '...k.oyyyoo.....', '..ro.ooyyoo.....', '.ro...oyyoo.ro..',
-    'ro...ooyyoo..or.', '.....ooyyoo...r.', '......oyyo......', '.....rooyor.....', '....r..rr..r....', '...r..r..r..r...', '................', '................'],
-  'loyal-hound': ['................', '................', '................', '................', '.kk........kk...', 'kSsk......kSsk..', 'kSsskkkkkkssSk..', '.ksssssssssssk..',
-    '.kssksssssksk...', '.kssssswwsssk...', '..ksuwwkkwwusk..', '...kswwwwwwsk...', '..kkrryrrrrkk.kk', '..kssssssssk.kSk', '..ksskssksskkk..', '...kk.kk.kk.....'],
-  'wise-owl': ['................', '................', '................', '..kk......kk....', '..ksk....ksk....', '..kssskkkssk....', '.kssssssssssk...', '.kswwksswwksk...',
-    '.kswkwsswkwsk...', '.ksswwsswwssk...', '.kssssooossssk..', '.ksswwwwwwwssk..', '.kswwwwwwwwwsk..', '..kswwwwwwwsk...', '...kssooossk....', '....ok...ok.....'],
-  'steady-turtle': ['................', '................', '................', '................', '................', '.....kkkkkk.....', '....kGGGGGGk....', '...kGgyyyygGk...',
-    '..kGgyggggygGk..', '..kGyggyyggyGk.k', '.kkGgyggggygGkkl', 'kllkGGGGGGGGklk.', 'klkklllllllllk..', '.kkllkllllkllk..', '...kllk..kllk...', '....kk....kk....'],
+  frog: pet(['...kkkk...', '..kggggk..', '..kgEEgkkk', '.kggEEgggg', '.kgggggggg', 'kgguuggggg', 'kggggggkgg', 'kGggggggkk', '.kGggggggg',
+    '.kGgllllll', 'kGGGkGllll', '.kkkk.kkkk'], [2, 4]),
+  slime: pet(['......kkkk', '....kkgggg', '...kgggggg', '..kggggggg', '..kggggggg', '.kggEEgggg', '.kggEEgggg', 'kgguuggkgg', 'kgggggggkk',
+    'kGgggggggg', 'kGGggggggg', '.kkkkkkkkk'], [5, 4], [[1, 6, 'l'], [1, 7, 'l'], [2, 4, 'l'], [2, 5, 'w'], [3, 3, 'l']]),
+  // Sitting, face turned to you: tall ears, white cheeks, slim body, big white-tipped tail.
+  fox: side([
+    '.k......k',
+    '.kok..kok',
+    '.kuokkouk',
+    'kooooooook',
+    'kowkoowkok',
+    'kokkookkok',
+    'kwwuwwuwwk',
+    '.kwwwkwwk',
+    '..kwwwwk.........kk',
+    '...kowwok.......kwwk',
+    '..koowwook.....kowwk',
+    '..koowwoook...kooowk',
+    '..kooowooook.kooook',
+    '..koooooooookoooook',
+    '..kokooookoooooook',
+    '..kkkkkkkkkkkkkkk',
+  ]),
+  cat: pet(['.k........', '.kok......', '.kuokkkkkk', '.koooooror', 'kooooooooo', 'kooEEooooo', 'kooEEooooo', 'kouuooooko', 'kooooooook',
+    '.koooooooo', '..kkoowwww', '..kowwwwww', '..kowwwwww', '..kooowwww', '..kkkkkkkk'], [5, 3],
+    [[8, 19, 'k'], [9, 18, 'k'], [9, 19, 'o'], [10, 18, 'o'], [10, 19, 'k'], [11, 18, 'k']]),
+  'little-ghost': pet(['......kkkk', '....kkwwww', '...kwwwwww', '..kwwwwwww', '..kwwwwwww', '.kwwEEwwww', '.kwwEEwwww', '.kwuuwwwww',
+    'kwwwwwwwwk', 'kwwwwwwwww', 'kswwwwwwww', 'kswwwwwwww', 'kwwskwwwsk', '.kk.kkk.kk'], [5, 4], [], 'C'),
+  // Side-on: two little horns swept back, a round snout, wing up on its back, tail curling behind.
+  'baby-dragon': side([
+    '.......kk',
+    '...kk.kyk',
+    '..kykkkyk..kk',
+    '.kgggggkk.kGGk',
+    'kggggggggkGGGk',
+    '.kggwkgggkGGGk',
+    'kkggkkgggkGGk',
+    'klllguggggkGk',
+    '.kkkggggggggk',
+    '...kggllllggggk..kk',
+    '...kggllllggggkkkgk',
+    '....kgllllgggggggk',
+    '....kggkkkkggkkkkk',
+    '....kGGk...kGGk',
+    '....kkkk...kkkk',
+  ]),
+  // Side-on: eagle head with a hooked beak, wing raised, lion body and a tufted tail.
+  griffin: side([
+    '...kkkk.....kk',
+    '..kwwwwk...kwsk',
+    '.kwwwwwwk.kwssk',
+    '.kwwkkwwwkwsssk',
+    'kyywkkwwwkwsssk',
+    'koyywuwwwwkssk',
+    '.kkwwwwwyyyyyyk',
+    '...kwwyyyyyyyyyk.k',
+    '....kyyyyyyyyyyykyk',
+    '....kyyyyyyyyyyk.ok',
+    '....kyykkkyykkyk.k',
+    '....kook...kook',
+    '....kkkk...kkkk',
+  ]),
+  // Side-on and perched: flame crest, wing folded on its side, a long flame tail.
+  phoenix: side([
+    '...r.r',
+    '...ryr',
+    '..kkykk',
+    '.kyyyyyk',
+    'kyyywkyyk',
+    'ooyykkyyyk',
+    '.kyuyyyyyk',
+    '..kyyyoooook',
+    '..kyyoorrrrok',
+    '..kyyyorrrrrok',
+    '...kyyyooooorrk',
+    '....kkyyyyokrrrr',
+    '.....kk.kk..rorr.r',
+    '.....o..o....rryr',
+    '..............r.r',
+  ]),
+  // Side-on: floppy ear, red collar with a gold tag, tail up and wagging.
+  // A sitting puppy: big head, floppy ears, red collar with a gold tag, tail wagging.
+  'loyal-hound': side([
+    '..kkkkkkk',
+    '.ksssssssk',
+    'kSsssssssSk',
+    'kSswksswkSk',
+    'kSskksskkSk',
+    'kSuwwkwwuSk',
+    '.kSwwwwwSk',
+    '..kkrrykk',
+    '..kssssssk......kk',
+    '..ksswwsssk....ksk',
+    '..ksswwssssk..ksk',
+    '..ksswwsssssksk',
+    '..kssssssssssk',
+    '..kswwksssssk',
+    '..kkkkkkkkkk',
+  ]),
+  'wise-owl': pet(['.kk.......', '.kSk..kkkk', '.kSskkSsss', 'kSssssssss', 'ksswwwwsss', 'kswwEEwwss', 'kswwEEwwss', 'ksswwwwsso',
+    'kSsuusssso', 'kSswwwwwww', 'kSswwSwwww', '.kSswwwwww', '..kSswwwww', '...kkkkkkk', '.....oo...'], [5, 4]),
+  // Side-on: a tall patterned shell and a big round head poking out toward you.
+  'steady-turtle': side([
+    '........kkkkkk',
+    '......kkgyyyygkk',
+    '.kkkk.kgyggggggygk',
+    'kllllkGgyggyyggygGk',
+    'kllwklGgyggyyggyGGk',
+    'kllkkuGGgyyggyyGGGk',
+    'kkllllkGGGGGGGGGGk',
+    '.kkkkkGGGGGGGGGGGGkk',
+    '....kllk.....kllk',
+    '....kllk.....kllk',
+    '....kkkk.....kkkk',
+  ]),
 };
 const PETS: Record<string, Layer32> = Object.fromEntries(
-  Object.entries(PETS32).map(([id, rows]) => [id, { rows: place(32, 16, rows, 48) }]),
+  Object.entries(PETS32).map(([id, rows]) => [id, { rows: place(32, 32 - PET, rows, 32 + PET) }]),
 );
 
 export const ITEM32: Record<string, Layer32> = {
