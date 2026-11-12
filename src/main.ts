@@ -6,7 +6,8 @@ import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/s
 import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
 import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
-import { JOURNAL_GOLD, JOURNAL_MAX } from './logic/journal';
+import { clockOf, dropEntry, editEntry, ENTRIES_MAX, ENTRY_MAX, JOURNAL_GOLD, JOURNAL_MAX, pageId, pages, sealEntry, stamp } from './logic/journal';
+import { journalView, type Draft, type KeepUi } from './ui/journal';
 import type { Bg, Chapter, Epic, EpicBy, Look, LookPart, Mark, Mood, Schedule, Settings, State } from './logic/types';
 import type { VolKey } from './logic/volume';
 import { display, sceneFor } from './logic/scene';
@@ -28,7 +29,7 @@ import { AMOUNT_MAX, defaultGuardian, epicProgress, epicsOfHabit, NAME_MAX, NOTE
 import { epicFormView, epicIdeasView, epicsView, listOf, type EpicUi } from './ui/epic';
 import { LADDER } from './bosses';
 
-type Tab = 'quest' | 'calendar' | 'hero' | 'edit' | 'form' | 'suggest' | 'stats' | 'settings' | 'epics' | 'epic-form' | 'epic-ideas';
+type Tab = 'quest' | 'calendar' | 'journal' | 'hero' | 'edit' | 'form' | 'suggest' | 'stats' | 'settings' | 'epics' | 'epic-form' | 'epic-ideas';
 const UNDER_QUEST: Tab[] = ['edit', 'form', 'suggest']; // screens reached from QUEST, which stays lit
 const UNDER_EPICS: Tab[] = ['epic-form', 'epic-ideas'];
 
@@ -48,6 +49,12 @@ let heroTab: HeroUi['view'] = 'wardrobe';
 let epicUi: EpicUi = { list: 'active' };
 let epicDraft: Epic | undefined; // the epic in the editor: a copy, so CANCEL changes nothing
 let epicAddQuest: string | undefined; // a quest idea the draft wants linked that you don't have yet
+let keepView: KeepUi['view'] = 'write';
+let keepReading: string | undefined; // page id open in the reader
+let keepArm: string | undefined; // page id waiting for a second DELETE tap
+let keepArmTimer: ReturnType<typeof setTimeout>;
+let keepFx: KeepUi['fx']; // seal stamp or page turn, played on the next render only
+let keepOpened = ''; // when the blank page was opened: its time stamp once you start writing
 configureAudio(state.settings);
 
 const today = () => dayKey(new Date(), state.settings.rolloverHour);
@@ -63,6 +70,7 @@ function render() {
   const views: Record<Tab, () => string> = {
     quest: () => questView(state, sc, hs, t, new Date(), { arming, lateTouched, timer, stopping }),
     calendar: () => calendarView(state, sc, t, { month: calMonth, day: calDay, mood: calMood, arming }),
+    journal: () => journalView(state, t, { view: keepView, draft: draftOr(t), reading: keepReading, arming: keepArm, fx: keepFx }),
     hero: () => heroView(state, sc, hs, { view: heroTab, slot: shopSlot, buying }),
     edit: () => editListView(state.habits),
     form: () => formView(state.habits.find((h) => h.id === editingId)),
@@ -75,12 +83,15 @@ function render() {
   };
   const restore = hold();
   app.innerHTML = `<main>${views[tab]()}</main>${nav((UNDER_QUEST.includes(tab) ? 'quest' : UNDER_EPICS.includes(tab) ? 'epics' : tab) as NavTab)}`;
+  keepFx = undefined; // a seal or page turn plays once
+  document.body.classList.toggle('keep-on', tab === 'journal');
   restore();
   applyScene();
 }
 
 // A redraw replaces every element. This puts back what it would otherwise drop: keyboard focus on the button you just
-// pressed (so a keyboard or screen reader isn't thrown to the top), and a journal line typed but not saved yet.
+// pressed (so a keyboard or screen reader isn't thrown to the top), and the caret in the Keep's page while you write
+// (its text is already in the draft, which the redraw reads back).
 function hold() {
   const a = document.activeElement;
   const attrs = a instanceof HTMLButtonElement && app.contains(a)
@@ -88,14 +99,15 @@ function hold() {
     : [];
   // Today's row has no data-day; without the :not, the same quest's "yesterday" row would match first.
   const pick = (skip?: string) => `button${attrs.filter(([k]) => k !== skip).map(([k, v]) => `[data-${k}="${CSS.escape(v ?? '')}"]`).join('')}${attrs.some(([k]) => k === 'day') ? '' : ':not([data-day])'}`;
-  const draftOf = (day: string) => `form[data-form="journal"][data-day="${day}"] input`;
-  const drafts = [...app.querySelectorAll<HTMLInputElement>('form[data-form="journal"] input')]
-    .filter((i) => i.value !== i.defaultValue)
-    .map((i) => [draftOf(i.form!.dataset.day!), i.value] as const);
+  const field = (a instanceof HTMLTextAreaElement || a instanceof HTMLInputElement) && a.id && app.contains(a)
+    ? { id: a.id, start: a.selectionStart, end: a.selectionEnd, top: a.scrollTop } : undefined;
   return () => {
-    for (const [sel, text] of drafts) {
-      const i = app.querySelector<HTMLInputElement>(sel);
-      if (i) i.value = text;
+    if (field) {
+      const f = document.getElementById(field.id) as HTMLTextAreaElement | HTMLInputElement | null;
+      f?.focus({ preventScroll: true });
+      if (f && field.start !== null) f.setSelectionRange(field.start, field.end);
+      if (f) f.scrollTop = field.top;
+      return;
     }
     if (!attrs.length) return;
     // A TINY button is gone once its quest is checked: fall back to the quest's main button.
@@ -131,6 +143,10 @@ addEventListener('resize', () => {
 
 function go(to: Tab) {
   if (to === 'calendar' && tab !== 'calendar') pickDay(today());
+  if (to === 'journal' && tab !== 'journal') {
+    keepView = 'write'; // the Keep always opens to a page dated now (or the unsealed one)
+    keepOpened = stamp(new Date());
+  }
   tab = to;
   render();
   scrollTo(0, 0);
@@ -425,7 +441,9 @@ function setMood(d: string, mood: Mood) {
   if (d > today()) return;
   const cur = state.journal[d];
   if (cur?.mood === mood) {
-    if (cur.text && !confirm('Delete this journal entry, line included?')) return;
+    // A day with pages in the Keep keeps its mood: clearing it would take the pages with it.
+    if (cur.entries?.length) return toast('This day has pages in the JOURNAL, so its mood stays. Pick another face to change it.');
+    if (cur.text && !confirm('Clear this day’s mood and its word?')) return;
     delete state.journal[d];
     commit();
     return sfx('undo');
@@ -434,20 +452,164 @@ function setMood(d: string, mood: Mood) {
   commit();
   sfx(`mood${mood}` as const);
   if (cur) return;
-  const face = app.querySelector(`[data-action="mood"][data-day="${d}"][data-mood="${mood}"]`);
+  const face = app.querySelector(`[data-action$="mood"][data-day="${d}"][data-mood="${mood}"]`);
   if (face) floatText(face, `+${JOURNAL_GOLD} G`, 'gold');
-  else toast(`Mood saved: +${JOURNAL_GOLD} G. Add a line in CALENDAR.`); // the Quest prompt hides once answered
+  else toast(`Mood saved: +${JOURNAL_GOLD} G. Write more in the JOURNAL.`); // the Quest prompt hides once answered
 }
 
-function saveJournal(form: HTMLFormElement) {
-  const e = state.journal[form.dataset.day ?? ''];
-  if (!e) return toast('Pick a mood first.');
-  const text = String(new FormData(form).get('text') ?? '').trim().slice(0, JOURNAL_MAX);
-  if (text) e.text = text;
-  else delete e.text;
+// The Keep. The unsealed page lives in its own key, per device: a reload, a sync or a new day never loses it.
+const DRAFT_KEY = 'habit-quest-keep-draft';
+const isDraft = (x: any): x is Draft =>
+  !!x && typeof x.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.day) && typeof x.at === 'string' && typeof x.text === 'string' &&
+  (x.word === undefined || typeof x.word === 'string') && (x.id === undefined || typeof x.id === 'string');
+function readDraft(): Draft | undefined {
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
+    return isDraft(d) ? d : undefined;
+  } catch {
+    return undefined;
+  }
+}
+function writeDraft(d?: Draft) {
+  if (d) localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+  else localStorage.removeItem(DRAFT_KEY);
+}
+// The page on the desk: the unsealed one, else a blank one dated when the Keep was opened.
+const draftOr = (t: string): Draft => readDraft() ?? { day: t, at: keepOpened || stamp(new Date()), text: '' };
+
+function typeKeep(el: HTMLInputElement | HTMLTextAreaElement) {
+  const d = draftOr(today());
+  if (el.dataset.keep === 'text') d.text = el.value.slice(0, ENTRY_MAX);
+  else d.word = el.value.slice(0, JOURNAL_MAX);
+  const blank = !d.text.trim() && d.word === undefined && !d.id;
+  writeDraft(blank ? undefined : d);
+}
+
+function keepMood(d: string, mood: Mood) {
+  if (d > today() || state.journal[d]?.mood === mood) return; // in the Keep a lit face stays lit
+  setMood(d, mood);
+}
+
+const setWord = (d: string, word: string | undefined) => {
+  const day = state.journal[d];
+  if (!day || word === undefined) return;
+  const w = word.trim().slice(0, JOURNAL_MAX);
+  if (w) day.text = w;
+  else delete day.text;
+};
+
+function sealKeep() {
+  const d = draftOr(today());
+  const cur = state.journal[d.day];
+  if (d.id) {
+    // Editing: the text changes, the time it was written stays.
+    if (!cur?.entries?.some((e) => e.id === d.id)) {
+      writeDraft(undefined);
+      keepView = 'archive';
+      return render();
+    }
+    state.journal[d.day] = d.text.trim() ? editEntry(cur, d.id, d.text) : cur;
+    setWord(d.day, d.word);
+    writeDraft(undefined);
+    keepReading = d.id;
+    keepView = 'read';
+    keepFx = 'next';
+    commit();
+    sfx('tiny');
+    return toast('Resealed. Its time stays as written.');
+  }
+  if (!d.text.trim()) {
+    if (d.word !== undefined && cur) {
+      setWord(d.day, d.word);
+      writeDraft(undefined);
+      commit();
+      sfx('tiny');
+      return toast('The day’s word is kept.');
+    }
+    return toast('The page is blank. Write a few words first.');
+  }
+  const res = sealEntry(cur, { id: newId(), at: d.at, text: d.text });
+  if ('error' in res) {
+    sfx('undo');
+    if (res.error === 'mood') {
+      app.querySelector('.kmoods')?.classList.add('shake');
+      return toast('Pick a mood on the left page first; it seals the day.');
+    }
+    return toast(res.error === 'full' ? `This day already holds ${ENTRIES_MAX} entries.` : 'The page is blank.');
+  }
+  state.journal[d.day] = res.day;
+  setWord(d.day, d.word);
+  writeDraft(undefined);
+  keepOpened = stamp(new Date());
+  keepFx = 'seal';
   commit();
   sfx('tiny');
-  toast('Journal saved.');
+  toast(`Sealed at ${clockOf(d.at)}. Read it back in the ARCHIVE.`);
+}
+
+function readPage(id: string, fx?: KeepUi['fx']) {
+  keepReading = id;
+  keepView = 'read';
+  keepArm = undefined;
+  keepFx = fx;
+  render();
+  app.querySelector('.page.r')?.scrollTo(0, 0);
+}
+
+function turnPage(dir: number) {
+  const ps = pages(state.journal, today());
+  const i = ps.findIndex((p) => pageId(p) === keepReading);
+  const next = ps[i + dir];
+  if (!next) return;
+  sfx('tap');
+  readPage(pageId(next), dir > 0 ? 'next' : 'prev');
+}
+
+// EDIT puts the entry (or a word-only day's word) back on the desk. An unsealed new page is set aside only if you say so.
+function editPage(id: string) {
+  const p = pages(state.journal, today()).find((x) => pageId(x) === id);
+  if (!p) return;
+  const open = readDraft();
+  if (open && !open.id && open.text.trim() && !confirm('You have an unsealed page. Set it aside (it will be lost) and edit this one?')) return;
+  writeDraft(p.entry ? { day: p.day, at: p.entry.at, text: p.entry.text, id: p.entry.id } : { day: p.day, at: keepOpened || stamp(new Date()), text: '', word: p.word ?? '' });
+  keepView = 'write';
+  render();
+  document.getElementById(p.entry ? 'keep-text' : 'keep-word')?.focus();
+}
+
+function cancelEdit() {
+  writeDraft(undefined);
+  keepOpened = stamp(new Date());
+  keepView = 'read';
+  render();
+}
+
+// Two taps, like undoing a check. The mood stays, so the day's gold is never taken back.
+function deletePage(id: string) {
+  clearTimeout(keepArmTimer);
+  if (keepArm !== id) {
+    keepArm = id;
+    keepArmTimer = setTimeout(() => {
+      keepArm = undefined;
+      if (tab === 'journal') render();
+    }, 3000);
+    return render();
+  }
+  keepArm = undefined;
+  const ps = pages(state.journal, today());
+  const i = ps.findIndex((x) => pageId(x) === id);
+  const p = ps[i];
+  if (!p) return render();
+  const day = state.journal[p.day];
+  if (p.entry) state.journal[p.day] = dropEntry(day, p.entry.id);
+  else delete day.text;
+  const after = pages(state.journal, today());
+  const next = after[Math.min(i, after.length - 1)];
+  keepReading = next && pageId(next);
+  if (!next) keepView = 'archive';
+  commit();
+  sfx('undo');
+  toast('Page torn out.');
 }
 
 // Focus timer: one at a time, in its own key so a reload or a locked phone can't lose it.
@@ -587,15 +749,6 @@ function newGame() {
 function pickDay(d: string) {
   calDay = d;
   calMonth = d.slice(0, 7);
-}
-
-function plan(form: HTMLFormElement) {
-  const name = String(new FormData(form).get('name') ?? '').trim();
-  const day = form.dataset.day ?? '';
-  if (!name || day < today()) return;
-  state.habits.push({ id: newId(), name, icon: 'star', schedule: { kind: 'once', day }, created: today() });
-  commit();
-  sfx('tiny');
 }
 
 function rename(id: string) {
@@ -858,7 +1011,7 @@ async function importFile(input: HTMLInputElement) {
 // Quiet clicks for taps that only move around; the ones that change your save have their own sounds.
 const TAPS = new Set(['cal-month', 'cal-day', 'cal-view', 'slot', 'hero-view', 'epic-list', 'epic-open', 'epic-new', 'epic-edit', 'epic-idea',
   'new', 'edit-habit', 'sugg-show', 'sugg-back', 'sugg-toggle', 'goal', 'budget', 'bg', 'bg-strength', 'preset', 'look', 'look-random',
-  'focus-stop', 'focus-keep', 'badge', 'suggest', 'move']);
+  'focus-stop', 'focus-keep', 'badge', 'suggest', 'move', 'keep-archive', 'keep-write', 'keep-read', 'keep-edit', 'keep-cancel', 'open-journal']);
 
 app.addEventListener('click', (e) => {
   unlock();
@@ -878,6 +1031,27 @@ app.addEventListener('click', (e) => {
     case 'cal-month': calMonth = addMonths(calMonth, Number(el.dataset.dir)); return render();
     case 'cal-day': pickDay(el.dataset.day!); return render();
     case 'cal-view': calMood = !!el.dataset.mood; return render();
+    case 'keep-mood': return keepMood(el.dataset.day!, Number(el.dataset.mood) as Mood);
+    case 'keep-seal': return sealKeep();
+    case 'keep-archive': keepView = 'archive'; keepArm = undefined; render(); return app.querySelector('.page.r')?.scrollTo(0, 0);
+    case 'keep-write':
+      keepView = 'write';
+      if (!readDraft()) keepOpened = stamp(new Date());
+      render();
+      return document.getElementById('keep-text')?.focus();
+    case 'keep-read': return readPage(el.dataset.page!);
+    case 'keep-turn': return turnPage(Number(el.dataset.dir));
+    case 'keep-edit': return editPage(el.dataset.page!);
+    case 'keep-cancel': return cancelEdit();
+    case 'keep-delete': return deletePage(el.dataset.page!);
+    case 'open-journal': {
+      // From QUEST or a CALENDAR day: that day's newest page if it has one, else a fresh page.
+      const d = el.dataset.day;
+      const p = d ? pages(state.journal, today()).find((x) => x.day === d) : undefined;
+      go('journal');
+      if (p) return readPage(pageId(p));
+      return document.getElementById('keep-text')?.focus();
+    }
     case 'mood': return setMood(el.dataset.day!, Number(el.dataset.mood) as Mood);
     case 'focus-start': return startFocus(id);
     case 'focus-stop': stopping = true; return render();
@@ -929,9 +1103,14 @@ app.addEventListener('click', (e) => {
   }
 });
 
-// PC shortcuts: 1-9 toggles quest N in your order, Shift+1-9 its tiny version, Q/C/G/H/S/E switch screens.
+// PC shortcuts: 1-9 toggles quest N in your order, Shift+1-9 its tiny version, Q/C/G/J/H/S/E switch screens,
+// and the arrow keys turn pages in the Keep.
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || (e.target as Element).closest('input, select, textarea')) return;
+  if (tab === 'journal' && keepView === 'read' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    e.preventDefault();
+    return turnPage(e.key === 'ArrowLeft' ? -1 : 1);
+  }
   const n = /^Digit([1-9])$/.exec(e.code)?.[1];
   if (n && tab === 'quest') {
     const h = state.habits.filter((x) => isActive(x, today()))[Number(n) - 1];
@@ -940,16 +1119,14 @@ document.addEventListener('keydown', (e) => {
     unlock();
     return mark(h.id, e.shiftKey && h.tiny ? 'tiny' : 'full');
   }
-  const to = ({ KeyQ: 'quest', KeyC: 'calendar', KeyG: 'epics', KeyH: 'hero', KeyS: 'stats', KeyE: 'edit' } as Record<string, Tab>)[e.code];
+  const to = ({ KeyQ: 'quest', KeyC: 'calendar', KeyG: 'epics', KeyJ: 'journal', KeyH: 'hero', KeyS: 'stats', KeyE: 'edit' } as Record<string, Tab>)[e.code];
   if (to && !e.shiftKey) go(to);
 });
 
 app.addEventListener('submit', (e) => {
   e.preventDefault();
   const form = e.target as HTMLFormElement;
-  if (form.dataset.form === 'plan') plan(form);
-  else if (form.dataset.form === 'journal') saveJournal(form);
-  else if (form.dataset.form === 'intent') matchIntent(form);
+  if (form.dataset.form === 'intent') matchIntent(form);
   else if (form.dataset.form === 'epic') saveEpic(form);
   else if (form.dataset.form === 'epic-log') logEpic(form);
   else if (form.dataset.form === 'sync') void connectSync(form);
@@ -972,6 +1149,7 @@ function slideVolume(t: HTMLInputElement) {
 app.addEventListener('input', (e) => {
   const t = e.target as HTMLInputElement;
   if (t.type === 'range' && t.dataset.setting) slideVolume(t);
+  if (t.dataset.keep) typeKeep(t);
 });
 
 app.addEventListener('change', (e) => {

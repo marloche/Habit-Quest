@@ -41,7 +41,12 @@ export type Wardrobe = {
 };
 
 export type Mood = 1 | 2 | 3 | 4 | 5; // awful, low, ok, good, great
-export type Journal = Record<string, { mood: Mood; text?: string }>; // day key -> entry
+// One writing session in the Keep. at: local time it was begun, 'YYYY-MM-DDTHH:MM'; it never changes on edit.
+export type Entry = { id: string; at: string; text: string };
+// Per day: the mood (needed before anything is written), the day in a word, and the entries. Saves from before
+// the Keep have no entries; older apps ignore the field, so no version bump.
+export type JournalDay = { mood: Mood; text?: string; entries?: Entry[] };
+export type Journal = Record<string, JournalDay>; // day key -> the day's page
 
 export type Focus = Record<string, number>; // day key -> minutes focused
 

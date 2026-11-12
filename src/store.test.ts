@@ -117,6 +117,18 @@ describe('parseState', () => {
     expect(() => parseState(j({ today: { mood: 3 } }))).toThrow();
     expect(() => parseState(j({ '2026-11-01': { mood: 3, text: 'x'.repeat(141) } }))).toThrow();
   });
+  it('keeps Keep entries and rejects broken ones', () => {
+    const e = (n: number) => ({ id: `e${n}`, at: '2026-11-01T21:05', text: 'By candlelight.' });
+    const j = (entries: unknown) => JSON.stringify({ ...good, journal: { '2026-11-01': { mood: 4, entries } } });
+    expect(parseState(j([e(1), e(2)])).journal['2026-11-01'].entries).toHaveLength(2);
+    expect(() => parseState(j(Array.from({ length: 100 }, (_, i) => e(i))))).not.toThrow(); // two devices' worth, merged
+    expect(() => parseState(j(Array.from({ length: 101 }, (_, i) => e(i))))).toThrow();
+    expect(() => parseState(j([e(1), e(1)]))).toThrow(); // ids must be unique
+    expect(() => parseState(j([{ ...e(1), at: '2026-11-01 21:05' }]))).toThrow();
+    expect(() => parseState(j([{ ...e(1), text: 'x'.repeat(10_001) }]))).toThrow();
+    expect(() => parseState(j([{ ...e(1), id: 'bad id!' }]))).toThrow();
+    expect(() => parseState(j('lots'))).toThrow();
+  });
   it('rejects a broken wardrobe', () => {
     const w = (wardrobe: object) => JSON.stringify({ ...good, wardrobe: { ...good.wardrobe, ...wardrobe } });
     expect(() => parseState(JSON.stringify({ ...good, wardrobe: undefined }))).toThrow();

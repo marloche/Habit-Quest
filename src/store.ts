@@ -1,7 +1,7 @@
 import { daysBetween } from './logic/day';
 import { emptyWardrobe, SLOTS } from './logic/items';
 import { FOCUS_MAX } from './logic/focus';
-import { JOURNAL_MAX } from './logic/journal';
+import { ENTRIES_MAX, ENTRY_MAX, JOURNAL_MAX, STAMP } from './logic/journal';
 import { CORE, PARTS, validName } from './logic/look';
 import { BGS } from './logic/scene';
 import { AMOUNT_MAX, CHAPTERS_MAX, EPIC_COLORS, GUARDIANS, NAME_MAX, NOTE_MAX, UNIT_MAX, WHY_MAX } from './logic/epic';
@@ -47,8 +47,15 @@ const validWardrobe = (w: any) =>
   entriesOk(w.worn, (k, v) => (SLOTS as string[]).includes(k) && isId(v)) &&
   entriesOk(w.opened, (k, v) => isId(k) && isRecord(v) && isDay(v.day) && optional(v.gold, (g) => isInt(g, 0, 1e6)) && optional(v.item, isId));
 
+const validEntry = (e: any) => isRecord(e) && isId(e.id) && typeof e.at === 'string' && STAMP.test(e.at) && typeof e.text === 'string' && e.text.length <= ENTRY_MAX;
+// Ids must be unique within a day: sync merges entries by id. Each device seals at most ENTRIES_MAX a day,
+// so two devices merged can hold twice that; a save that merged must still load.
+const validEntries = (es: unknown) =>
+  Array.isArray(es) && es.length <= 2 * ENTRIES_MAX &&es.every(validEntry) && new Set(es.map((e) => e.id)).size === es.length;
+
 const validJournal = (j: unknown) =>
-  entriesOk(j, (k, v) => isDay(k) && isRecord(v) && isInt(v.mood, 1, 5) && optional(v.text, (t) => typeof t === 'string' && t.length <= JOURNAL_MAX));
+  entriesOk(j, (k, v) => isDay(k) && isRecord(v) && isInt(v.mood, 1, 5) && optional(v.text, (t) => typeof t === 'string' && t.length <= JOURNAL_MAX) &&
+    optional(v.entries, validEntries));
 
 const validHabit = (h: any) =>
   /^[\w-]{1,40}$/.test(h?.id) && typeof h.name === 'string' && typeof h.icon === 'string' && isDay(h.created) &&

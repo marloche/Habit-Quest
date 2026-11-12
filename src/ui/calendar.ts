@@ -1,6 +1,6 @@
 import { dayLabel, monthDays, monthLabel } from '../logic/day';
 import { daySummary, isActive, isDue, isPlanned, type Score } from '../logic/score';
-import { JOURNAL_MAX, MOODS } from '../logic/journal';
+import { MOODS } from '../logic/journal';
 import type { Habit, State } from '../logic/types';
 import { icon, moodFace } from '../sprites';
 import { ARROW, esc } from './html';
@@ -40,22 +40,19 @@ function dayPanel(state: State, sc: Score, today: string, ui: CalUi) {
       `<li class="late-row"><span class="q-icon">${icon(h.icon, 24)}</span><span class="q-name">${esc(h.name)} <span class="muted">*</span></span>${planButtons(state, h, d)}</li>`);
     body = `<p class="cal-sum muted">Due: ${due.join(', ') || 'nothing'}</p>${plans.length ? `<ul class="late-list">${plans.join('')}</ul>` : ''}`;
   }
+  // The mood stays settable here (a forgotten day can still get one); the writing lives in the JOURNAL tab.
   const entry = state.journal[d];
+  const n = entry ? (entry.entries?.length ?? 0) : 0;
+  const open = n || d === today
+    ? `<button class="btn small" data-action="open-journal" data-day="${d}">${n ? `OPEN IN JOURNAL (${n})` : 'WRITE IN JOURNAL'}</button>` : '';
   const journal = d > today ? '' : `
-    <p class="cal-sum j-head">JOURNAL${entry ? '' : ' <span class="muted">- pick a mood first</span>'}</p>
+    <p class="cal-sum j-head">JOURNAL${entry ? '' : ' <span class="muted">- no mood yet</span>'}</p>
     ${moodRow(state, d)}
-    <form class="plan-form" data-form="journal" data-day="${d}">
-      <input name="text" maxlength="${JOURNAL_MAX}" value="${esc(entry?.text ?? '')}" placeholder="One line about the day" aria-label="Journal line for ${dayLabel(d)}">
-      <button class="btn small" type="submit">SAVE</button>
-    </form>`;
-  const form = d < today ? '' : `
-    <form class="plan-form" data-form="plan" data-day="${d}">
-      <input name="name" required maxlength="40" placeholder="e.g. Dentist 3pm" aria-label="Plan a quest for ${dayLabel(d)}">
-      <button class="btn small" type="submit">PLAN</button>
-    </form>`;
+    ${entry?.text ? `<p class="cal-sum j-word">“${esc(entry.text)}”</p>` : ''}
+    ${open ? `<div class="j-open">${open}</div>` : ''}`;
   return `<section class="cal-panel" aria-live="polite">
       <h3>${dayLabel(d)}${d === today ? ' <span class="muted">(TODAY)</span>' : ''}</h3>
-      ${body}${journal}${form}
+      ${body}${journal}
     </section>`;
 }
 

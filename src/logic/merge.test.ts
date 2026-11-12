@@ -34,6 +34,32 @@ describe('sync merge', () => {
     expect(merge(base, pc, phone, true).journal['2026-11-01'].mood).toBe(5);
     expect(merge(base, pc, phone, false).journal['2026-11-01'].mood).toBe(1);
   });
+  it('keeps Keep entries written the same day on both devices, and edits and deletes from either', () => {
+    const e = (id: string, text = id) => ({ id, at: '2026-11-01T20:00', text });
+    const both = structuredClone(base);
+    both.journal['2026-11-01'] = { mood: 3, entries: [e('x'), e('y')] };
+    const from = (f: (s: Shared) => void) => {
+      const s = structuredClone(both);
+      f(s);
+      return s;
+    };
+    const pc = from((s) => s.journal['2026-11-01'].entries!.push(e('pc')));
+    const phone = from((s) => {
+      const d = s.journal['2026-11-01'];
+      d.mood = 5;
+      d.entries = [e('x', 'x, rewritten'), e('phone')]; // edited x, deleted y, wrote a new one
+    });
+    const day = merge(both, pc, phone, true).journal['2026-11-01'];
+    expect(day.mood).toBe(5);
+    expect(day.entries!.map((x) => [x.id, x.text])).toEqual([['x', 'x, rewritten'], ['pc', 'pc'], ['phone', 'phone']]);
+    // first sync, no base: the two days are joined
+    const one = { ...both, journal: { '2026-11-02': { mood: 2 as const, entries: [e('a')] } } };
+    const two = { ...both, journal: { '2026-11-02': { mood: 4 as const, entries: [e('b')] } } };
+    expect(merge(undefined, one, two, false).journal['2026-11-02']).toEqual({ mood: 4, entries: [e('a'), e('b')] });
+    // a day deleted on one side and untouched on the other is gone
+    const gone = from((s) => delete s.journal['2026-11-01']);
+    expect(merge(both, gone, both, true).journal['2026-11-01']).toBeUndefined();
+  });
   it('adds up focus minutes from both devices', () => {
     const pc = edit((s) => (s.focus['2026-11-01'] = 30));
     const phone = edit((s) => (s.focus['2026-11-01'] = 35));

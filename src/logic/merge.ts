@@ -1,4 +1,4 @@
-import type { State } from './types';
+import type { JournalDay, State } from './types';
 
 // Sync between devices. The part both devices share: progress, plus the new-day hour (it decides which day a check
 // counts for). Sound, display, screen-on and backup date stay per device.
@@ -73,12 +73,21 @@ export function merge(base: Shared | undefined, local: Shared, remote: Shared, l
   });
   const w = (k: keyof Shared['wardrobe']) => mergeMap(b.wardrobe[k], local.wardrobe[k], remote.wardrobe[k], p);
   const look = p(b.look, local.look, remote.look);
+  // A day kept on both sides: mood and word merge as one, entries one by one, so a day written on the phone and
+  // the PC keeps both. A day deleted on one side and untouched on the other goes; changed on the other, it stays.
+  const journal = mergeMap<JournalDay>(b.journal, local.journal, remote.journal, (bd, ld, rd) => {
+    if (!ld || !rd) return p(bd, ld, rd);
+    const head = ({ entries: _, ...rest }: JournalDay) => rest;
+    const day = p(bd && head(bd), head(ld), head(rd))!;
+    const entries = mergeList(bd?.entries ?? [], ld.entries ?? [], rd.entries ?? [], localLater);
+    return entries.length ? { ...day, entries } : day;
+  });
   // shortcut: an epic edited on both devices between syncs keeps only the later edit (amounts logged on the other are lost); merge its logs if that bites.
   return {
     habits: mergeList(b.habits, local.habits, remote.habits, localLater),
     log: log as Shared['log'],
     wardrobe: { owned: w('owned'), worn: w('worn'), opened: w('opened') } as Shared['wardrobe'],
-    journal: mergeMap(b.journal, local.journal, remote.journal, p) as Shared['journal'],
+    journal,
     focus,
     epics: mergeList(b.epics, local.epics, remote.epics, localLater),
     ...(look ? { look } : {}),

@@ -3,7 +3,7 @@
   src: url('/fonts/PressStart2P.ttf') format('truetype');
   font-display: block;
 }
-/* Trophy names only; not preloaded, so it costs nothing until a trophy is on screen. */
+/* Trophy names and the Keep; not preloaded, so it costs nothing until one is on screen. */
 @font-face {
   font-family: 'Jacquarda Bastarda 9';
   src: url('/fonts/JacquardaBastarda9.ttf') format('truetype');
@@ -262,6 +262,9 @@ form:has(option[value='weekly']:checked) .times { display: grid; }
 .mood.on { opacity: 1; box-shadow: inset 0 0 0 3px var(--gold); }
 .mood:active { transform: translateY(2px); }
 .mood-ask p { margin: 0 4px; }
+.mood-write { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.j-word { font-family: Georgia, serif; font-style: italic; font-size: 13px; overflow-wrap: anywhere; }
+.j-open { margin: 8px 4px 0; }
 .mood-strip { display: grid; grid-template-columns: repeat(30, 1fr); gap: 2px; margin-bottom: 8px; }
 .mood-strip i { aspect-ratio: 1 / 2; background: var(--panel); }
 .mood-strip .m1 { background: #b13e53; } .mood-strip .m2 { background: #ef7d57; } .mood-strip .m3 { background: #ffcd75; }
@@ -628,3 +631,142 @@ button.ch-box { width: 44px; height: 44px; cursor: pointer; }
 /* Hair and face pickers: wide enough that names like MUSTACHE and DETERMINED never break mid-word. */
 .styles.heads { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
 .styles.heads .item-name { overflow-wrap: normal; }
+
+/* The Keep (JOURNAL tab): a dusty oak library lit by one candle, an antique book open on the reading desk.
+   Fixed over the whole screen above the nav; everything in it is scoped under .keep. */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.keep {
+  --ink: #2e1a0e; --ink2: #5a3a1e; --brass: #d9a441; --brass-hi: #f2d38a;
+  position: fixed; inset: 0 0 calc(60px + env(safe-area-inset-bottom)) 0; display: grid; grid-template-rows: clamp(108px, 22vh, 210px) 1fr;
+  background: #1a110a; color: var(--ink); overflow: hidden;
+}
+body.scened .keep :is(h3, p, label, .empty) { text-shadow: none; }
+.keep .lib { position: relative; background-size: auto 100%; background-repeat: repeat-x; background-position: center top; image-rendering: pixelated; }
+.keep .haze { position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 60% 120% at 22% 100%, rgba(255,180,90,.34), rgba(255,140,60,.1) 55%, transparent 75%),
+              linear-gradient(rgba(20,12,6,.6), rgba(20,12,6,.15) 60%, rgba(20,12,6,.45));
+  animation: k-breathe 2.6s steps(3) infinite; }
+@keyframes k-breathe { 50% { opacity: .8; } }
+.keep .dust { position: absolute; inset: 0; pointer-events: none; }
+.keep .dust i { position: absolute; width: 2px; height: 2px; background: rgba(255,226,170,.75); animation: k-mote 9s linear infinite; opacity: 0; }
+@keyframes k-mote { from { transform: translate(0, 0); opacity: 0; } 20% { opacity: .9; } to { transform: translate(26px, -110px); opacity: 0; } }
+.keep .web { position: absolute; right: 0; top: 0; opacity: .5; }
+.keep .plaque { position: absolute; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top) + 10px); z-index: 4; padding: 6px 12px 5px; white-space: nowrap;
+  background: linear-gradient(#5a3a1e, #3a2412); border: 2px solid #1a0f07; box-shadow: inset 0 0 0 2px var(--brass), 0 3px 0 #0c0704; text-align: center; }
+.keep .plaque b { display: block; font-family: 'Jacquarda Bastarda 9', serif; font-weight: normal; font-size: 22px; color: var(--brass-hi); text-shadow: 1px 1px 0 #000; line-height: 1; }
+.keep .plaque small { display: block; font-size: 6px; color: #e8cf9a; margin-top: 4px; letter-spacing: 1px; }
+
+.keep .desk { position: relative; display: flex; flex-direction: column; align-items: center; min-height: 0; padding: 24px 12px 6px;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 9px), linear-gradient(#6b4226, #4a2c18 40%, #2e1a0e); border-top: 4px solid #8a5a36; }
+.keep .desk::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 70% 50% at 20% 0, rgba(255,170,80,.2), transparent 70%); animation: k-breathe 2.6s steps(3) infinite; }
+.keep .props { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(100%, 600px); height: 0; z-index: 3; pointer-events: none; }
+.keep .props > div { position: absolute; bottom: -14px; }
+.keep .props svg { display: block; }
+.keep .candle { left: 14px; }
+.keep .flame { margin-left: 13px; transform-origin: bottom center; animation: k-flick .45s steps(2) infinite; }
+@keyframes k-flick { 50% { transform: scaleX(.78) scaleY(1.14); } }
+.keep .ink { left: 66px; }
+.keep .glass { right: 20px; }
+
+/* The book: worn leather with a gilt inset border, brass corners and clasp, page stacks at the foot. */
+.keep .book { --lw: clamp(92px, 27%, 150px); position: relative; flex: 1; min-height: 0; width: calc(100% - 20px); max-width: 580px; margin: 12px 10px 18px; z-index: 2; }
+.keep .cover { position: absolute; inset: -10px -8px -14px -8px;
+  background: radial-gradient(ellipse at 30% 20%, #7a3e22, #4e2312 60%, #2e1309), #4e2312;
+  border: 3px solid #1a0b05; box-shadow: inset 0 0 0 3px #3a1a0c, inset 0 0 0 4px rgba(217,164,65,.55), 0 8px 0 #0e0703, 0 10px 18px rgba(0,0,0,.6); }
+.keep .corner { position: absolute; z-index: 1; line-height: 0; }
+.keep .corner.tl { left: -8px; top: -10px; } .keep .corner.tr { right: -8px; top: -10px; }
+.keep .corner.bl { left: -8px; bottom: -14px; } .keep .corner.br { right: -8px; bottom: -14px; }
+.keep .clasp { position: absolute; right: -14px; top: 44%; width: 16px; height: 32px; z-index: 1;
+  background: linear-gradient(90deg, #8a6a28, #d9a441 40%, #6e5020); border: 2px solid #2a1a08; box-shadow: inset 0 0 0 2px rgba(255,240,180,.25); }
+.keep .stack { position: absolute; bottom: -9px; height: 8px; width: 46%; background: repeating-linear-gradient(0deg, #e2cfa0 0 1px, #b39361 1px 2px); }
+.keep .stack.l { left: 4px; transform: skewX(20deg); } .keep .stack.r { right: 4px; transform: skewX(-20deg); }
+.keep .spread { position: absolute; inset: 0; display: flex; }
+
+/* Aged paper: tint, darker edges, foxing spots, a faint fibre grain; the deckle edge comes from clip-path. */
+.keep .paper { position: relative; color: var(--ink);
+  background:
+    radial-gradient(circle at 78% 82%, rgba(140,90,40,.2) 0 14px, transparent 30px),
+    radial-gradient(circle at 18% 64%, rgba(150,100,45,.14) 0 6px, transparent 14px),
+    radial-gradient(circle at 60% 14%, rgba(150,100,45,.12) 0 4px, transparent 10px),
+    radial-gradient(ellipse at 50% 45%, #efdfb5, #e2c993 62%, #c9a76a 100%);
+  box-shadow: inset 0 0 22px rgba(110,70,25,.55), inset 0 0 4px rgba(80,45,15,.6); }
+.keep .paper::before { content: ''; position: absolute; inset: 0; opacity: .5; mix-blend-mode: multiply; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .32 0 0 0 0 .16 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.keep .page { min-height: 0; }
+.keep .page.l { flex: none; width: var(--lw); padding: 12px 8px 10px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; overflow: hidden; }
+.keep .page.r { flex: 1; min-width: 0; padding: 12px 12px 10px 18px; display: flex; flex-direction: column; }
+.keep .page.r.scroll { overflow-y: auto; overscroll-behavior: contain; }
+.keep .gutter { position: absolute; top: 0; bottom: 0; width: 18px; pointer-events: none; }
+.keep .page.l .gutter { right: 0; background: linear-gradient(90deg, transparent, rgba(70,40,15,.45)); }
+.keep .page.r .gutter { left: 0; background: linear-gradient(90deg, rgba(70,40,15,.55), transparent); }
+.keep .ribbon { position: absolute; left: calc(var(--lw) - 5px); top: -14px; width: 9px; height: calc(100% + 40px); z-index: 2; pointer-events: none;
+  background: linear-gradient(90deg, #6e1a22, #9a2a32 50%, #6e1a22); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 94%, 0 100%); }
+
+.keep .kdate { font-size: 20px; line-height: 1; text-align: center; }
+.keep .kdate small { display: block; font-family: 'Jacquarda Bastarda 9', serif; font-size: 15px; margin-top: 4px; color: var(--ink2); }
+.keep .ktime { font-size: 7px; letter-spacing: 1px; color: var(--ink2); text-align: center; line-height: 1.6; }
+.keep .flour { font-family: 'Jacquarda Bastarda 9', serif; font-size: 16px; color: rgba(90,58,30,.6); line-height: .6; }
+.keep .khint { font-size: 6px; color: #7a1f22; text-align: center; line-height: 1.6; }
+.keep .kmoods { display: grid; gap: 2px; }
+.keep .kmood { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: none; opacity: .6; filter: sepia(.8); }
+.keep button.kmood { cursor: pointer; }
+.keep .kmood.on { opacity: 1; filter: none; box-shadow: 0 0 0 2px var(--ink2), 0 0 0 4px rgba(217,164,65,.6); }
+.keep .kmoods:not(.picked) .kmood { opacity: .85; }
+.keep .kmood:focus-visible { outline: 2px dashed var(--ink2); outline-offset: 1px; }
+
+.keep .kword { display: block; flex: none; font-family: 'Jacquarda Bastarda 9', serif; font-size: 22px; color: #3a2010; border-bottom: 1px solid rgba(90,58,30,.45); margin-bottom: 8px; overflow-wrap: anywhere; }
+.keep .kword small { font-family: 'Press Start 2P', monospace; font-size: 6px; display: block; color: #7a5a3a; margin-bottom: 2px; }
+.keep .kword input { width: 100%; padding: 0; border: 0; background: none; box-shadow: none; font: inherit; color: inherit; }
+.keep .kword input::placeholder, .keep textarea::placeholder { color: rgba(90,58,30,.5); }
+.keep .kword input:focus-visible { outline: 2px dashed rgba(90,58,30,.6); outline-offset: 2px; }
+.keep .lines { flex: 1; min-height: 0; width: 100%; margin: 0; padding: 0; border: 0; resize: none; box-shadow: none; outline: none;
+  font-family: Georgia, 'Times New Roman', serif; font-size: 15px; line-height: 22px; font-style: italic; color: #2a170b; caret-color: var(--ink);
+  background: repeating-linear-gradient(transparent 0 21px, rgba(90,58,30,.22) 21px 22px); background-attachment: local; text-shadow: 0 0 .6px rgba(42,23,11,.6); }
+.keep .lines.read { flex: none; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 100%; }
+.keep .lines.read:focus-visible { outline: 2px dashed rgba(90,58,30,.6); outline-offset: 2px; }
+.keep .lines.illum::first-letter { float: left; font-family: 'Jacquarda Bastarda 9', serif; font-style: normal; font-size: 46px; line-height: 40px; color: #7a1f22; margin: 2px 5px 0 0; text-shadow: 1px 1px 0 rgba(217,164,65,.6); }
+.keep .muted-ink { color: #7a5a3a; }
+.keep .quill { position: absolute; right: 8px; bottom: 6px; z-index: 3; pointer-events: none; opacity: .9; transform-origin: bottom left; }
+.keep .page.r:focus-within .quill { animation: k-write .6s steps(2) infinite; }
+@keyframes k-write { 50% { transform: translate(-3px, 2px) rotate(-3deg); } }
+
+/* Archive: month headings in red blackletter, one row per page. */
+.keep .kmonth { margin: 2px 0; font-family: 'Jacquarda Bastarda 9', serif; font-weight: normal; font-size: 22px; color: #7a1f22; }
+.keep .kentries { list-style: none; margin: 0 0 6px; padding: 0; }
+.keep .kentry { display: flex; gap: 6px; align-items: flex-start; width: 100%; min-height: 44px; padding: 6px 0; border: 0; border-bottom: 1px solid rgba(90,58,30,.25);
+  background: none; color: var(--ink2); font: inherit; font-size: 6px; line-height: 1.6; text-align: left; cursor: pointer; }
+.keep .kentry:hover, .keep .kentry:focus-visible { background: rgba(217,164,65,.18); outline: none; }
+.keep .kentry .kd { font-size: 10px; min-width: 22px; text-align: right; line-height: 1.2; color: var(--ink); }
+.keep .kentry .kt { flex: 1; min-width: 0; }
+.keep .kentry em { display: block; font-family: Georgia, serif; font-size: 12px; line-height: 1.35; color: #2a170b; overflow-wrap: anywhere; }
+.keep .kentry svg { flex: none; margin-top: 2px; filter: sepia(.5); }
+.keep .kempty { margin: 24px 0; font-family: Georgia, serif; font-style: italic; font-size: 14px; line-height: 1.5; text-align: center; color: var(--ink2); }
+
+/* Controls: brass plates and a red wax seal, on the desk under the book. */
+.keep .keep-ctl { position: relative; z-index: 4; display: flex; gap: 6px; justify-content: center; align-items: center; flex: none; width: 100%; max-width: 580px; min-height: 48px; }
+.keep .brass { min-width: 44px; min-height: 40px; padding: 0 10px; font: inherit; font-size: 7px; color: #2a1a08; cursor: pointer;
+  background: linear-gradient(#f2d38a, #d9a441 50%, #a77a28); border: 2px solid #2a1a08; box-shadow: inset 0 0 0 1px rgba(255,248,210,.6), 0 3px 0 #2a1a08; }
+.keep .brass:active { transform: translateY(2px); box-shadow: inset 0 0 0 1px rgba(255,248,210,.6), 0 1px 0 #2a1a08; }
+.keep .brass:disabled { opacity: .4; cursor: default; transform: none; }
+.keep .brass[data-armed] { background: linear-gradient(#e98a8a, #b13e53 50%, #7a1f22); color: #fff3e0; }
+.keep .seal { position: absolute; right: 6px; bottom: 6px; width: 58px; height: 58px; border: 0; border-radius: 50%; cursor: pointer; padding: 0;
+  background: radial-gradient(circle at 38% 32%, #c8424a, #8e1e26 55%, #5e1016); box-shadow: 0 0 0 3px #6e141b, 0 0 0 5px rgba(0,0,0,.4), 0 4px 0 #3a0a0e;
+  display: grid; place-items: center; font-family: 'Jacquarda Bastarda 9', serif; font-size: 30px; color: #e98a8a; text-shadow: -1px -1px 0 #5e1016, 1px 1px 0 #f2b0b0; }
+.keep .seal small { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); font-family: 'Press Start 2P', monospace; font-size: 6px; color: #ffe0c0; text-shadow: 1px 1px 0 #000; }
+.keep .seal:active { transform: translateY(3px) scale(.96); box-shadow: 0 0 0 3px #6e141b, 0 0 0 5px rgba(0,0,0,.4), 0 1px 0 #3a0a0e; }
+.keep :is(.brass, .seal):focus-visible { outline: 3px solid var(--brass-hi); outline-offset: 3px; }
+
+/* The seal stamps the page, then it turns; reading turns pages too. */
+.keep .turn { position: absolute; inset: 0; z-index: 3; transform-origin: left; pointer-events: none; animation: k-turn .7s steps(6) forwards; }
+.keep .turn.prev { transform-origin: right; }
+@keyframes k-turn { from { transform: scaleX(1); opacity: 1; } to { transform: scaleX(0); opacity: .6; } }
+.keep .stamp-mark { position: absolute; left: 50%; top: 40%; z-index: 4; pointer-events: none; font-family: 'Jacquarda Bastarda 9', serif; font-size: 64px; color: #8e1e26;
+  transform: translate(-50%, -50%); animation: k-stamp 1s steps(5) forwards; }
+@keyframes k-stamp { 0% { transform: translate(-50%, -50%) scale(2); opacity: 0; } 30% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
+body.still .keep * { animation: none !important; }
+body.still .keep :is(.turn, .stamp-mark) { display: none; }
+
+/* The nav turns to dark oak on this tab. */
+body.keep-on .tabs { background: linear-gradient(#3a2412, #24160a); border-top-color: #8a5a36; box-shadow: inset 0 3px 0 rgba(217,164,65,.25); }
+body.keep-on .tabs button { color: #c9a76a; }
+body.keep-on .tabs button[aria-current] { color: #f2d38a; text-shadow: 0 0 6px rgba(242,211,138,.6); }
