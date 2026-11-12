@@ -95,7 +95,184 @@ const hood = (m: string, s: string, hi: string, brim: string): Layer32 => ({
   ]),
 });
 
+// Art at a spot, not mirrored: weapons, pets, anything one-sided.
+const place = (x: number, y: number, rows: string[], width = 32): Rows => {
+  const out: Rows = Array(32).fill(null);
+  rows.forEach((r, i) => (out[y + i] = ('.'.repeat(x) + r).padEnd(width, '.').slice(0, width)));
+  return out;
+};
+
+// ---------- hats that sit on the hair ----------
+const HATS: Record<string, Layer32> = {
+  'leaf-crown': { rows: at(1, ['.........g..g...', '........gGggGgg.', '.......kGgGgGgGg']) },
+  bandana: {
+    rows: place(6, 4, [
+      '....kkkkkkkkkkkk....',
+      '..kkrrrrrrrrrrrrkk..',
+      '.krrrrwrrrrrrwrrrrk.',
+      '.krprrrrrrprrrrrprrkkk',
+      '..kkkkkkkkkkkkkkkkrrrk',
+      '..................kprk',
+      '...................krrk',
+      '....................kk',
+    ]),
+  },
+  'wizard-hat': {
+    cover: true,
+    rows: place(4, 0, [
+      '..............kkkk....',
+      '............kkbbbyk...',
+      '..........kkbbbbbbk...',
+      '........kkbbbybbbbk...',
+      '.......kbbbbbbbbbbbk..',
+      '......kbbbybbbbbbbbbk.',
+      '.....kbbbbbbbbbbbbbbbk',
+      'kkkkkkyyyyyyyyyyyyyykkkkk',
+      'knnnnnnnnnnnnnnnnnnnnnnnk',
+      '.kkkkkkkkkkkkkkkkkkkkkkk.',
+    ]),
+  },
+  'horned-helm': {
+    cover: true,
+    rows: at(0, ['.w..............', 'kwk.......kkkkkk', 'kwwk....kkSSSSSS', '.kwwk..kSSsssSSS', '..kwwkkSSssSSSSS', '...kwwkSsSSSSSSS',
+      '....kkkSSSSSSSSS', '.....kSSSSSSSSSS', '.....kSsSsSsSsSs', '.....kkkkkkkkkkk']),
+  },
+  'gold-crown': { rows: at(0, ['.........y..y..y', '........kyy.yy.y', '........kyyyyyyy', '........kyrywyry', '........kooooooo', '.........kkkkkkk']) },
+  'flame-crown': { rows: at(0, ['.........o..r..o', '........koy.oy.o', '........kyyoyyoy', '........kyyyyyyy', '........krrrrrrr', '.........kkkkkkk']) },
+  halo: { rows: at(0, ['..........CCCCCC', '........CC......']) },
+  'sun-circlet': { rows: at(2, ['..............yy', '...........y.yoo', '............yooo', '......yyyyyyyooo', '......kkkkkkkkyy']) },
+  'laurel-wreath': { rows: at(2, ['........lgGgGgyy', '......lgG.......', '.....gGl........', '....lGg.........', '....gG..........', '....G...........']) },
+};
+
+// ---------- armor, over the outfit and under the weapon ----------
+// A plate: pauldrons e, rim m, fill f, a shine stripe w and an emblem g at the center.
+const plate = (e: string, m: string, f: string, w: string, g: string): Layer32 => ({
+  rows: at(20, [
+    `.......k${e}${e}${e}k${m}${m}${m}${m}`, `.......k${f}${f}${e}k${m}${w}${f}${f}`, `..........k${m}${w}${f}${f}${f}`,
+    `..........k${m}${w}${f}${f}${g}`, `..........k${m}${f}${f}${f}${f}`, `...........k${m}${f}${f}${f}`,
+  ]),
+});
+const ARMOR: Record<string, Layer32> = {
+  'leather-vest': { rows: at(20, ['..........keeeE.', '..........keeeE.', '..........keeE..', '..........keeEy.', '..........keeE..', '..........keeEy.']) },
+  chainmail: { rows: at(20, ['.........kSsSsSs', '........ksSsSsSs', '.......ksSksSsSs', '.......kSsksSsSs', '..........ksSsSs', '..........kSsSsS', '..........ksSsSs']) },
+  breastplate: plate('S', 'S', 's', 'w', 's'),
+  'gilded-plate': plate('o', 'o', 'y', 'w', 'r'),
+  dragonscale: { rows: paint(plate('G', 'G', 'g', 'l', 'G').rows, [[13, 22, 'G'], [18, 22, 'G'], [14, 24, 'G'], [17, 24, 'G'], [13, 25, 'G'], [18, 25, 'G']]) },
+  'valkyrie-mail': { rows: paint(plate('C', 'S', 's', 'w', 'C').rows, [[13, 23, 'w'], [18, 23, 'w']]) },
+  'bone-mail': { rows: paint(plate('w', 'p', 'k', 'k', 'v').rows, [12, 13, 14, 17, 18, 19].flatMap((x) => [[x, 22, 'w'], [x, 24, 'w']] as [number, number, string][])) },
+  'astral-vestment': { rows: paint(plate('C', 'n', 'b', 'C', 'y').rows, [[14, 22, 'y'], [17, 22, 'y']]) },
+  'slayers-cuirass': plate('r', 'd', 'd', 'S', 'w'),
+  'rover-coat': {
+    rows: at(20, ['.......krrkrrryw', '.......krrkrrryw', '.......krrkrrrrw', '.......krrkrrryw', '.......kppkrrrrw',
+      '..........krrryw', '..........krrrrw', '..........krrrk.', '..........kkkk..']),
+  },
+  'steadfast-mantle': { rows: at(19, ['...........kkkkk', '.......kklgwwwww', '.......kgwwwwwyy', '........kgwwwwwy', '..........kggggg']) },
+};
+
+// ---------- weapons, held in the right hand (columns 22-23, row 25); grips at columns 24-25 ----------
+const sword = (top: number, e: string, b: string, g: string, h: string, p: string): Layer32 => ({
+  rows: place(22, top, [`..${e}...`, ...Array(22 - top - 1).fill(`..${e}${b}..`), `.k${g}${g}${g}k`, `..${h}${h}..`, `..${h}${h}..`, `..${h}${h}..`, `..${p}${p}..`]),
+});
+const staff = (head: string[], shaft: string): Layer32 => ({ rows: place(23, 2, [...head, ...Array(30 - head.length).fill(`.${shaft}.`)]) });
+const WEAPONS: Record<string, Layer32> = {
+  'wood-sword': sword(10, 'o', 'e', 'E', 'p', 'k'),
+  dagger: sword(17, 'w', 's', 'y', 'o', 'k'),
+  'flame-blade': { rows: paint(sword(8, 'y', 'o', 'r', 'r', 'y').rows, [[23, 10, 'o'], [27, 12, 'r'], [23, 14, 'r'], [27, 16, 'o'], [23, 18, 'o'], [27, 20, 'r']]) },
+  'second-wind': { rows: paint(sword(8, 'w', 'c', 'y', 'r', 'y').rows, [[27, 7, 'C'], [28, 6, 'C'], [22, 11, 'C'], [28, 14, 'C']]) },
+  'starforged-blade': { rows: paint(sword(8, 'w', 's', 'y', 'v', 'y').rows, [[24, 5, 'y'], [23, 6, 'y'], [24, 6, 'y'], [25, 6, 'y'], [24, 7, 'y'], [27, 12, 'C'], [22, 17, 'C']]) },
+  dragonslayer: {
+    rows: place(21, 4, [
+      '...ww...', ...Array(17).fill('..wsSk..'), 'kryyyyrk', '...rr...', '...rr...', '...rr...', '..kyyk..',
+    ]),
+  },
+  mace: { rows: place(22, 8, ['...S..', '..SsS.', '.SswsS', '..SsS.', '...S..', ...Array(13).fill('..oe..'), '..kk..']) },
+  staff: staff(['.cc.', 'cCCc', 'cCCc', '.cc.'].map((r) => r), 'oe'),
+  'crystal-staff': staff(['.CC.', 'CwwC', 'CwCC', 'wCCw', '.CC.'], 'sS'),
+  'rune-spear': staff(['.ww.', '.Cw.', 'CwwC', 'CwCC', '.CC.', '.kk.', '.oc.', '.oe.', '.co.', '.oe.', '.oc.'], 'oe'),
+  scythe: { rows: place(24, 1, ['oeSSSSs.', 'oe...sSs', 'oe.....s', ...Array(27).fill('oe......')], 32) },
+  'battle-axe': { rows: place(24, 6, ['oe.....', 'oeSS...', 'oeSsS..', 'oeSssSk', 'oeSsswk', 'oeSssSk', 'oeSsS..', 'oeSS...', ...Array(14).fill('oe.....')]) },
+  flail: { rows: place(24, 6, ['....S..', '...SsS.', '..SswsS', '...SsS.', '....S..', '...k...', '...k...', '..k....', '..k....', '.k.....', 'oe.....', ...Array(10).fill('oe.....'), 'kk.....']) },
+  lute: {
+    rows: place(21, 10, ['......kk.', '......oe.', '......oe.', '.....oe..', '.....oe..', '.....oe..', '....oe...', '....oe...', '....oe...', '...oooo..', '..oooooo.',
+      '.oooookoo', '.ooookkoo', '.oooookoo', '.oooooooo', '..oooooo.', '...oooo..']),
+  },
+  bow: { rows: place(24, 11, ['.sko.', '.s.oo', '.s..o', ...Array(6).fill('.s..o'), '.s.pp', '.s.pp', ...Array(6).fill('.s..o'), '.s.oo', '.sko.']) },
+  crossbow: { rows: place(22, 19, ['........S.', '........s.', '........s.', '........s.', '.oooooooos', 'pk......s.', '........s.', '........s.', '........S.']) },
+};
+
+// ---------- capes, behind the body ----------
+const cape = (m: string, s: string, t: string): Layer32 => ({
+  behind: true,
+  rows: at(19, ['.......kkkkkkkkk', '......k' + m.repeat(9), '.....k' + m.repeat(10), '.....k' + m.repeat(10), '....k' + m + s + m.repeat(9),
+    '....k' + m + s + m.repeat(9), '....k' + m + s + m.repeat(9), '...k' + m + m + s + m.repeat(9), '...k' + m + m + s + m.repeat(9),
+    '...k' + m + m + s + m.repeat(9), '...k' + t.repeat(12), '....' + 'k'.repeat(12)]),
+});
+// Trophy capes: a high collar behind the head and a scalloped hem, so they read grander than any shop cape.
+const robe = (m: string, s: string, t: string): Layer32 => ({
+  behind: true,
+  // T is the trim and M the main color in this sketch; S the fold.
+  rows: at(15, ['....kk..........', '...kTk..........', '...kTMk.........', '...kTMMk........', '..kTMMMMMMMMMMMM', '..kTMMMMMMMMMMMM',
+    '.kTMMMMMMMMMMMMM', ...Array(7).fill('.kTMSMMMMMMMMMMM'), '.kTTTTTTTTTTTTTT', '.kT.TT.TT.TT.TTT', '..k.k..k...k...k'].map((r) =>
+    r.replace(/[TMS]/g, (c: string) => ({ T: t, M: m, S: s } as Record<string, string>)[c]))),
+});
+const CAPES: Record<string, Layer32> = {
+  'traveler-cloak': cape('G', 'g', 'S'),
+  'red-cape': cape('r', 'p', 'p'),
+  'fur-mantle': cape('S', 's', 'w'),
+  'royal-cape': cape('b', 'n', 'y'),
+  'starry-cape': { behind: true, rows: paint(cape('n', 'b', 'C').rows, [[5, 22, 'w'], [26, 24, 'w'], [6, 27, 'y'], [25, 28, 'w'], [4, 25, 'y'], [27, 21, 'y']]) },
+  'shadow-cape': cape('p', 'k', 'r'),
+  'feather-cape': {
+    behind: true,
+    rows: at(19, ['.......kkkkkkkkk', '......kcbcbcbcbc', '.....kbcbcbcbcbc', '.....kcbcbcbcbcb', '....kbcbcbcbcbcb', '....kcbcbcbcbcbc', '....kbcbcbcbcbcb',
+      '...kwcwcwcwcwcwc', '...kcwcwcwcwcwcw', '...kwcwcwcwcwcwc', '...kw.w.ww.w.w.w', '....k.k..k.k.k.k']),
+  },
+  'dragonwing-cape': {
+    behind: true,
+    rows: at(12, ['k...............', 'pk..............', 'pvk.............', 'pvvk............', 'pvvpk...........', 'pvvppk..........', 'pvvpppk.........', 'pvvppppkkkkkkkkk',
+      'pvvpppppppppppp', 'pvvvpppppppppppp', '.pvvpppppppppppp', '.pvvpppppppppppp', '.pvppppppppppppp', '..pvpppppppppppp', '..pvpppppppppppp', '...pkppppppppppp',
+      '...k.kppppppppkp', '......kkkkkkkk.k', '................'].map((r) => r.padEnd(16, 'p').slice(0, 16))),
+  },
+  'moonlit-cape': robe('n', 'w', 's'),
+  'champion-cape': robe('w', 'y', 'y'),
+  'ember-cape': robe('r', 'o', 'y'),
+};
+
+// ---------- pets: 16x16, beside the hero from column 32, feet on the bottom row ----------
+export const PETS32: Record<string, string[]> = {
+  frog: ['................', '................', '................', '................', '................', '...kkk....kkk...', '..kwwwkkkkwwwk..', '..kwkwkggkwkwk..',
+    '.kggggggggggggk.', '.kgugggggggguGk.', '.kggggkkkkgggGk.', '.kGggggggggggGk.', '..kllllllllllk..', '.kGgllllllllgGk.', 'kGGk.kk..kk.kGGk', 'kkkk........kkkk'],
+  slime: ['................', '................', '................', '................', '................', '......kkkk......', '....kkllggkk....', '...kglllgggGk...',
+    '..kgllgggggGGk..', '..kggkgggkgGGk..', '.kgggkgggkggGGk.', '.kguggggggguGGk.', 'kggggggkkggggGGk', 'kGgggggggggggGGk', 'kGGGgggggggGGGGk', '.kkkkkkkkkkkkkk.'],
+  fox: ['................', '................', '................', '..kk.....kk.....', '..kok...kok.....', '..kookkkook.....', '.koooooooook....', '.kokoooookok....',
+    '.kowwwkwwwok..kk', '..kuwwwwwuk..kok', '...kowwwok..kowk', '..kooowwook.kowk', '..koowwwookkoowk', '..koooooooookok.', '..kokoooookokk..', '...kk.....kk....'],
+  cat: ['................', '................', '................', '..k.......k.....', '..kk.....kk.....', '..kokkkkkok.....', '.kooooooooook...', '.kokoooookook...',
+    '.kooookkooook...', '..kuoowwooukk...', '...kooooook..kk.', '..kooooooook.kok', '..koowwwwook.kok', '..koowwwwookkok.', '..kokooookokkk..', '...kk....kk.....'],
+  'little-ghost': ['................', '................', '................', '.....kkkkkk.....', '....kwwwwwwk....', '...kwwwwwwwwk...', '..kwwwwwwwwwwk..', '..kwwkwwwwkwwk..',
+    '..kwwkwwwwkwwk..', '..kwuwwwwwwuwk..', '..kwwwwkkwwwwk..', '..kwwwwwwwwwwk..', '..kwwwwwwwwwwk..', '..kwwwwwwwwwwk..', '..kwkwwkkwwkwk..', '...k.kk..kk.k...'],
+  'baby-dragon': ['................', '................', '...........ll...', '..........lggl..', '.........kggkgk.', '.........kggggk.', '...l.....kguggk.', '..lyl...kgggkk..',
+    '..lyyl.kggggk...', '...lyykgglggk...', '....kgggllggk...', '....kgglllgggk..', '.....kgllllggk..', '.....kggkkggk...', '.....kGGk.kGGk..', '......kk...kk...'],
+  griffin: ['................', '................', '...kkk..........', '..kwwwk.........', '.kwkwwwk........', 'yykwwwwk...kss..', '.kkwwwwwk.ksssk.', '...kwwwwkksssk..',
+    '...kwwwwwsssk...', '..kyyyyyyyyk....', '.kyyyyyyyyyyk...', '.kyyyyyyyyyyyk..', '.kyyyyyyyyyyyok.', '..kykyyyykyk.kk.', '..koko..koko....', '...k.k...k.k....'],
+  phoenix: ['................', '.......o........', '......oyo.......', '.....oykoo......', '....ooyyyook....', '...k.oyyyoo.....', '..ro.ooyyoo.....', '.ro...oyyoo.ro..',
+    'ro...ooyyoo..or.', '.....ooyyoo...r.', '......oyyo......', '.....rooyor.....', '....r..rr..r....', '...r..r..r..r...', '................', '................'],
+  'loyal-hound': ['................', '................', '................', '................', '.kk........kk...', 'kSsk......kSsk..', 'kSsskkkkkkssSk..', '.ksssssssssssk..',
+    '.kssksssssksk...', '.kssssswwsssk...', '..ksuwwkkwwusk..', '...kswwwwwwsk...', '..kkrryrrrrkk.kk', '..kssssssssk.kSk', '..ksskssksskkk..', '...kk.kk.kk.....'],
+  'wise-owl': ['................', '................', '................', '..kk......kk....', '..ksk....ksk....', '..kssskkkssk....', '.kssssssssssk...', '.kswwksswwksk...',
+    '.kswkwsswkwsk...', '.ksswwsswwssk...', '.kssssooossssk..', '.ksswwwwwwwssk..', '.kswwwwwwwwwsk..', '..kswwwwwwwsk...', '...kssooossk....', '....ok...ok.....'],
+  'steady-turtle': ['................', '................', '................', '................', '................', '.....kkkkkk.....', '....kGGGGGGk....', '...kGgyyyygGk...',
+    '..kGgyggggygGk..', '..kGyggyyggyGk.k', '.kkGgyggggygGkkl', 'kllkGGGGGGGGklk.', 'klkklllllllllk..', '.kkllkllllkllk..', '...kllk..kllk...', '....kk....kk....'],
+};
+const PETS: Record<string, Layer32> = Object.fromEntries(
+  Object.entries(PETS32).map(([id, rows]) => [id, { rows: place(32, 16, rows, 48) }]),
+);
+
 export const ITEM32: Record<string, Layer32> = {
+  ...HATS,
+  ...ARMOR,
+  ...WEAPONS,
+  ...CAPES,
+  ...PETS,
   'ranger-hood': hood('g', 'G', 'l', 'GGGGGGG'),
   'bone-cowl': hood('p', 'k', 'v', 'wpwwpww'),
   'astral-hood': { cover: true, rows: paint(hood('n', 'b', 'b', 'CCCCCCC').rows, [[15, 1, 'y'], [16, 1, 'y'], [15, 2, 'y'], [16, 2, 'y'], [14, 2, 'y'], [17, 2, 'y']]) },

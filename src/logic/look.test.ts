@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BEARDS, CLASSIC, cleanName, FACES, GARBS, MARKS, PARTS, PRESETS, randomLook, sameLook, STYLES, validName } from './look';
 import { GARB_ROWS, hero, heroHead, ITEM_ART, titleOf } from '../sprites';
 import * as art from '../hero32';
-import { GARBS32, ITEM32 } from '../art32';
+import { GARBS32, ITEM32, PETS32 } from '../art32';
 import type { Look, LookPart } from './types';
 
 const OPTIONAL = ['garb', 'eye', 'beard', 'mark', 'face'];
@@ -34,7 +34,13 @@ describe('hero look', () => {
       expect(rowsOk(g), GARBS[i]).toBe(true);
       expect([8, 9, 22, 23].map((x) => g[25]![x]), GARBS[i]).toEqual(['f', 'f', 'f', 'f']);
     }
-    for (const [id, l] of Object.entries(ITEM32)) expect(rowsOk(l.rows) && !!ITEM_ART[id], id).toBe(true);
+    for (const [id, l] of Object.entries(ITEM32)) {
+      const w = PETS32[id] ? 48 : art.W; // pets stand beside the hero
+      expect(l.rows.length === 32 && l.rows.every((r) => !r || r.length === w) && !!ITEM_ART[id], id).toBe(true);
+    }
+    // every item is redrawn: nothing left on the old 16px upscale
+    expect(Object.keys(ITEM_ART).filter((id) => !ITEM32[id])).toEqual([]);
+    for (const [id, rows] of Object.entries(PETS32)) expect(rows.length === 16 && rows.every((r) => r.length === 16), id).toBe(true);
   });
   it('has an old 16px outfit shape for every name, 9 rows of 16, with the hands always at columns 4 and 11', () => {
     expect(GARB_ROWS.length).toBe(GARBS.length);

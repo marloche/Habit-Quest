@@ -7,6 +7,7 @@ import type { Progress } from '../logic/achievements';
 import { BEARDS, CLASSIC, EYES, FACES, GARBS, HAIRS, MARKS, NAME_MAX, OUTFITS, PRESETS, sameLook, SKINS, STYLES, type Swatch } from '../logic/look';
 import { CALENDAR, CHEST, COIN, crestRows, FLAME, hero, heroHead, ICONS, ITEM_ART, nextTier, PAL, petOf, SUNRISE, svg, titleOf } from '../sprites';
 import { ELITE_PALS, LADDER, wounded } from '../bosses';
+import { PETS32 } from '../art32';
 import { CHECK, esc } from './html';
 
 // view: wardrobe, look or achievements; slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
@@ -48,7 +49,7 @@ export function bossBar(hs: HeroState, big = false, art = true) {
 
 // The worn pet sits on the hero as its own button, so tapping or rubbing it gets a reaction. Half the hero's size: 8 of its 16 rows.
 export const petButton = (id: string, size = 64) =>
-  `<button class="pet p-${id}" data-action="pet" data-pet="${id}" aria-label="Pet your ${esc(itemById(id)?.name ?? 'pet')}">${svg(ITEM_ART[id].rows, size)}</button>`;
+  `<button class="pet p-${id}" data-action="pet" data-pet="${id}" aria-label="Pet your ${esc(itemById(id)?.name ?? 'pet')}">${svg(PETS32[id] ?? ITEM_ART[id].rows, size)}</button>`;
 
 const TRACK_ART: Record<string, string[]> = {
   streak: FLAME, perfect: ICONS.star, checks: ICONS.pen, tiny: ICONS.leaf, comeback: ICONS.heart,
