@@ -2,7 +2,7 @@ import { daysBetween } from './logic/day';
 import { emptyWardrobe, SLOTS } from './logic/items';
 import { FOCUS_MAX } from './logic/focus';
 import { JOURNAL_MAX } from './logic/journal';
-import { PARTS } from './logic/look';
+import { CORE, PARTS, validName } from './logic/look';
 import { BGS } from './logic/scene';
 import { AMOUNT_MAX, CHAPTERS_MAX, EPIC_COLORS, GUARDIANS, NAME_MAX, NOTE_MAX, UNIT_MAX, WHY_MAX } from './logic/epic';
 import type { Settings, State } from './logic/types';
@@ -55,8 +55,9 @@ const validHabit = (h: any) =>
   optional(h.archived, isDay) && optional(h.tiny, (t) => typeof t === 'string') && validSchedule(h.schedule) &&
   optional(h.focus, (m) => isInt(m, 1, FOCUS_MAX));
 
-// garb came later: looks saved before it have none and draw the tunic.
-const validLook = (l: any) => isRecord(l) && Object.entries(PARTS).every(([k, n]) => (k === 'garb' && l[k] === undefined) || isInt(l[k], 0, n - 1));
+// Parts added later (garb, the face options) may be missing: older looks draw the first of each.
+const validLook = (l: any) =>
+  isRecord(l) && Object.entries(PARTS).every(([k, n]) => (!(k in CORE) && l[k] === undefined) || isInt(l[k], 0, n - 1)) && optional(l.name, validName);
 
 const validFocus = (f: unknown) => entriesOk(f, (k, v) => isDay(k) && isInt(v, 0, 1440));
 

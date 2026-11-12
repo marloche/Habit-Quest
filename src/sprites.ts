@@ -1,5 +1,6 @@
-import { CLASSIC, HAIRS, OUTFITS, SKINS } from './logic/look.ts'; // .ts: scripts/make-icons.mjs loads this file in plain Node
+import { CLASSIC, EYES, HAIRS, OUTFITS, SKINS } from './logic/look.ts'; // .ts: scripts/make-icons.mjs loads this file in plain Node
 import type { Look } from './logic/types';
+import { compose, TUNIC, W } from './hero32.ts';
 
 // Pixel art as rows of palette letters ('.' = transparent), rendered to crisp SVG.
 export const PAL: Record<string, string> = {
@@ -98,11 +99,13 @@ const TIERS: { from: number; title: string; trim: Layer[] }[] = [
   { from: 1, title: 'Squire', trim: [] },
   { from: 5, title: 'Knight', trim: [pads('S', 's')] },
   { from: 10, title: 'Champion', trim: [pads('o', 'y'), BELT] },
-  { from: 20, title: 'Legend', trim: [pads('y', 'C'), BELT, { x: 6, y: 4, rows: ['C..C'] }] },
+  { from: 20, title: 'Legend', trim: [pads('y', 'C'), BELT] }, // and glowing eyes (hero below)
 ];
 
 export const tierOf = (level: number) => [...TIERS].reverse().find((t) => level >= t.from)!;
 export const nextTier = (level: number) => TIERS.find((t) => t.from > level);
+// "MARLO THE SQUIRE", or just "SQUIRE" without a name.
+export const titleOf = (level: number, look?: Look) => (look?.name ? `${look.name} the ${tierOf(level).title}` : tierOf(level).title);
 
 // Wardrobe art, drawn onto the hero at (x, y). Capes go behind the body; pets sit to the right (x 16-23).
 // cover: helmets and hoods first wipe this many head rows (the hair above the face), so spikes and buns can't poke through.
@@ -214,21 +217,55 @@ export const icon = (name: string, size = 24) => svg(ICONS[name] ?? ICONS.star, 
 // Pets are the layers drawn right of the hero, from column 16.
 export const petOf = (worn: string[]) => worn.find((id) => ITEM_ART[id]?.x === 16);
 
+// Interim: outfits other than the tunic and all wardrobe art are still 16px. Each old pixel becomes 2 wide, and
+// rows stretch onto the new proportions: head rows 0-6 to 0-18, body rows 7-15 to 19-31, pets from column 32.
+const ROW = (y: number) => (y <= 7 ? Math.round((y * 19) / 7) : 19 + Math.round(((y - 7) * 13) / 9));
+function stamp(grid: string[][], l: Layer, from = 0) {
+  l.rows.forEach((row, dy) =>
+    [...row].forEach((ch, dx) => {
+      if (ch === '.') return;
+      const ox = l.x + dx, oy = l.y + dy;
+      for (let y = ROW(oy); y < ROW(oy + 1); y++)
+        for (const x of [ox * 2, ox * 2 + 1]) {
+          const cell = grid[y - from];
+          if (cell && x < cell.length && (!l.behind || cell[x] === '.')) cell[x] = ch;
+        }
+    }));
+}
+function bodyRows(garb: number): (string | null)[] {
+  if (!garb) return TUNIC;
+  const g = Array.from({ length: W }, () => Array(W).fill('.'));
+  stamp(g, { x: 0, y: 7, rows: GARB_ROWS[garb] });
+  return g.map((r, y) => (y >= 19 ? r.join('') : null));
+}
+
+const hex2 = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+const rgb = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+const shade = (c: string, k: number) => '#' + rgb(c).map((v) => hex2(v * k)).join('');
+const mix = (a: string, b: string, t: number) => '#' + rgb(a).map((v, i) => hex2(v + (rgb(b)[i] - v) * t)).join('');
+
+// The hero's own colors: skin, hair and eyes with their shades, outfit, blush.
+export function lookPal(look: Look, glow = false): Record<string, string> {
+  const s = SKINS[look.skin].c, h = HAIRS[look.hair].c, outfit = OUTFITS[look.outfit];
+  return {
+    ...PAL, f: s, F: shade(s, 0.85), x: shade(s, 0.7), h, H: shade(h, 0.68), j: mix(h, '#ffffff', 0.35), z: mix(s, shade(h, 0.6), 0.6),
+    A: outfit.c, a: outfit.d!, Q: glow ? '#73eff7' : shade(EYES[look.eye ?? 0].c, 0.62), u: '#f08ca0', X: '#a0404a',
+  };
+}
+
 // noPet: leave the pet's space empty, for a pet drawn on its own on top.
 export function hero(level: number, size = 64, worn: string[] = [], look: Look = CLASSIC, noPet = false) {
   const t = tierOf(level);
   const all = worn.map((id) => ITEM_ART[id]).filter(Boolean);
-  const width = all.some((l) => l.x + l.rows[0].length > 16) ? 24 : 16;
+  const width = all.some((l) => l.x + l.rows[0].length > 16) ? 48 : 32;
   const layers = noPet ? all.filter((l) => l.x < 16) : all;
-  const grid = [...HEADS[look.style], ...GARB_ROWS[look.garb ?? 0]].map((row) => row.padEnd(width, '.').split(''));
-  const outfit = OUTFITS[look.outfit];
-  const pal = { ...PAL, f: SKINS[look.skin].c, h: HAIRS[look.hair].c, A: outfit.c, a: outfit.d! };
-  for (const l of layers) for (let y = 0; y < (l.cover ?? 0); y++) grid[y].fill('.', 0, 16);
-  for (const l of [...t.trim, ...layers])
-    l.rows.forEach((row, dy) =>
-      [...row].forEach((ch, dx) => {
-        const cell = grid[l.y + dy];
-        if (ch !== '.' && cell && (!l.behind || cell[l.x + dx] === '.')) cell[l.x + dx] = ch;
-      }));
-  return svg(grid.map((r) => r.join('')), size, `Level ${level} ${t.title}`, pal);
+  const grid = compose(look, bodyRows(look.garb ?? 0), width, layers.some((l) => l.cover));
+  for (const l of [...t.trim, ...layers]) stamp(grid, l);
+  return svg(grid.map((r) => r.join('')), size, `Level ${level} ${titleOf(level, look)}`, lookPal(look, t.title === 'Legend'));
+}
+
+// Just the head and shoulders, bigger, for the hair and face pickers.
+export function heroHead(look: Look, size = 48) {
+  const grid = compose(look, TUNIC);
+  return svg(grid.slice(0, 26).map((r) => r.join('')), size, '', lookPal(look));
 }

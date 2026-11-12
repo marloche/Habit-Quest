@@ -2,6 +2,7 @@ import { GOALS, suggest, type Budget } from '../logic/suggest';
 import type { Schedule, State } from '../logic/types';
 import { icon } from '../sprites';
 import { CHECK, esc } from './html';
+import { nameForm } from './hero';
 
 // step: pick goals and time, then pick quests. goals: chosen goal ids, in the order tapped.
 // flip: quest names you toggled away from their pre-tick. welcome: first launch (or NEW GAME) wording.
@@ -35,7 +36,8 @@ export function suggestView(state: State, ui: SuggestUi) {
   const goals = GOALS.map((g) => `<button class="goal" data-action="goal" data-goal="${g.id}" aria-pressed="${ui.goals.includes(g.id)}">${icon(g.icon, 24)}<span>${g.name}</span></button>`);
   const budgets = BUDGETS.map(([b, label]) => `<button role="tab" data-action="budget" data-budget="${b}" aria-selected="${b === ui.budget}">${label}</button>`);
   return `
-    <h2>${ui.welcome ? 'WELCOME, HERO!' : 'SUGGEST QUESTS'}</h2>
+    <h2>${ui.welcome ? `WELCOME, ${esc((state.look?.name ?? 'hero').toUpperCase())}!` : 'SUGGEST QUESTS'}</h2>
+    ${ui.welcome ? `<h3>WHAT'S YOUR NAME?</h3>${nameForm(state.look?.name)}` : ''}
     <p class="small">${ui.welcome ? 'Every hero needs quests. ' : ''}What do you want to get better at? Pick one or more.</p>
     <div class="goal-grid">${goals.join('')}</div>
     <form class="plan-form" data-form="intent">

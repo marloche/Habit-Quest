@@ -6,7 +6,7 @@ import { JOURNAL_GOLD, MOODS } from '../logic/journal';
 import type { Habit, State } from '../logic/types';
 import { bossBar, goldText, petButton } from './hero';
 import { clock, timeLeft, type Timer } from '../logic/focus';
-import { COIN, FLAME, hero, HOURGLASS, icon, moodFace, petOf, svg, tierOf } from '../sprites';
+import { COIN, FLAME, hero, HOURGLASS, icon, moodFace, petOf, svg, titleOf } from '../sprites';
 import { CHECK, esc } from './html';
 import { epicStrip, epicTags } from './epic';
 
@@ -129,7 +129,7 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
     <header class="hud">
       <div class="hud-hero juice">${hero(sc.level, 80, worn, state.look, true)}${pet ? petButton(pet, 40) : ''}</div>
       <div class="hud-main">
-        <div class="hud-row"><span class="lv">LV ${sc.level}</span><span class="tier">${tierOf(sc.level).title.toUpperCase()}</span></div>
+        <div class="hud-row"><span class="lv">LV ${sc.level}</span><span class="tier">${esc(titleOf(sc.level, state.look).toUpperCase())}</span></div>
         <div class="bar xp ticks juice" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="${need}" aria-valuenow="${have}"><div style="width:${Math.round(sc.progress * 100)}%"></div></div>
         <span class="small">${have}/${need} XP</span>
         <div class="chips small">

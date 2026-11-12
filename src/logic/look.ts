@@ -1,4 +1,4 @@
-import type { Look } from './types';
+import type { Look, LookPart } from './types';
 
 // Saves store each part as an index into these lists, so only ever append to them.
 export type Swatch = { name: string; c: string; d?: string }; // d: the darker shade (outfits)
@@ -12,7 +12,28 @@ export const SKINS: Swatch[] = [
   { name: 'Deep', c: '#5c3a28' },
 ];
 
-export const STYLES = ['Short', 'Long', 'Ponytail', 'Spiky', 'Bun', 'Bald'];
+export const STYLES = ['Short', 'Long', 'Ponytail', 'Spiky', 'Bun', 'Bald', 'Wolf cut', 'Mullet', 'Curtains', 'Undercut', 'Braid', 'Long wavy',
+  'Pigtails', 'Twin tails', 'Afro', 'Big curls', 'Locs', 'Mohawk', 'Buzz', 'Bob', 'Bedhead', 'Side part'];
+
+// Dot eyes take this color, darkened (sprites.ts).
+export const EYES: Swatch[] = [
+  { name: 'Brown', c: '#7a4b2a' },
+  { name: 'Hazel', c: '#a08040' },
+  { name: 'Green', c: '#38b764' },
+  { name: 'Blue', c: '#3b5dc9' },
+  { name: 'Gray', c: '#7a8a9a' },
+  { name: 'Amber', c: '#e09a30' },
+  { name: 'Violet', c: '#9b5fc0' },
+  { name: 'Ruby', c: '#b13e53' },
+];
+export const FACES = ['Calm', 'Grin', 'Determined', 'Sleepy'];
+export const BEARDS = ['None', 'Stubble', 'Beard', 'Mustache', 'Goatee'];
+export const MARKS = ['None', 'Freckles', 'Scar', 'War paint'];
+
+export const NAME_MAX = 12;
+export const validName = (n: unknown) => typeof n === 'string' && n.length >= 1 && n.length <= NAME_MAX && n.trim() === n && !/[\x00-\x1f]/.test(n);
+// Typed text to a name, or undefined to clear it.
+export const cleanName = (t: string) => t.replace(/\s+/g, ' ').replace(/[\x00-\x1f]/g, '').trim().slice(0, NAME_MAX).trim() || undefined;
 
 export const HAIRS: Swatch[] = [
   { name: 'Ginger', c: '#ef7d57' },
@@ -43,7 +64,12 @@ export const OUTFITS: Swatch[] = [
 // Outfit shapes (GARBS in sprites.ts); the outfit color paints whichever one you wear.
 export const GARBS = ['Tunic', 'Robe', 'Leathers', 'Tabard', 'Jerkin', 'Doublet', 'Wrap', 'Scale', 'Bone robe', 'Leaf robe', 'Sailor'];
 
-export const PARTS: Record<keyof Look, number> = { skin: SKINS.length, style: STYLES.length, hair: HAIRS.length, outfit: OUTFITS.length, garb: GARBS.length };
+export const PARTS: Record<LookPart, number> = {
+  skin: SKINS.length, style: STYLES.length, hair: HAIRS.length, outfit: OUTFITS.length, garb: GARBS.length,
+  eye: EYES.length, beard: BEARDS.length, mark: MARKS.length, face: FACES.length,
+};
+// The parts every saved look has; the rest came later and may be missing.
+export const CORE = { skin: 1, style: 1, hair: 1, outfit: 1 };
 
 // The original hero; saves without a look draw this.
 export const CLASSIC: Look = { skin: 1, style: 0, hair: 0, outfit: 0 };
@@ -63,7 +89,7 @@ export const PRESETS: { name: string; look: Look }[] = [
 ];
 
 // A look without a garb wears the tunic (garb 0), so it matches a preset that says garb 0 or nothing.
-export const sameLook = (a: Look, b: Look) => (Object.keys(PARTS) as (keyof Look)[]).every((k) => (a[k] ?? 0) === (b[k] ?? 0));
+export const sameLook = (a: Look, b: Look) => (Object.keys(PARTS) as LookPart[]).every((k) => (a[k] ?? 0) === (b[k] ?? 0));
 
 export const randomLook = (r = Math.random): Look => ({
   skin: Math.floor(r() * PARTS.skin),
@@ -71,4 +97,8 @@ export const randomLook = (r = Math.random): Look => ({
   hair: Math.floor(r() * PARTS.hair),
   outfit: Math.floor(r() * PARTS.outfit),
   garb: Math.floor(r() * PARTS.garb),
+  eye: Math.floor(r() * PARTS.eye),
+  beard: r() < 0.7 ? 0 : Math.floor(r() * PARTS.beard), // most random heroes are clean-shaven
+  mark: Math.floor(r() * PARTS.mark),
+  face: Math.floor(r() * PARTS.face),
 });

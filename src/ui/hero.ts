@@ -2,10 +2,10 @@ import { dayLabel } from '../logic/day';
 import { BOSS_GOLD, woundStage, type HeroState } from '../logic/hero';
 import { buyBlock, itemById, ITEMS, RARITY, SLOTS, wornIds, type Item } from '../logic/items';
 import type { Score } from '../logic/score';
-import type { Look, Slot, State } from '../logic/types';
+import type { LookPart, Slot, State } from '../logic/types';
 import type { Progress } from '../logic/achievements';
-import { CLASSIC, GARBS, HAIRS, OUTFITS, PRESETS, sameLook, SKINS, STYLES, type Swatch } from '../logic/look';
-import { CALENDAR, CHEST, COIN, crestRows, FLAME, hero, ICONS, ITEM_ART, nextTier, PAL, petOf, SUNRISE, svg, tierOf } from '../sprites';
+import { BEARDS, CLASSIC, EYES, FACES, GARBS, HAIRS, MARKS, NAME_MAX, OUTFITS, PRESETS, sameLook, SKINS, STYLES, type Swatch } from '../logic/look';
+import { CALENDAR, CHEST, COIN, crestRows, FLAME, hero, heroHead, ICONS, ITEM_ART, nextTier, PAL, petOf, SUNRISE, svg, titleOf } from '../sprites';
 import { ELITE_PALS, LADDER, wounded } from '../bosses';
 import { CHECK, esc } from './html';
 
@@ -107,29 +107,43 @@ function trophyCard(state: State, sc: Score, hs: HeroState, it: Item) {
 }
 
 // A color button; the check mark and the name in the heading say which is picked, not the color alone.
-const swatch = (part: keyof Look, label: string, s: Swatch, i: number, on: boolean) =>
+const swatch = (part: LookPart, label: string, s: Swatch, i: number, on: boolean) =>
   `<button class="swatch" style="--c:${s.c};--d:${s.d ?? s.c}" data-action="look" data-part="${part}" data-val="${i}" aria-pressed="${on}" aria-label="${label} ${s.name}">${on ? CHECK : ''}</button>`;
+
+// Your name, shown as "NAME THE RANK". Also on the WELCOME screen. Empty clears it.
+export const nameForm = (name = '') => `
+  <form class="plan-form" data-form="hero-name">
+    <input name="name" maxlength="${NAME_MAX}" value="${esc(name)}" placeholder="Your hero's name" aria-label="Your hero's name" autocomplete="off" spellcheck="false">
+    <button class="btn small" type="submit">SAVE</button>
+  </form>`;
 
 function lookView(state: State, level: number, worn: string[]) {
   const look = state.look ?? CLASSIC;
   const presets = PRESETS.map((p, i) => `<button class="item" data-action="preset" data-preset="${i}" aria-pressed="${sameLook(look, p.look)}">
       <span class="item-art">${hero(level, 48, [], p.look)}</span><span class="item-name">${p.name.toUpperCase()}</span></button>`);
-  const styles = STYLES.map((n, i) => `<button class="item" data-action="look" data-part="style" data-val="${i}" aria-pressed="${look.style === i}" aria-label="Hair ${n}">
-      <span class="item-art">${hero(level, 40, [], { ...look, style: i })}</span></button>`);
+  // Head-and-shoulders buttons, so hair and faces show big enough to tell apart.
+  const heads = (part: LookPart, label: string, names: string[]) =>
+    `<h3>${label}: ${names[look[part] ?? 0].toUpperCase()}</h3>
+     <div class="styles heads" role="group" aria-label="${label}">${names.map((n, i) => `<button class="item" data-action="look" data-part="${part}" data-val="${i}" aria-pressed="${(look[part] ?? 0) === i}" aria-label="${label} ${n}">
+      <span class="item-art">${heroHead({ ...look, [part]: i }, 44)}</span><span class="item-name">${n.toUpperCase()}</span></button>`).join('')}</div>`;
   const garbs = GARBS.map((n, i) => `<button class="item" data-action="look" data-part="garb" data-val="${i}" aria-pressed="${(look.garb ?? 0) === i}" aria-label="Outfit ${n}">
       <span class="item-art">${hero(level, 40, [], { ...look, garb: i })}</span></button>`);
-  const row = (part: 'skin' | 'hair' | 'outfit', label: string, list: Swatch[]) =>
-    `<h3>${label}: ${list[look[part]].name.toUpperCase()}</h3>
-     <div class="swatches" role="group" aria-label="${label}">${list.map((s, i) => swatch(part, label, s, i, look[part] === i)).join('')}</div>`;
+  const row = (part: 'skin' | 'hair' | 'outfit' | 'eye', label: string, list: Swatch[]) =>
+    `<h3>${label}: ${list[look[part] ?? 0].name.toUpperCase()}</h3>
+     <div class="swatches" role="group" aria-label="${label}">${list.map((s, i) => swatch(part, label, s, i, (look[part] ?? 0) === i)).join('')}</div>`;
   // Pinned while you scroll the long list below, so every change shows on your hero without scrolling back up.
   return `
-    <div class="look-pin">${hero(level, 48, worn, look)}<button class="btn ghost" data-action="look-random">RANDOM HERO</button></div>
+    <div class="look-pin">${hero(level, 64, worn, look)}<button class="btn ghost" data-action="look-random">RANDOM HERO</button></div>
+    ${nameForm(look.name)}
     <h3>PRESETS</h3>
     <div class="presets">${presets.join('')}</div>
     ${row('skin', 'SKIN', SKINS)}
-    <h3>HAIR: ${STYLES[look.style].toUpperCase()}</h3>
-    <div class="styles" role="group" aria-label="Hair style">${styles.join('')}</div>
+    ${heads('style', 'HAIR', STYLES)}
     ${row('hair', 'HAIR COLOR', HAIRS)}
+    ${heads('face', 'EXPRESSION', FACES)}
+    ${row('eye', 'EYES', EYES)}
+    ${heads('beard', 'FACIAL HAIR', BEARDS)}
+    ${heads('mark', 'FACE MARKS', MARKS)}
     <h3>OUTFIT STYLE: ${GARBS[look.garb ?? 0].toUpperCase()}</h3>
     <div class="styles" role="group" aria-label="Outfit style">${garbs.join('')}</div>
     ${row('outfit', 'OUTFIT COLOR', OUTFITS)}
@@ -137,7 +151,6 @@ function lookView(state: State, level: number, worn: string[]) {
 }
 
 export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
-  const t = tierOf(sc.level);
   const next = nextTier(sc.level);
   const stars = hs.achievements.reduce((n, p) => n + p.tier, 0);
   const tabs = [...SLOTS, 'trophies' as const].map((s) => `<button role="tab" data-action="slot" data-slot="${s}" aria-selected="${s === ui.slot}">${s === 'trophies' ? 'TROPHY' : SLOT_NAMES[s]}</button>`);
@@ -150,7 +163,7 @@ export function heroView(state: State, sc: Score, hs: HeroState, ui: HeroUi) {
     <div class="hero-card">
       <div class="hero-big juice">${hero(sc.level, 128, worn, state.look, true)}${pet ? petButton(pet) : ''}</div>
       <div class="hero-info">
-        <b>LV ${sc.level} ${t.title.toUpperCase()}</b>
+        <b>LV ${sc.level} ${esc(titleOf(sc.level, state.look).toUpperCase())}</b>
         <span class="gold${hs.balance < 0 ? ' debt' : ''}">${svg(COIN, 12)} ${goldText(hs)} G</span>
         <span class="muted small">${next ? `Next: ${next.title.toUpperCase()} at LV ${next.from}` : 'Highest tier!'}</span>
       </div>

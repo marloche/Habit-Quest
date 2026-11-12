@@ -160,6 +160,15 @@ describe('hero look in the save', () => {
     expect(() => parseState(JSON.stringify({ ...base, look: { skin: 0, style: 0, hair: 0 } }))).toThrow();
     expect(() => parseState(JSON.stringify({ ...base, look: { skin: 0, style: 0, hair: 0, outfit: 0, garb: 99 } }))).toThrow();
   });
+  it('keeps the new hair, face options and name', () => {
+    const s = { ...base, look: { skin: 0, style: 21, hair: 0, outfit: 0, eye: 7, beard: 4, mark: 3, face: 3, name: 'Marlo' } };
+    expect(parseState(JSON.stringify(s)).look).toEqual(s.look);
+  });
+  it('rejects a bad face option or name', () => {
+    const ok = { skin: 0, style: 0, hair: 0, outfit: 0 };
+    for (const bad of [{ style: 22 }, { eye: 8 }, { beard: 5 }, { mark: 4 }, { face: 4 }, { name: '' }, { name: 'A'.repeat(13) }, { name: ' Marlo' }, { name: 7 }])
+      expect(() => parseState(JSON.stringify({ ...base, look: { ...ok, ...bad } })), JSON.stringify(bad)).toThrow();
+  });
   it('round-trips worn armor', () => {
     const s = { ...base, wardrobe: { ...base.wardrobe, owned: { chainmail: { day: '2026-11-04', paid: 220 } }, worn: { armor: 'chainmail' } } };
     expect(parseState(JSON.stringify(s)).wardrobe).toEqual(s.wardrobe);

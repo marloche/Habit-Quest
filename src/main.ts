@@ -7,11 +7,11 @@ import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
 import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
 import { JOURNAL_GOLD, JOURNAL_MAX } from './logic/journal';
-import type { Bg, Chapter, Epic, EpicBy, Look, Mark, Mood, Schedule, Settings, State } from './logic/types';
+import type { Bg, Chapter, Epic, EpicBy, Look, LookPart, Mark, Mood, Schedule, Settings, State } from './logic/types';
 import type { VolKey } from './logic/volume';
 import { display, sceneFor } from './logic/scene';
 import { mountScene } from './scenes';
-import { CLASSIC, PRESETS, randomLook } from './logic/look';
+import { CLASSIC, cleanName, PRESETS, randomLook } from './logic/look';
 import { afterSave, BACKUP_DAYS, KEY, backupAge, exportFile, fresh, load, newId, parseState, save } from './store';
 import { connect, disconnect, initSync, noteSave, replaceToken, syncNow, syncStatus } from './sync';
 import { calendarView } from './ui/calendar';
@@ -552,10 +552,24 @@ function addSuggested() {
 }
 
 // Wipes everything but settings. The typed word is the guard; the EXPORT button sits right above it.
+// Presets and RANDOM HERO change how you look, not who you are: the name stays.
 function setLook(look: Look) {
+  const name = state.look?.name;
+  state.look = name ? { ...look, name } : { ...look };
+  if (!name) delete state.look.name;
+  save(state);
+  render();
+}
+
+function setName(form: HTMLFormElement) {
+  const name = cleanName(String(new FormData(form).get('name') ?? ''));
+  const look: Look = { ...(state.look ?? CLASSIC) };
+  if (name) look.name = name;
+  else delete look.name;
   state.look = look;
   save(state);
   render();
+  toast(name ? `Hail, ${name}!` : 'Name cleared.');
 }
 
 function newGame() {
@@ -890,7 +904,7 @@ app.addEventListener('click', (e) => {
     case 'pet': return pet(el);
     case 'item': return tapItem(el.dataset.item!);
     case 'preset': return setLook(PRESETS[Number(el.dataset.preset)].look);
-    case 'look': return setLook({ ...(state.look ?? CLASSIC), [el.dataset.part as keyof Look]: Number(el.dataset.val) });
+    case 'look': return setLook({ ...(state.look ?? CLASSIC), [el.dataset.part as LookPart]: Number(el.dataset.val) });
     case 'look-random': return setLook(randomLook());
     case 'bg': state.settings.bg = el.dataset.bg as Bg; return commit();
     case 'bg-strength': state.settings.bgStrength = Number(el.dataset.val); return commit();
@@ -940,6 +954,7 @@ app.addEventListener('submit', (e) => {
   else if (form.dataset.form === 'epic-log') logEpic(form);
   else if (form.dataset.form === 'sync') void connectSync(form);
   else if (form.dataset.form === 'sync-token') void newToken(form);
+  else if (form.dataset.form === 'hero-name') setName(form);
   else saveHabit(form);
 });
 

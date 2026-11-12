@@ -46,8 +46,10 @@ export type Journal = Record<string, { mood: Mood; text?: string }>; // day key 
 export type Focus = Record<string, number>; // day key -> minutes focused
 
 // Hero appearance, each part an index into the lists in look.ts. Optional: a save without one draws the classic hero.
-// garb: the outfit's shape (GARBS); optional because looks saved before it existed have none, and draw the tunic.
-export type Look = { skin: number; style: number; hair: number; outfit: number; garb?: number };
+// garb: the outfit's shape (GARBS); eye / beard / mark / face: face options. All optional because looks saved
+// before them have none, and draw the first of each. name: the hero's name, shown as "NAME THE RANK".
+export type Look = { skin: number; style: number; hair: number; outfit: number; garb?: number; eye?: number; beard?: number; mark?: number; face?: number; name?: string };
+export type LookPart = Exclude<keyof Look, 'name'>;
 
 // A long-term goal. Progress is worked out like everything else: from ticked chapters, logged amounts, or the
 // log of linked quests from the epic's start. "Finished" is never stored, so unticking can take it back.
