@@ -1,13 +1,13 @@
 import { CLASSIC, EYES, HAIRS, OUTFITS, SKINS } from './logic/look.ts'; // .ts: scripts/make-icons.mjs loads this file in plain Node
 import type { Look } from './logic/types';
-import { compose, TUNIC } from './hero32.ts';
-import { GARBS32, ITEM32, TRIMS32, type Layer32 } from './art32.ts';
+import { compose } from './hero32.ts';
+import { GARBS32, ITEM32, PETS32, TRIMS32, type Layer32 } from './art32.ts';
 
 // Pixel art as rows of palette letters ('.' = transparent), rendered to crisp SVG.
 export const PAL: Record<string, string> = {
   k: '#1a1c2c', p: '#5d275d', r: '#b13e53', o: '#ef7d57', y: '#ffcd75', l: '#a7f070', g: '#38b764', G: '#257179',
   n: '#29366f', b: '#3b5dc9', c: '#41a6f6', C: '#73eff7', w: '#f4f4f4', s: '#94b0c2', S: '#566c86', d: '#333c57',
-  f: '#e8b796', v: '#9b5fc0', e: '#8a5a36', E: '#5c3a28',
+  f: '#e8b796', v: '#9b5fc0', e: '#8a5a36', E: '#5c3a28', u: '#f08ca0', // u: blush, on the hero and the pets
 };
 
 export const COIN = ['..yyyy..', '.yyoyyy.', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', 'yyyoyyyy', '.yyoyyy.', '..yyyy..'];
@@ -56,146 +56,18 @@ export const CALENDAR = ['.S....S.', 'rrrrrrrr', 'wwwwwwww', 'wgwgwgww', 'wwwwww
 
 export const FLAME = ['...o....', '...oo...', '..ooy...', '..oyyo..', '.ooyyoo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..'];
 
-// f = skin, h = hair, A/a = outfit and its shade: all come from your look. Head rows 0-6 per hair style (STYLES order).
-const SHORT = ['......kkkk......', '.....khhhhk.....', '....khhhhhhk....'];
-const FACE = ['....kffffffk....', '....kfkffkfk....', '....kffffffk....', '.....kffffk.....'];
-export const HEADS = [
-  [...SHORT, ...FACE],
-  [...SHORT, '...khffffffhk...', '...khfkffkfhk...', '...khffffffhk...', '...khhffffhhk...'],
-  [SHORT[0], SHORT[1], '....khhhhhhkk...', '....kffffffkhk..', '....kfkffkfkhk..', '....kffffffk.hk.', '.....kffffk..k..'],
-  ['....hh.h..hh....', '...khhhhhhhhk...', '..hkhhhhhhhhkh..', ...FACE], // uneven tips, or blonde reads as a crown
-  ['......khhk......', SHORT[1], SHORT[2], ...FACE],
-  ['................', SHORT[0], '....kkffffkk....', ...FACE],
-];
-export const BODY = [
-  '....kAAAAAAk....',
-  '...kfAAaaAAfk...',
-  '...kfAAAAAAfk...',
-  '....kAAAAAAk....',
-  '....kaaaaaak....',
-  '....kAAkkAAk....',
-  '....kAAkkAAk....',
-  '....kkk..kkk....',
-  '................',
-];
-// Outfit shapes, in GARBS order (look.ts); BODY is the tunic. Hands stay at rows 8-9, columns 4 and 11, on every one.
-export const GARB_ROWS: string[][] = [
-  BODY,
-  ['....kAAAAAAk....', '...kfAaAAaAfk...', '...kfAaAAaAfk...', '....kAAyyAAk....', '....kAAAAAAk....', '...kAAAAaAAAk...', '...kAAAAaAAAk...', '...kaaaaaaaak...', '................'],
-  ['....kAAAAAEk....', '...kfAAAAEAfk...', '...kfAAAEAAfk...', '....kAAEAAAk....', '....kEEyEEEk....', '....kaakkaak....', '....kaakkaak....', '....kkk..kkk....', '................'],
-  ['....kSAAAASk....', '...kfsAwwAsfk...', '...kfswwwwsfk...', '....ksAwwAsk....', '....kyyyyyyk....', '....kSAAAASk....', '....kSSkkSSk....', '....kkk..kkk....', '................'],
-  ['...kaaaaaaaak...', '...kfaAAAAafk...', '...kfaAkkAafk...', '....kaAAAAak....', '....kkkSkkkk....', '....kddkkddk....', '....kddkkddk....', '....kkk..kkk....', '................'],
-  ['...kaAAAAAAak...', '...kfAAAaaafk...', '...kfaaaAAAfk...', '....kAAAaaak....', '....kkkykkkk....', '....kAakkaAk....', '....kaAkkAak....', '....kkk..kkk....', '................'],
-  ['....kAAffAAk....', '...kfAaAAAAfk...', '...kfAAaAAAfk...', '....kAAAaAAk....', '....kooooook....', '....kAAkkoAk....', '....kAAkkAAk....', '....fff..fff....', '................'],
-  ['....kyAAAAyk....', '...kfAaAaAafk...', '...kfaAaAaAfk...', '....kAaAaAak....', '....kyyyyyyk....', '....kaAyyAak....', '....kSSkkSSk....', '....kkk..kkk....', '................'],
-  ['....kAAwwAAk....', '...kfAwAAwAfk...', '...kfAAwwAAfk...', '....kAwAAwAk....', '....kAAvvAAk....', '...kAAAAAAAAk...', '...kAaAAAAaAk...', '...kaaaaaaaak...', '................'],
-  ['...glAAAAAAlg...', '...kfAgAAAAfk...', '...kfAAAAgAfk...', '....kAAAAAAk....', '....kgGgGgGk....', '...kAAAAAAAAk...', '...kAAAgAAAAk...', '...kaaaaaaaak...', '................'],
-  ['....kwwwwwwk....', '...kfAAAAAAfk...', '...kfwwwwwwfk...', '....kAAAAAAk....', '....krrrrrrk....', '....kddkkdrk....', '....kddkkddk....', '....kkk..kkk....', '................'],
-];
-
-// Your colors stay yours; each tier adds trim on top so the hero still visibly grows.
-const pads = (a: string, b: string): Layer => ({ x: 3, y: 7, rows: [`${a}${b}......${b}${a}`] });
-const BELT: Layer = { x: 5, y: 11, rows: ['yyooyy'] };
-const TIERS: { from: number; title: string; trim: Layer[] }[] = [
-  { from: 1, title: 'Squire', trim: [] },
-  { from: 5, title: 'Knight', trim: [pads('S', 's')] },
-  { from: 10, title: 'Champion', trim: [pads('o', 'y'), BELT] },
-  { from: 20, title: 'Legend', trim: [pads('y', 'C'), BELT] }, // and glowing eyes (hero below)
+// Your colors stay yours; each tier adds trim on top (TRIMS32 in art32.ts) so the hero still visibly grows.
+const TIERS: { from: number; title: string }[] = [
+  { from: 1, title: 'Squire' },
+  { from: 5, title: 'Knight' },
+  { from: 10, title: 'Champion' },
+  { from: 20, title: 'Legend' }, // and glowing eyes (hero below)
 ];
 
 export const tierOf = (level: number) => [...TIERS].reverse().find((t) => level >= t.from)!;
 export const nextTier = (level: number) => TIERS.find((t) => t.from > level);
 // "MARLO THE SQUIRE", or just "SQUIRE" without a name.
 export const titleOf = (level: number, look?: Look) => (look?.name ? `${look.name} the ${tierOf(level).title}` : tierOf(level).title);
-
-// Wardrobe art, drawn onto the hero at (x, y). Capes go behind the body; pets sit to the right (x 16-23).
-// cover: helmets and hoods first wipe this many head rows (the hair above the face), so spikes and buns can't poke through.
-type Layer = { x: number; y: number; rows: string[]; behind?: true; cover?: number };
-const cape = (m: string, s: string, t: string): Layer => ({
-  x: 1, y: 7, behind: true,
-  rows: [`..${m.repeat(10)}..`, `.${m.repeat(12)}.`, `.${m.repeat(12)}.`, m.repeat(14), m.repeat(14),
-    `${m}${s}${m.repeat(10)}${s}${m}`, `${m}${s}${m.repeat(10)}${s}${m}`, `${t}${t}.${t.repeat(8)}.${t}${t}`],
-});
-// Trophy capes: wider, with a high collar and a scalloped hem, so they read grander than any shop cape.
-const robe = (m: string, s: string, t: string): Layer => ({
-  x: 0, y: 6, behind: true,
-  rows: [`${t}${t}${'.'.repeat(12)}${t}${t}`, `${t}${m.repeat(14)}${t}`, `.${m}${s}${m.repeat(10)}${s}${m}.`, `.${m.repeat(14)}.`,
-    `${m}${s}${m.repeat(12)}${s}${m}`, m.repeat(16), `${m}${m}${s}${m.repeat(10)}${s}${m}${m}`, t.repeat(16), `${t}.${t}.${t.repeat(8)}.${t}.${t}`],
-});
-export const ITEM_ART: Record<string, Layer> = {
-  bandana: { x: 4, y: 1, rows: ['rrrrrrrr..', 'rprrrrprrr', '........r.'] },
-  'ranger-hood': { x: 3, y: 0, cover: 3, rows: ['..gggggg..', '.gggggggg.', 'gggGGGGggg', 'gg......gg', 'gg......gg', 'Gg......gG', '.G......G.'] },
-  'knight-helm': { x: 3, y: 0, cover: 3, rows: ['....rrr...', '..SSSSSS..', '.SssssssS.', 'SssssssssS', 'SskkkkkksS', 'SssssssssS', '.SsSssSsS.'] },
-  'dragon-helm': { x: 2, y: 0, cover: 3, rows: ['l..........l', 'll.gGggGg.ll', '.llgGggGgll.', '..gGyggyGg..', '..gg....gg..', '..Gg....gG..'] },
-  // Weapons are held: the grip sits at column 12, rows 8-9, right beside the hand (column 11). Blades and hafts lean out
-  // and up; staffs and spears stand beside the hand down to the ground; nothing passes column 15, where pets start.
-  dagger: { x: 12, y: 5, rows: ['..w.', '.s..', 'kyk.', 'o...', 'o...'] },
-  lute: { x: 10, y: 5, rows: ['.....k', '.....o', '....o.', '...o..', '..o...', 'ooo...', 'oko...', 'ooo...'] },
-  'battle-axe': { x: 12, y: 1, rows: ['..o.', '.SoS', '.sow', '.SoS', '..o.', '.o..', '.o..', 'o...', 'o...', 'o...'] },
-  'rune-spear': { x: 11, y: 0, rows: ['.C.', 'CwC', '.C.', '.s.', '.c.', '.o.', '.c.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.', '.o.'] },
-  mace: { x: 12, y: 2, rows: ['..S.', '.SsS', '..S.', '..o.', '.o..', '.o..', 'o...', 'o...', 'k...'] },
-  crossbow: { x: 12, y: 6, rows: ['...S', '...s', 'ooos', 'pk.s', '...S'] },
-  flail: { x: 12, y: 2, rows: ['..SS', '..Ss', '..k.', '.k..', '.o..', '.o..', 'o...', 'o...'] },
-  scythe: { x: 12, y: 0, rows: ['oSSs', 'o.ss', 'o..s', ...Array<string>(12).fill('o...')] },
-  // Armor sits on the chest over the outfit (rows 7-10) and under the weapon; it hides level-tier shoulder pads where they meet.
-  'leather-vest': { x: 3, y: 7, rows: ['..eeeeee..', '..ee..ee..', '..eE..Ee..', '...e..e...'] },
-  chainmail: { x: 3, y: 7, rows: ['.SssssssS.', '..sSsSsS..', '..SsSsSs..', '..sSsSsS..'] },
-  breastplate: { x: 3, y: 7, rows: ['SsSssssSsS', '..swssss..', '..swsssS..', '...SssS...'] },
-  'gilded-plate': { x: 3, y: 7, rows: ['oyoyyyyoyo', '..ywyyyo..', '..yyrryy..', '...oyyo...'] },
-  dragonscale: { x: 3, y: 7, rows: ['GgGlgglGgG', '..gGgGgG..', '..GgGgGg..', '...gGgG...'] },
-  // Matching sets, hat then armor: Sea Rover, Valkyrie, Bonewarden, Astral.
-  tricorn: { x: 2, y: 0, cover: 2, rows: ['y...kkkk...y', 'kkkkkwwkkkkk', '.kkkkkkkkkk.'] },
-  'rover-coat': { x: 3, y: 7, rows: ['prrwwwwrrp', '..rywwyr..', '..rywwyr..', '..rrkkrr..'] },
-  'winged-helm': { x: 2, y: 0, cover: 3, rows: ['w...SSSS...w', 'ww.SssssS.ww', '.wwSssssSww.', '..SyyyyyyS..'] },
-  'valkyrie-mail': { x: 3, y: 7, rows: ['CsSssssSsC', '..sCssCs..', '..SswwsS..', '...yssy...'] },
-  'bone-cowl': { x: 3, y: 0, cover: 3, rows: ['..pppppp..', '.pppppppp.', 'ppwpwwpwpp', 'pk......kp', 'pk......kp', 'pk......kp', '.p......p.'] },
-  'bone-mail': { x: 3, y: 7, rows: ['wpkkkkkkpw', '..wwkkww..', '..kwwwwk..', '...pvvp...'] },
-  'astral-hood': { x: 3, y: 0, cover: 3, rows: ['....nn....', '..nnbbnn..', '.nbbyybbn.', 'nnbbbbbbnn', 'nC......Cn', 'nn......nn', '.n......n.'] },
-  'astral-vestment': { x: 3, y: 7, rows: ['CnbbbbbbnC', '..nbyybn..', '..bnCCnb..', '...nyyn...'] },
-  'steadfast-mantle': { x: 3, y: 7, rows: ['lgwwwwwwgl', '..gwyywg..', '...g..g...'] },
-  'slayers-cuirass': { x: 3, y: 7, rows: ['rdSddddSdr', '..dwwwwd..', '..dSddSd..', '...rddr...'] },
-  'traveler-cloak': cape('G', 'g', 'S'),
-  'fur-mantle': cape('S', 's', 'w'),
-  'feather-cape': { x: 1, y: 7, behind: true, rows: ['..cbcbcbcbcb..', '.bcbcbcbcbcbc.', '.cbcbcbcbcbcb.', 'bcbcbcbcbcbcbc', 'cbcbcbcbcbcbcb', 'wcwcwcwcwcwcwc', 'cwcwcwcwcwcwcw', 'w.w.w.ww.w.w.w'] },
-  'dragonwing-cape': {
-    x: 0, y: 5, behind: true,
-    rows: ['p..............p', 'pp............pp', 'pvp..........pvp', 'pvvppppppppppvvp', 'pvvvppppppppvvvp', 'pvvvppppppppvvvp', '.pvvppppppppvvp.', '.pvppppppppppvp.','..p.pppppppp.p..'],
-  },
-  frog: { x: 16, y: 8, rows: ['........', '........', '.ww..ww.', '.wk..wk.', 'gggggggg', 'ggkkkkgg', '.gllllg.', 'Gg....gG'] },
-  fox: { x: 16, y: 8, rows: ['........', '.o....o.', '.oo..oo.', '.oooooo.', '.okooko.', '.owwwwoo', '..wkkw.w', '..o..o..'] },
-  'little-ghost': { x: 16, y: 8, rows: ['........', '..wwww..', '.wwwwww.', '.wvwwvw.', '.wwwwww.', '.wwkkww.', 'wwwwwwww', 'w.ww.w.w'] },
-  griffin: { x: 16, y: 8, rows: ['..ww....', '.wkww...', 'yywww.ss', '..wwwsss', '..yyysss', '.yyyyyy.', '.yy..yyo', '.o...o..'] },
-  'sun-circlet': { x: 3, y: 0, rows: ['y...yy...y', '.y.yooy.y.', 'yyyyooyyyy'] },
-  'laurel-wreath': { x: 3, y: 1, rows: ['.l.g..g.l.', 'lgGgyygGgl', 'g........g', 'G........G'] },
-  'second-wind': { x: 12, y: 0, rows: ['...C', '..wc', '..w.', '.cw.', '.wC.', '.w..', '.w..', 'yry.', 'r...', 'r...', 'y...'] },
-  'starforged-blade': { x: 12, y: 0, rows: ['..y.', '.yyy', '..w.', '..w.', '.wC.', '.w..', '.w..', 'yvy.', 'v...', 'v...', 'y...'] },
-  'moonlit-cape': robe('n', 'w', 's'),
-  'ember-cape': robe('r', 'o', 'y'),
-  'loyal-hound': { x: 16, y: 8, rows: ['........', '.ssssss.', 'SskssksS', 'SsswwssS', '.sskkss.', '.rryrrr.', '.ssssss.', '.s.ss.s.'] },
-  'steady-turtle': { x: 16, y: 8, rows: ['........', '........', '..GGGG..', '.GgyygG.', 'lGyggyGG', 'klllllll', '.ll..ll.', '........'] },
-  'leaf-crown': { x: 4, y: 0, rows: ['.g.gg.g.', 'gGgGGgGg'] },
-  'wizard-hat': { x: 4, y: 0, rows: ['...bb...', '..bbyb..', 'bbbbbbbb'] },
-  'horned-helm': { x: 3, y: 0, rows: ['w........w', 'ww.SSSS.ww', '.wSssssSw.', '..SSSSSS..'] },
-  'gold-crown': { x: 4, y: 0, rows: ['y..yy..y', 'yyyyyyyy', 'yryyyyry'] },
-  halo: { x: 5, y: 0, rows: ['.CCCC.', 'C....C'] },
-  'wood-sword': { x: 12, y: 1, rows: ['...o', '..o.', '..o.', '..o.', '.o..', '.o..', 'kok.', 'p...', 'p...', 'k...'] },
-  staff: { x: 11, y: 0, rows: ['.c.', 'cCc', '.c.', ...Array<string>(12).fill('.o.')] },
-  bow: { x: 12, y: 3, rows: ['..os', '.o.s', '.o.s', 'o..s', 'o..s', 'p..s', 'p..s', 'o..s', '.o.s', '.o.s', '..os'] },
-  'flame-blade': { x: 12, y: 1, rows: ['...o', '..yo', '.oy.', '..y.', '.yo.', 'oy..', 'ryr.', 'r...', 'r...', 'y...'] },
-  'crystal-staff': { x: 11, y: 0, rows: ['CwC', 'wCw', 'CwC', ...Array<string>(12).fill('.s.')] },
-  'red-cape': cape('r', 'p', 'p'),
-  'royal-cape': cape('b', 'n', 'y'),
-  'starry-cape': cape('n', 'w', 'C'),
-  'shadow-cape': cape('p', 'k', 'r'),
-  slime: { x: 16, y: 8, rows: ['........', '........', '...gg...', '..glgg..', '.gkggkg.', '.gggggg.', 'gggggggg', '.GGGGGG.'] },
-  cat: { x: 16, y: 8, rows: ['........', '.o....o.', '.oo..oo.', '.oooooo.', '.okooko.', '.oooooo.', '..oooo.o', '..o..oo.'] },
-  'baby-dragon': { x: 16, y: 8, rows: ['.....ll.', '....lgkl', '.y..gggl', 'yy.ggg..', '.yggggg.', '..gglgg.', '..gg.gg.', '..l...l.'] },
-  'flame-crown': { x: 4, y: 0, rows: ['.o..o..o', 'oyooyooy', 'yyyyyyyy'] },
-  dragonslayer: { x: 12, y: 0, rows: ['...w', '..ws', '..ws', '.ws.', '.ws.', '.wC.', '.w..', 'ryr.', 'r...', 'r...', 'y...'] },
-  'champion-cape': robe('w', 'y', 'y'),
-  'wise-owl': { x: 16, y: 8, rows: ['........', '.s....s.', '.ssssss.', '.ykssyk.', '.ssooss.', '.swwwws.', '.swwwws.', '..o..o..'] },
-  phoenix: { x: 16, y: 8, rows: ['...o....', '..oyo...', '.oykoo..', 'o.oyyoo.', '..ooyyo.', '.r.oyo..', 'r..ro...', '..r.r...'] },
-};
 
 export function svg(rows: string[], size: number, label = '', pal: Record<string, string> = PAL): string {
   let rects = '';
@@ -215,24 +87,9 @@ export function svg(rows: string[], size: number, label = '', pal: Record<string
 
 export const icon = (name: string, size = 24) => svg(ICONS[name] ?? ICONS.star, size);
 
-// Pets are the layers drawn right of the hero, from column 16.
-export const petOf = (worn: string[]) => worn.find((id) => ITEM_ART[id]?.x === 16);
+// Pets stand right of the hero, from column 32.
+export const petOf = (worn: string[]) => worn.find((id) => PETS32[id]);
 
-// Interim: wardrobe art not yet redrawn at 32px (art32.ts) is still 16px. Each old pixel becomes 2 wide, and
-// rows stretch onto the new proportions: head rows 0-6 to 0-18, body rows 7-15 to 19-31, pets from column 32.
-const ROW = (y: number) => (y <= 7 ? Math.round((y * 19) / 7) : 19 + Math.round(((y - 7) * 13) / 9));
-function stamp(grid: string[][], l: Layer, from = 0) {
-  l.rows.forEach((row, dy) =>
-    [...row].forEach((ch, dx) => {
-      if (ch === '.') return;
-      const ox = l.x + dx, oy = l.y + dy;
-      for (let y = ROW(oy); y < ROW(oy + 1); y++)
-        for (const x of [ox * 2, ox * 2 + 1]) {
-          const cell = grid[y - from];
-          if (cell && x < cell.length && (!l.behind || cell[x] === '.')) cell[x] = ch;
-        }
-    }));
-}
 function stamp32(grid: string[][], l: Layer32) {
   l.rows.forEach((row, y) =>
     row && [...row].forEach((ch, x) => {
@@ -250,25 +107,24 @@ export function lookPal(look: Look, glow = false): Record<string, string> {
   const s = SKINS[look.skin].c, h = HAIRS[look.hair].c, outfit = OUTFITS[look.outfit];
   return {
     ...PAL, f: s, F: shade(s, 0.85), x: shade(s, 0.7), h, H: shade(h, 0.68), j: mix(h, '#ffffff', 0.35), z: mix(s, shade(h, 0.6), 0.6),
-    A: outfit.c, a: outfit.d!, Q: glow ? '#73eff7' : shade(EYES[look.eye ?? 0].c, 0.62), u: '#f08ca0', X: '#a0404a',
+    A: outfit.c, a: outfit.d!, Q: glow ? '#73eff7' : shade(EYES[look.eye ?? 0].c, 0.62), X: '#a0404a',
   };
 }
 
 // noPet: leave the pet's space empty, for a pet drawn on its own on top.
 export function hero(level: number, size = 64, worn: string[] = [], look: Look = CLASSIC, noPet = false) {
   const t = tierOf(level);
-  const ids = worn.filter((id) => ITEM_ART[id]);
-  const width = ids.some((id) => ITEM_ART[id].x + ITEM_ART[id].rows[0].length > 16) ? 48 : 32;
-  const shown = noPet ? ids.filter((id) => ITEM_ART[id].x < 16) : ids;
-  const hatted = shown.some((id) => ITEM32[id]?.cover ?? ITEM_ART[id].cover);
-  const grid = compose(look, GARBS32[look.garb ?? 0] ?? GARBS32[0], width, hatted);
+  const ids = worn.filter((id) => ITEM32[id]);
+  const width = ids.some((id) => PETS32[id]) ? 48 : 32;
+  const shown = noPet ? ids.filter((id) => !PETS32[id]) : ids;
+  const grid = compose(look, GARBS32[look.garb ?? 0] ?? GARBS32[0], width, shown.some((id) => ITEM32[id].cover));
   for (const l of TRIMS32[t.title]) stamp32(grid, l);
-  for (const id of shown) (ITEM32[id] ? stamp32(grid, ITEM32[id]) : stamp(grid, ITEM_ART[id]));
+  for (const id of shown) stamp32(grid, ITEM32[id]);
   return svg(grid.map((r) => r.join('')), size, `Level ${level} ${titleOf(level, look)}`, lookPal(look, t.title === 'Legend'));
 }
 
 // Just the head and shoulders, bigger, for the hair and face pickers.
 export function heroHead(look: Look, size = 48) {
-  const grid = compose(look, GARBS32[look.garb ?? 0] ?? TUNIC);
+  const grid = compose(look, GARBS32[look.garb ?? 0] ?? GARBS32[0]);
   return svg(grid.slice(0, 26).map((r) => r.join('')), size, '', lookPal(look));
 }

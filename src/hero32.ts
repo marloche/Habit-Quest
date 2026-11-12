@@ -34,24 +34,6 @@ export const HEAD = rowsFrom(3, [
   '..........kkkkkk', // y18
 ]);
 
-// ---------- body ----------
-// The tunic at 32px; hands at row 25, columns 8-9 and 22-23. The other outfits are still upscaled 16px art.
-export const TUNIC = rowsFrom(19, [
-  '............kfff', // y19 neck
-  '.........kkkAAAA',
-  '........kAAAAAAA',
-  '.......kAAkAAAAA',
-  '.......kAAkAAAAA',
-  '.......kAAkAAAAA',
-  '.......kffkAAAAA', // y25 hands
-  '.......kkkkaaaaa', // belt
-  '........kkAAAAAA',
-  '..........kaaak.',
-  '..........kaaak.',
-  '.........kEEEEk.',
-  '.........kkkkkk.', // y31
-]);
-
 // ---------- face ----------
 // Dot eyes at cols 10-11 and 20-21, tinted by eye color; blush is always on.
 const put = (grid: Grid, x: number, y: number, s: string) => [...s].forEach((c, i) => c !== '.' && grid[y] && (grid[y][x + i] = c));

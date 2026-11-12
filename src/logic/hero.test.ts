@@ -5,7 +5,8 @@ import { expected, isActive } from './score';
 import { TRACKS } from './achievements';
 import { buyBlock, emptyWardrobe, itemById, ITEMS, wornIds } from './items';
 import { score } from './score';
-import { ITEM_ART, PAL } from '../sprites';
+import { PAL } from '../sprites';
+import { ITEM32, PETS32 } from '../art32';
 import { ELITE_PALS, LADDER, wounded } from '../bosses';
 import type { Habit, Log, Mark, State } from './types';
 
@@ -39,27 +40,24 @@ describe('chest loot', () => {
 });
 
 describe('item art', () => {
-  it('exists for every item, with even rows that stay on the 24x16 canvas', () => {
+  it('exists at 32px for every item, pets beside the hero and everything else on its 32x32 canvas', () => {
+    const colors = new RegExp(`^[${Object.keys(PAL).join('')}]*$`);
     for (const i of ITEMS) {
-      const art = ITEM_ART[i.id];
+      const art = ITEM32[i.id];
       expect(art, i.id).toBeDefined();
-      expect(new Set(art.rows.map((r) => r.length)).size, i.id).toBe(1);
-      expect(art.x + art.rows[0].length, i.id).toBeLessThanOrEqual(24);
-      expect(art.y + art.rows.length, i.id).toBeLessThanOrEqual(16);
-      expect(art.rows.join('').replace(/\./g, ''), i.id).toMatch(new RegExp(`^[${Object.keys(PAL).join('')}]+$`));
+      expect(art.rows.length, i.id).toBe(32);
+      const w = i.slot === 'pet' ? 48 : 32;
+      expect(art.rows.every((r) => !r || r.length === w), i.id).toBe(true);
+      expect(i.slot === 'pet', i.id).toBe(!!PETS32[i.id]);
+      expect(art.rows.filter(Boolean).join('').replace(/\./g, ''), i.id).toMatch(colors);
     }
   });
-  it('keeps weapons held beside the hand and clear of the pet, and armor off the hands', () => {
-    for (const i of ITEMS.filter((x) => x.slot === 'weapon')) {
-      const art = ITEM_ART[i.id];
-      expect(art.x + art.rows[0].length, i.id).toBeLessThanOrEqual(16); // pets start at column 16
-      const at = (r: number, c: number) => art.rows[r - art.y]?.[c - art.x] ?? '.';
-      expect([8, 9].some((r) => [11, 12, 13].some((c) => at(r, c) !== '.')), i.id).toBe(true); // something in or next to the hand
-    }
-    for (const i of ITEMS.filter((x) => x.slot === 'armor')) {
-      const art = ITEM_ART[i.id];
-      for (const [r, c] of [[8, 4], [8, 11], [9, 4], [9, 11]]) expect(art.rows[r - art.y]?.[c - art.x] ?? '.', i.id).toBe('.');
-    }
+  it('keeps weapons held beside the hand and armor off the hands', () => {
+    const cell = (id: string, r: number, c: number) => ITEM32[id].rows[r]?.[c] ?? '.';
+    for (const i of ITEMS.filter((x) => x.slot === 'weapon'))
+      expect([23, 24, 25, 26].some((r) => [22, 23, 24, 25, 26, 27].some((c) => cell(i.id, r, c) !== '.')), i.id).toBe(true); // at the right hand
+    for (const i of ITEMS.filter((x) => x.slot === 'armor'))
+      for (const c of [8, 9, 22, 23]) expect(cell(i.id, 25, c), i.id).toBe('.');
   });
 });
 

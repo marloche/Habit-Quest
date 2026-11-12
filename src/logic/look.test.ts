@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BEARDS, CLASSIC, cleanName, FACES, GARBS, MARKS, PARTS, PRESETS, randomLook, sameLook, STYLES, validName } from './look';
-import { GARB_ROWS, hero, heroHead, ITEM_ART, titleOf } from '../sprites';
+import { hero, heroHead, titleOf } from '../sprites';
 import * as art from '../hero32';
 import { GARBS32, ITEM32, PETS32 } from '../art32';
 import type { Look, LookPart } from './types';
@@ -18,14 +18,13 @@ describe('hero look', () => {
     expect(art.MARKS.map((m) => m.name)).toEqual(MARKS);
     for (const h of art.HAIRS) expect(rowsOk(h.front) && rowsOk(h.back), h.name).toBe(true);
     for (const b of art.BEARDS) expect(rowsOk(b.rows), b.name).toBe(true);
-    expect(rowsOk(art.HEAD) && rowsOk(art.TUNIC)).toBe(true);
-    expect([art.TUNIC[25]![8], art.TUNIC[25]![9], art.TUNIC[25]![22], art.TUNIC[25]![23]]).toEqual(['f', 'f', 'f', 'f']); // hands
+    expect(rowsOk(art.HEAD)).toBe(true);
   });
   it('draws every option and every item with known colors only', () => {
     const looks: Look[] = [];
     for (const [k, n] of Object.entries(PARTS)) for (let i = 0; i < n; i++) looks.push({ ...CLASSIC, [k]: i });
     for (const l of looks) expect(hero(1, 64, [], l), JSON.stringify(l)).not.toContain('undefined');
-    for (const id of Object.keys(ITEM_ART)) expect(hero(20, 64, [id]), id).not.toContain('undefined');
+    for (const id of Object.keys(ITEM32)) expect(hero(20, 64, [id]), id).not.toContain('undefined');
     expect(heroHead(CLASSIC)).not.toContain('undefined');
   });
   it('has a 32px outfit for every name, 32 wide, with the hands at row 25, columns 8-9 and 22-23', () => {
@@ -34,20 +33,7 @@ describe('hero look', () => {
       expect(rowsOk(g), GARBS[i]).toBe(true);
       expect([8, 9, 22, 23].map((x) => g[25]![x]), GARBS[i]).toEqual(['f', 'f', 'f', 'f']);
     }
-    for (const [id, l] of Object.entries(ITEM32)) {
-      const w = PETS32[id] ? 48 : art.W; // pets stand beside the hero
-      expect(l.rows.length === 32 && l.rows.every((r) => !r || r.length === w) && !!ITEM_ART[id], id).toBe(true);
-    }
-    // every item is redrawn: nothing left on the old 16px upscale
-    expect(Object.keys(ITEM_ART).filter((id) => !ITEM32[id])).toEqual([]);
     for (const [id, rows] of Object.entries(PETS32)) expect(rows.length === 16 && rows.every((r) => r.length === 16), id).toBe(true);
-  });
-  it('has an old 16px outfit shape for every name, 9 rows of 16, with the hands always at columns 4 and 11', () => {
-    expect(GARB_ROWS.length).toBe(GARBS.length);
-    for (const [i, g] of GARB_ROWS.entries()) {
-      expect(g.length === 9 && g.every((r) => r.length === 16), GARBS[i]).toBe(true);
-      expect([g[1][4], g[1][11], g[2][4], g[2][11]], GARBS[i]).toEqual(['f', 'f', 'f', 'f']);
-    }
   });
   it('has 11 distinct presets, all valid, each class in its own outfit shape after the classic squire', () => {
     expect(PRESETS.length).toBe(11);

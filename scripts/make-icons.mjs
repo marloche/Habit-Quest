@@ -1,15 +1,16 @@
 // Writes the app icons as PNGs from the hero sprite, using only Node built-ins.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
-import { BODY, HEADS, PAL } from '../src/sprites.ts';
-import { CLASSIC, HAIRS, OUTFITS, SKINS } from '../src/logic/look.ts';
+import { lookPal, PAL } from '../src/sprites.ts';
+import { compose } from '../src/hero32.ts';
+import { GARBS32 } from '../src/art32.ts';
+import { CLASSIC } from '../src/logic/look.ts';
 
-const HERO = [...HEADS[CLASSIC.style], ...BODY]; // the classic squire, no trim
+const HERO = compose(CLASSIC, GARBS32[0]).map((r) => r.join('')); // the classic squire, no trim
 
-const GRID = 24; // 16px hero centered with padding, inside the maskable safe zone
+const GRID = 48; // 32px hero centered with padding, inside the maskable safe zone
 const OFF = (GRID - HERO.length) / 2;
-const outfit = OUTFITS[CLASSIC.outfit];
-const colors = { ...PAL, f: SKINS[CLASSIC.skin].c, h: HAIRS[CLASSIC.hair].c, A: outfit.c, a: outfit.d };
+const colors = lookPal(CLASSIC);
 const BG = PAL.d;
 
 const crcTable = Array.from({ length: 256 }, (_, n) => {
@@ -52,8 +53,9 @@ function png(size) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 
-mkdirSync('public/icons', { recursive: true });
+const out = process.argv[2] ?? 'public/icons'; // another folder writes a preview without touching the real icons
+mkdirSync(out, { recursive: true });
 for (const [name, size] of [['apple-touch-icon', 180], ['icon-192', 192], ['icon-512', 512]]) {
-  writeFileSync(`public/icons/${name}.png`, png(size));
+  writeFileSync(`${out}/${name}.png`, png(size));
 }
-console.log('icons written to public/icons');
+console.log(`icons written to ${out}`);
