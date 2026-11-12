@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BEARDS, CLASSIC, cleanName, FACES, GARBS, MARKS, PARTS, PRESETS, randomLook, sameLook, STYLES, validName } from './look';
 import { GARB_ROWS, hero, heroHead, ITEM_ART, titleOf } from '../sprites';
 import * as art from '../hero32';
+import { GARBS32, ITEM32 } from '../art32';
 import type { Look, LookPart } from './types';
 
 const OPTIONAL = ['garb', 'eye', 'beard', 'mark', 'face'];
@@ -27,7 +28,15 @@ describe('hero look', () => {
     for (const id of Object.keys(ITEM_ART)) expect(hero(20, 64, [id]), id).not.toContain('undefined');
     expect(heroHead(CLASSIC)).not.toContain('undefined');
   });
-  it('has an outfit shape for every name, 9 rows of 16, with the hands always at columns 4 and 11', () => {
+  it('has a 32px outfit for every name, 32 wide, with the hands at row 25, columns 8-9 and 22-23', () => {
+    expect(GARBS32.length).toBe(GARBS.length);
+    for (const [i, g] of GARBS32.entries()) {
+      expect(rowsOk(g), GARBS[i]).toBe(true);
+      expect([8, 9, 22, 23].map((x) => g[25]![x]), GARBS[i]).toEqual(['f', 'f', 'f', 'f']);
+    }
+    for (const [id, l] of Object.entries(ITEM32)) expect(rowsOk(l.rows) && !!ITEM_ART[id], id).toBe(true);
+  });
+  it('has an old 16px outfit shape for every name, 9 rows of 16, with the hands always at columns 4 and 11', () => {
     expect(GARB_ROWS.length).toBe(GARBS.length);
     for (const [i, g] of GARB_ROWS.entries()) {
       expect(g.length === 9 && g.every((r) => r.length === 16), GARBS[i]).toBe(true);

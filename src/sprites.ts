@@ -1,6 +1,7 @@
 import { CLASSIC, EYES, HAIRS, OUTFITS, SKINS } from './logic/look.ts'; // .ts: scripts/make-icons.mjs loads this file in plain Node
 import type { Look } from './logic/types';
-import { compose, TUNIC, W } from './hero32.ts';
+import { compose, TUNIC } from './hero32.ts';
+import { GARBS32, ITEM32, TRIMS32, type Layer32 } from './art32.ts';
 
 // Pixel art as rows of palette letters ('.' = transparent), rendered to crisp SVG.
 export const PAL: Record<string, string> = {
@@ -217,7 +218,7 @@ export const icon = (name: string, size = 24) => svg(ICONS[name] ?? ICONS.star, 
 // Pets are the layers drawn right of the hero, from column 16.
 export const petOf = (worn: string[]) => worn.find((id) => ITEM_ART[id]?.x === 16);
 
-// Interim: outfits other than the tunic and all wardrobe art are still 16px. Each old pixel becomes 2 wide, and
+// Interim: wardrobe art not yet redrawn at 32px (art32.ts) is still 16px. Each old pixel becomes 2 wide, and
 // rows stretch onto the new proportions: head rows 0-6 to 0-18, body rows 7-15 to 19-31, pets from column 32.
 const ROW = (y: number) => (y <= 7 ? Math.round((y * 19) / 7) : 19 + Math.round(((y - 7) * 13) / 9));
 function stamp(grid: string[][], l: Layer, from = 0) {
@@ -232,11 +233,11 @@ function stamp(grid: string[][], l: Layer, from = 0) {
         }
     }));
 }
-function bodyRows(garb: number): (string | null)[] {
-  if (!garb) return TUNIC;
-  const g = Array.from({ length: W }, () => Array(W).fill('.'));
-  stamp(g, { x: 0, y: 7, rows: GARB_ROWS[garb] });
-  return g.map((r, y) => (y >= 19 ? r.join('') : null));
+function stamp32(grid: string[][], l: Layer32) {
+  l.rows.forEach((row, y) =>
+    row && [...row].forEach((ch, x) => {
+      if (ch !== '.' && grid[y] && x < grid[y].length && (!l.behind || grid[y][x] === '.')) grid[y][x] = ch;
+    }));
 }
 
 const hex2 = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
@@ -256,16 +257,18 @@ export function lookPal(look: Look, glow = false): Record<string, string> {
 // noPet: leave the pet's space empty, for a pet drawn on its own on top.
 export function hero(level: number, size = 64, worn: string[] = [], look: Look = CLASSIC, noPet = false) {
   const t = tierOf(level);
-  const all = worn.map((id) => ITEM_ART[id]).filter(Boolean);
-  const width = all.some((l) => l.x + l.rows[0].length > 16) ? 48 : 32;
-  const layers = noPet ? all.filter((l) => l.x < 16) : all;
-  const grid = compose(look, bodyRows(look.garb ?? 0), width, layers.some((l) => l.cover));
-  for (const l of [...t.trim, ...layers]) stamp(grid, l);
+  const ids = worn.filter((id) => ITEM_ART[id]);
+  const width = ids.some((id) => ITEM_ART[id].x + ITEM_ART[id].rows[0].length > 16) ? 48 : 32;
+  const shown = noPet ? ids.filter((id) => ITEM_ART[id].x < 16) : ids;
+  const hatted = shown.some((id) => ITEM32[id]?.cover ?? ITEM_ART[id].cover);
+  const grid = compose(look, GARBS32[look.garb ?? 0] ?? GARBS32[0], width, hatted);
+  for (const l of TRIMS32[t.title]) stamp32(grid, l);
+  for (const id of shown) (ITEM32[id] ? stamp32(grid, ITEM32[id]) : stamp(grid, ITEM_ART[id]));
   return svg(grid.map((r) => r.join('')), size, `Level ${level} ${titleOf(level, look)}`, lookPal(look, t.title === 'Legend'));
 }
 
 // Just the head and shoulders, bigger, for the hair and face pickers.
 export function heroHead(look: Look, size = 48) {
-  const grid = compose(look, TUNIC);
+  const grid = compose(look, GARBS32[look.garb ?? 0] ?? TUNIC);
   return svg(grid.slice(0, 26).map((r) => r.join('')), size, '', lookPal(look));
 }
