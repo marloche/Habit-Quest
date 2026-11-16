@@ -27,6 +27,15 @@ describe('quest ideas', () => {
     expect(goalsFromText('Less stress, more exercising')).toEqual(['fitness', 'mind']);
     expect(goalsFromText('save money')).toEqual(['money']);
     expect(goalsFromText('xyz')).toEqual([]);
+    expect(goalsFromText('pull-ups and a handstand')).toEqual(['calisthenics']);
+    expect(goalsFromText('Calisthenics, bodyweight training')).toEqual(['calisthenics']);
+  });
+  it('gives calisthenics its monke: basics pre-ticked first, then skills', () => {
+    expect(GOALS.find((g) => g.id === 'calisthenics')!.icon).toBe('monke');
+    const cal = IDEAS.filter((i) => i.goal === 'calisthenics');
+    expect(cal.every((i) => i.icon === 'monke')).toBe(true);
+    expect(suggest(['calisthenics'], 15, []).filter((s) => s.on).map((s) => s.idea.name)).toEqual(['Push-ups: 3 sets', 'Pull-ups: 3 sets', 'Plank 1 min']);
+    expect(cal.map((i) => i.name)).toContain('Muscle-up practice');
   });
   it('pre-ticks by time budget, alternating goals, and trims timers to the budget', () => {
     const five = suggest(['fitness', 'learning'], 5, []);

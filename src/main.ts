@@ -69,7 +69,7 @@ function render() {
   hs = heroOf(state, sc, t);
   announceTiers();
   const views: Record<Tab, () => string> = {
-    quest: () => questView(state, sc, hs, t, new Date(), { arming, lateTouched, timer, stopping }),
+    quest: () => questView(state, sc, hs, t, new Date(), { arming, lateTouched, timer, stopping, filter: questFilter }),
     calendar: () => calendarView(state, sc, t, { month: calMonth, day: calDay, mood: calMood, arming }),
     journal: () => journalView(state, t, { view: keepView, draft: draftOr(t), reading: keepReading, arming: keepArm, fx: keepFx },
       { now: new Date(), pet: petOf(wornIds(state.wardrobe, hs.trophies)) }),
@@ -262,6 +262,15 @@ const dayComplete = (t: string) => {
 let arming: string | undefined; // "day:id" of a done quest waiting for a second tap to undo
 let armTimer: ReturnType<typeof setTimeout>;
 const lateTouched = new Set<string>();
+// The quest list's icon filter ('' = ALL). Kept on this device until changed, not synced: each screen can focus on its own thing.
+const FILTER_KEY = 'habit-quest-filter';
+let questFilter = '';
+try { questFilter = localStorage.getItem(FILTER_KEY) ?? ''; } catch { /* private mode: start on ALL */ }
+function setFilter(icon: string) {
+  questFilter = questFilter === icon ? '' : icon; // tapping the active chip again goes back to ALL
+  try { localStorage.setItem(FILTER_KEY, questFilter); } catch { /* still works for this visit */ }
+  render();
+}
 
 // The page redraws on every check, so a bar would jump; start it where it was and let its CSS transition move it.
 function slide(sel: string, fromPct: number) {
@@ -1038,7 +1047,7 @@ async function importFile(input: HTMLInputElement) {
 }
 
 // Quiet clicks for taps that only move around; the ones that change your save have their own sounds.
-const TAPS = new Set(['cal-month', 'cal-day', 'cal-view', 'slot', 'hero-view', 'epic-list', 'epic-open', 'epic-new', 'epic-edit', 'epic-idea',
+const TAPS = new Set(['q-filter', 'cal-month','cal-day', 'cal-view', 'slot', 'hero-view', 'epic-list', 'epic-open', 'epic-new', 'epic-edit', 'epic-idea',
   'new', 'edit-habit', 'sugg-show', 'sugg-back', 'sugg-toggle', 'goal', 'budget', 'bg', 'bg-strength', 'preset', 'look', 'look-random',
   'focus-stop', 'focus-keep', 'badge', 'suggest', 'move', 'keep-edit', 'keep-cancel', 'open-journal', 'ch-more']);
 const PAGES = new Set(['keep-archive', 'keep-write', 'keep-read']); // moving around the book rustles a page
@@ -1054,6 +1063,7 @@ app.addEventListener('click', (e) => {
   switch (el.dataset.action) {
     case 'mark': return mark(id, el.dataset.mark as Mark, el.dataset.day);
     case 'tab': return go(el.dataset.tab as Tab);
+    case 'q-filter': return setFilter(el.dataset.icon ?? '');
     case 'new': editingId = undefined; return go('form');
     case 'edit-habit': editingId = id; return go('form');
     case 'move': return move(id, Number(el.dataset.dir));

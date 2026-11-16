@@ -12,6 +12,7 @@ const weekly = (times: number): Schedule => ({ kind: 'weekly', times });
 // words: stems matched against the start of each typed word ("exercis" matches exercise, exercising).
 export const GOALS: Goal[] = [
   { id: 'fitness', name: 'FITNESS', icon: 'dumbbell', words: ['fit', 'gym', 'exercis', 'workout', 'run', 'jog', 'strong', 'muscle', 'walk', 'sport', 'cardio', 'lift', 'yoga', 'stretch', 'active', 'swim', 'bike', 'weight'] },
+  { id: 'calisthenics', name: 'CALISTHENICS', icon: 'monke', words: ['calisthenic', 'bodyweight', 'push', 'pull', 'chin', 'plank', 'handstand', 'pistol', 'monke', 'gymnast'] }, // "pull-ups" types as pull + ups
   { id: 'sleep', name: 'SLEEP', icon: 'moon', words: ['sleep', 'bed', 'tired', 'rest', 'insomnia', 'wake', 'morning', 'night', 'energy'] },
   { id: 'mind', name: 'MIND', icon: 'leaf', words: ['stress', 'anxi', 'calm', 'mental', 'medit', 'mindful', 'relax', 'happ', 'mood', 'grateful', 'gratitude', 'peace', 'depress', 'burnout', 'overwhelm'] },
   { id: 'learning', name: 'LEARNING', icon: 'book', words: ['learn', 'study', 'read', 'book', 'language', 'spanish', 'french', 'german', 'japanese', 'english', 'chinese', 'korean', 'italian', 'course', 'school', 'exam', 'skill', 'code', 'coding', 'program', 'math'] },
@@ -33,6 +34,17 @@ export const IDEAS: Idea[] = [
   idea('fitness', 'dumbbell', '50 squats', '5 squats'),
   idea('fitness', 'dumbbell', 'Go for a run', 'Put on running shoes', weekly(2), 30),
   idea('fitness', 'dumbbell', 'Take the stairs', '1 flight'),
+  // Basics first (the pre-ticks), then skill practice.
+  idea('calisthenics', 'monke', 'Push-ups: 3 sets', '1 push-up', daily, 10),
+  idea('calisthenics', 'monke', 'Pull-ups: 3 sets', '10 s dead hang', weekly(3), 15),
+  idea('calisthenics', 'monke', 'Plank 1 min', 'Plank 10 s'),
+  idea('calisthenics', 'monke', 'Dips: 3 sets', '1 dip', weekly(3), 10),
+  idea('calisthenics', 'monke', 'Hollow body hold', 'Hold 10 s', weekly(4)),
+  idea('calisthenics', 'monke', 'Hanging leg raises', '1 knee raise', weekly(3), 10),
+  idea('calisthenics', 'monke', 'Handstand practice', '1 wall kick-up', weekly(3), 15),
+  idea('calisthenics', 'monke', 'L-sit practice', 'Tuck hold 5 s', weekly(3), 10),
+  idea('calisthenics', 'monke', 'Pistol squat practice', '1 assisted pistol', weekly(2), 10),
+  idea('calisthenics', 'monke', 'Muscle-up practice', '3 high pull-ups', weekly(2), 15),
   idea('sleep', 'moon', 'Lights out by 11 PM', 'In bed by midnight'),
   idea('sleep', 'moon', 'No screens before bed', '5 min screen-free in bed'),
   idea('sleep', 'moon', 'Same wake-up time', 'Up within 15 min of it'),
@@ -128,6 +140,8 @@ const story = (goal: string, icon: string, name: string, why: string, chapters: 
 export const EPIC_IDEAS: EpicIdea[] = [
   linked('fitness', 'dumbbell', 'Run a 5K', 'Cross a finish line', 'Go for a run', 24, [['First run', 1], ['1 km nonstop', 8], ['3 km', 16], ['5K day', 24]]),
   counted('fitness', 'dumbbell', 'Train for a half marathon', 'Run 21 km in one go', 300, 'km', [['First 50 km', 50], ['Long runs', 150], ['Taper', 250], ['Race day', 300]]),
+  linked('calisthenics', 'monke', '30 days of push-ups', 'Stronger every day', 'Push-ups: 3 sets', 30, [['A week', 7], ['Two weeks', 14], ['30 days', 30]]),
+  story('calisthenics', 'monke', 'First muscle-up', 'Over the bar', ['Strict pull-ups', 'Explosive pulls', 'Straight-bar dips', 'Transition drills', 'First muscle-up']),
   linked('sleep', 'moon', 'Fix my sleep', 'Wake up rested', 'Lights out by 11 PM', 30, [['First week', 7], ['Two weeks', 14], ['A full month', 30]]),
   linked('sleep', 'moon', 'Become an early riser', 'Own the morning', 'Same wake-up time', 60, [['15 mornings', 15], ['30 mornings', 30], ['60 mornings', 60]]),
   linked('mind', 'leaf', 'Meditate 100 days', 'A calmer mind', 'Meditate 10 min', 100, [['First week', 7], ['A month', 30], ['Halfway', 50], ['100 days', 100]]),

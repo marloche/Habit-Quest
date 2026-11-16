@@ -24,6 +24,7 @@ export const ICONS: Record<string, string[]> = {
   pen: ['.....www', '....wwsw', '....wsw.', '...wsw..', '..ks....', '.nkn....', 'nbbbn...', 'nnnnn...'], // a quill in an ink pot, so it can't pass for the sword
   apple: ['....g...', '...g....', '.rrrrr..', 'rrwrrrr.', 'rwrrrrr.', 'rrrrrrr.', 'rrrrrrr.', '.rr.rr..'],
   coin: COIN,
+  monke: ['..EEEE..', '.EeeeeE.', 'feeffeef', 'fekffkef', '.effffe.', '.eufufe.', '..fkkf..', '...ff...'], // calisthenics: ears out, a grin
 };
 
 // An epic quest's crest: a shield in its color (a palette letter) with its icon on a dark field.

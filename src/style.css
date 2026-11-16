@@ -152,6 +152,11 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
 .focus-time { font-size: 16px; font-weight: normal; font-variant-numeric: tabular-nums; }
 .focus-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .focus-card > .btn, .focus-btns .btn { justify-self: start; }
+.f-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.f-chip { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 4px 8px; font: inherit; font-size: 10px; color: var(--text); background: var(--panel); box-shadow: 0 0 0 2px var(--edge); cursor: pointer; }
+.f-chip[aria-pressed="true"] { background: var(--blue); box-shadow: 0 0 0 3px var(--gold); color: var(--gold); }
+.f-hidden { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+.late { margin-top: 16px; }
 .late h3 { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--hot); }
 .late h3 .muted { font-size: 8px; }
 .late-list { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 12px; }

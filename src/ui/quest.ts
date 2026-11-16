@@ -9,11 +9,13 @@ import { clock, timeLeft, type Timer } from '../logic/focus';
 import { COIN, FLAME, hero, HOURGLASS, icon, moodFace, petOf, svg, titleOf } from '../sprites';
 import { CHECK, esc } from './html';
 import { epicStrip, epicTags } from './epic';
+import { byIcon, iconsInUse } from '../logic/filter';
 
 // arming: "day:id" of a done quest waiting for a second tap to undo.
 // lateTouched: quests logged for yesterday this session, kept visible so a mistake can be undone.
 // timer: the running focus timer; stopping: its STOP was tapped and it's asking what to log.
-export type QuestUi = { arming?: string; lateTouched: Set<string>; timer?: Timer; stopping?: boolean };
+// filter: the icon picked in the chip row, '' for ALL.
+export type QuestUi = { arming?: string; lateTouched: Set<string>; timer?: Timer; stopping?: boolean; filter: string };
 
 // One quest on a day other than today's list: DONE/TINY, or a check that undoes on a second tap.
 export function dayRow(state: State, h: Habit, d: string, when: string, arming?: string, extra = '') {
@@ -93,7 +95,20 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
   const strip = epicStrip(state);
   const risky = new Set(isEvening(now, state.settings.rolloverHour) ? atRisk(state, sc, today).map((h) => h.id) : []);
 
-  const rows = habits.map((h) => {
+  // The icon filter: a chip row once you use two or more icons. Done-ness and keys above still count every quest.
+  const used = iconsInUse(listed);
+  const { shown, hidden, active } = byIcon(habits, used.length > 1 ? ui.filter : '');
+  const chip = (ic: string, label: string, inner: string) =>
+    `<button class="f-chip" data-action="q-filter" data-icon="${ic}" aria-pressed="${active === ic}" aria-label="${label}">${inner}</button>`;
+  const chips = used.length > 1
+    ? `<div class="f-chips" role="group" aria-label="Show quests by icon">${chip('', 'Show all quests', 'ALL')}${used.map((ic) => chip(ic, `Show only ${ic} quests`, icon(ic, 20))).join('')}</div>`
+    : '';
+  const toDo = hidden.filter((h) => !state.log[today]?.[h.id] && isDue(h, today)).length;
+  const hiddenLine = hidden.length
+    ? `<p class="f-hidden small muted">${hidden.length} more hidden${toDo ? `, ${toDo} still to do` : ''} <button class="btn small ghost" data-action="q-filter" data-icon="">SHOW ALL</button></p>`
+    : '';
+
+  const rows = shown.map((h) => {
     const st = sc.habits[h.id];
     const mark = state.log[today]?.[h.id];
     const award = sc.awards[today]?.[h.id];
@@ -142,10 +157,11 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
     ${bossBar(hs, false, state.settings.bossArt !== false)}
     ${strip}
     ${focusCard(state, now.getTime(), ui)}
-    ${lateView(state, today, now, ui)}
     <h2>${allDone ? 'ALL QUESTS DONE!' : "TODAY'S QUESTS"}</h2>
     <p class="date-line">${dateLine}</p>
-    ${habits.length ? `<ul class="quests">${rows.join('')}</ul>` : '<p class="empty">No quests yet. Every hero needs one.</p><button class="btn wide blue" data-action="suggest">SUGGEST QUESTS</button>'}
+    ${chips}
+    ${habits.length ? `<ul class="quests">${rows.join('')}</ul>${hiddenLine}` : '<p class="empty">No quests yet. Every hero needs one.</p><button class="btn wide blue" data-action="suggest">SUGGEST QUESTS</button>'}
     ${askMood ? `<section class="mood-ask"><h3>HOW WAS TODAY?</h3>${moodRow(state, today)}<div class="mood-write"><p class="small muted">+${JOURNAL_GOLD} G. Say more in the Keep:</p><button class="btn small" data-action="open-journal" data-day="${today}">WRITE</button></div></section>` : ''}
-    <button class="btn wide" data-action="tab" data-tab="edit">+ EDIT QUESTS</button>`;
+    <button class="btn wide" data-action="tab" data-tab="edit">+ EDIT QUESTS</button>
+    ${lateView(state, today, now, ui)}`;
 }
