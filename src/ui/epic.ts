@@ -1,6 +1,6 @@
 import { dayLabel, daysBetween } from '../logic/day';
 import {
-  AMOUNT_MAX, CHAPTER_GOLD, CHAPTERS_MAX, chapterAt, dueNote, EPIC_COLORS, epicProgress, epicsOfHabit, FINISH_GOLD, mainEpic,
+  ABOUT_MAX, AMOUNT_MAX, CHAPTER_GOLD, CHAPTERS_MAX, chapterAt, dueNote, EPIC_COLORS, epicProgress, epicsOfHabit, FINISH_GOLD, mainEpic,
   NAME_MAX, QUICK_DAYS, QUICK_GOLD, UNIT_MAX, WHY_MAX, type EpicProgress,
 } from '../logic/epic';
 import { isPlanned } from '../logic/score';
@@ -115,7 +115,7 @@ function chapterList(e: Epic, p: EpicProgress, story = false) {
         : `<span class="ch-box" aria-hidden="true">${d ? CHECK : ''}</span>`;
     const when = d ? short(d) : e.by !== 'chapters' ? `at ${num(chapterAt(e, i))} ${unitOf(e)}` : '';
     return `<li class="ch-row${d ? ' done' : ''}">${box}
-        <span class="ch-text"><span>${esc(c.name)}</span>${c.note ? `<span class="small muted">"${esc(c.note)}"</span>` : ''}</span>
+        <span class="ch-text"><span>${esc(c.name)}</span>${c.about ? `<span class="ch-about small muted">${esc(c.about)}</span>` : ''}${c.note ? `<span class="small muted">"${esc(c.note)}"</span>` : ''}</span>
         <span class="small ${d ? 'gold' : 'muted'}">${when}</span>
         ${d ? `<button class="btn small ghost" data-action="epic-note" data-id="${e.id}" data-ch="${i}" aria-label="${c.note ? 'Edit the' : 'Add a'} note for ${esc(c.name)}">NOTE</button>` : ''}
       </li>`;
@@ -240,7 +240,8 @@ export function epicFormView(e: Epic | undefined, habits: Habit[], isNew: boolea
   const chapters = Array.from({ length: CHAPTERS_MAX }, (_, i) => {
     const c = e?.chapters[i];
     return `<div class="ch-edit"${i < shown ? '' : ' hidden'}><input name="ch-name" maxlength="${NAME_MAX}" value="${esc(c?.name ?? '')}" placeholder="Chapter ${i + 1}" aria-label="Chapter ${i + 1} name">
-      <input class="ch-at" type="number" name="ch-at" min="1" max="${AMOUNT_MAX}" step="0.1" value="${c?.at ?? ''}" placeholder="auto" aria-label="Chapter ${i + 1} reached at"></div>`;
+      <input class="ch-at" type="number" name="ch-at" min="1" max="${AMOUNT_MAX}" step="0.1" value="${c?.at ?? ''}" placeholder="auto" aria-label="Chapter ${i + 1} reached at">
+      <textarea class="ch-about-in" name="ch-about" rows="3" maxlength="${ABOUT_MAX}" placeholder="What this step means (optional)" aria-label="Chapter ${i + 1} description, optional">${esc(c?.about ?? '')}</textarea></div>`;
   });
   const guardians = LADDER.map((b, i) => `<option value="${i}" ${!isNew && e?.guardian === i ? 'selected' : ''}>${b.name}</option>`);
   return `

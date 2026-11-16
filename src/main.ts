@@ -26,7 +26,7 @@ import { settingsView, syncText } from './ui/settings';
 import { statsView } from './ui/stats';
 import { picks, suggestView, type SuggestUi } from './ui/suggest';
 import { EPIC_IDEAS, epicFromIdea, GOALS, goalsFromText, IDEAS, ideaToHabit, type Budget } from './logic/suggest';
-import { AMOUNT_MAX, defaultGuardian, epicProgress, epicsOfHabit, NAME_MAX, NOTE_MAX, toReach, UNIT_MAX, WHY_MAX } from './logic/epic';
+import { ABOUT_MAX, AMOUNT_MAX, defaultGuardian, epicProgress, epicsOfHabit, NAME_MAX, NOTE_MAX, toReach, UNIT_MAX, WHY_MAX } from './logic/epic';
 import { epicFormView, epicIdeasView, epicsView, listOf, unitOf, type EpicUi } from './ui/epic';
 import { LADDER } from './bosses';
 
@@ -855,6 +855,7 @@ function saveEpic(form: HTMLFormElement) {
   const old = state.epics.find((e) => e.id === epicDraft?.id) ?? epicDraft;
   const names = f.getAll('ch-name').map(String);
   const ats = f.getAll('ch-at').map(Number);
+  const abouts = f.getAll('ch-about').map((a) => String(a).trim().slice(0, ABOUT_MAX));
   // Row i is chapter i, so a renamed chapter keeps its tick and note.
   const chapters: Chapter[] = [];
   names.forEach((raw, i) => {
@@ -862,7 +863,7 @@ function saveEpic(form: HTMLFormElement) {
     if (!n) return;
     const at = by !== 'chapters' && ats[i] >= 1 ? Math.min(target!, by === 'links' ? Math.round(ats[i]) : Math.round(ats[i] * 10) / 10) : undefined;
     const prev = old?.chapters[i];
-    chapters.push({ name: n, ...(at ? { at } : {}), ...(prev?.done ? { done: prev.done } : {}), ...(prev?.note ? { note: prev.note } : {}) });
+    chapters.push({ name: n, ...(at ? { at } : {}), ...(prev?.done ? { done: prev.done } : {}), ...(prev?.note ? { note: prev.note } : {}), ...(abouts[i] ? { about: abouts[i] } : {}) });
   });
   if (by === 'chapters' && !chapters.length) return alert('Add at least one chapter.');
   const links = f.getAll('link').map(String).filter((id) => state.habits.some((h) => h.id === id));

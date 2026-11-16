@@ -145,6 +145,16 @@ h3 { font-size: 12px; margin: 24px 0 8px; color: var(--muted); }
   border-left: 4px solid var(--edge); background: #262b44; color: var(--gold); font: inherit; cursor: pointer;
 }
 .q-focus small { font-size: 8px; }
+/* Phones: with TINY and a timer, the name had ~80px and split words anywhere ("Handsta/nd").
+   Slimmer side buttons and a notch smaller font give it ~125px; a word that still won't fit hyphenates. */
+.q-name { overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
+@media (max-width: 480px) {
+  .q-main { gap: 8px; padding: 8px 8px 8px 14px; }
+  .q-name { font-size: 10px; }
+  .q-tiny { width: 64px; }
+  .q-tiny small { max-width: 58px; }
+  .q-focus { width: 40px; }
+}
 .q-tiny:active, .q-focus:active { transform: translateY(2px); }
 .focus-card { display: grid; gap: 8px; margin: 12px 4px; padding: 12px; }
 .focus-row { display: flex; align-items: center; gap: 8px; }
@@ -631,6 +641,12 @@ button.ch-box { width: 44px; height: 44px; cursor: pointer; }
 .ch-edit { display: grid; grid-template-columns: 1fr 80px; gap: 12px; padding: 4px; }
 .epic-form:has(option[value='chapters']:checked) .ch-edit { grid-template-columns: 1fr; }
 .ch-edit[hidden], .ch-more[hidden] { display: none; }
+.ch-edit .ch-about-in { grid-column: 1 / -1; width: 100%; margin: -8px 0 4px; padding: 6px 10px; resize: none; border: 0;
+  background: var(--bg); box-shadow: inset 0 0 0 2px var(--edge); color: var(--text); font: inherit; font-size: 12px; line-height: 1.5; }
+.ch-edit .ch-about-in::placeholder { color: var(--muted); }
+/* Chapters sit on the open scene, not a panel: a lighter grey with a dark pixel shadow keeps small text readable on bright skies. */
+.ch-text .ch-about, .ch-text .muted { color: #d6e2ea; text-shadow: 1px 1px 0 var(--bg), -1px 0 0 var(--bg), 0 -1px 0 var(--bg); }
+.ch-about { font-size: 8px; line-height: 1.6; }
 .ch-more { justify-self: start; margin: 4px; }
 .icon-grid.colors { grid-template-columns: repeat(8, 1fr); margin-top: 8px; }
 .color-pick { min-height: 44px; }

@@ -25,6 +25,11 @@ export const ICONS: Record<string, string[]> = {
   apple: ['....g...', '...g....', '.rrrrr..', 'rrwrrrr.', 'rwrrrrr.', 'rrrrrrr.', 'rrrrrrr.', '.rr.rr..'],
   coin: COIN,
   monke: ['..EEEE..', '.EeeeeE.', 'feeffeef', 'fekffkef', '.effffe.', '.eufufe.', '..fkkf..', '...ff...'], // calisthenics: ears out, a grin
+  lotus: ['...vv...', '..vuuv..', 'v.vuuv.v', 'vvuuuuvv', '.vuuuuv.', '..vvvv..', 'gGggggGg', '.gggggg.'], // meditation
+  pine: ['...gg...', '..gGgg..', '.gggGgg.', '..gGgg..', '.ggggGg.', 'gggGgggg', '...ee...', '...ee...'], // outdoors
+  soap: ['.....w..', '.CC..w.w', 'C..C..w.', '.CC.....', '.uuuuuu.', 'uwwuuuuu', 'uuuuuuuu', '.pppppp.'], // self-care: bubbles over a bar of soap
+  nophone: ['.SSSS.r.', '.SccSr..', '.Sccr...', '.ScrS...', '.SrcS...', '.rccS...', 'rSSSS...', '........'], // digital detox: a phone, struck through
+  gift: ['.rr..rr.', '..rrrr..', 'yyyrryyy', 'yyyrryyy', 'rrrrrrrr', '.yyrryy.', '.yyrryy.', '.oorroo.'], // kindness
 };
 
 // An epic quest's crest: a shield in its color (a palette letter) with its icon on a dark field.

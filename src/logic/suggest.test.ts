@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EPIC_IDEAS, epicFromIdea, GOALS, goalsFromText, IDEAS, ideaToHabit, suggest } from './suggest';
-import { CHAPTERS_MAX, NAME_MAX, WHY_MAX } from './epic';
+import { ABOUT_MAX, CHAPTERS_MAX, NAME_MAX, WHY_MAX } from './epic';
 import { fresh, parseState } from '../store';
 import { ICONS } from '../sprites';
 import type { Habit } from './types';
@@ -37,6 +37,21 @@ describe('quest ideas', () => {
     expect(suggest(['calisthenics'], 15, []).filter((s) => s.on).map((s) => s.idea.name)).toEqual(['Push-ups: 3 sets', 'Pull-ups: 3 sets', 'Plank 1 min']);
     expect(cal.map((i) => i.name)).toContain('Muscle-up practice');
   });
+  it('fills every goal: 8 or more ideas each, new goals with their own icons', () => {
+    for (const g of GOALS) expect(IDEAS.filter((i) => i.goal === g.id).length, g.id).toBeGreaterThanOrEqual(8);
+    const icons = Object.fromEntries(GOALS.map((g) => [g.id, g.icon]));
+    expect(icons).toMatchObject({ meditation: 'lotus', outdoors: 'pine', selfcare: 'soap', detox: 'nophone', kindness: 'gift' });
+    expect(IDEAS.find((i) => i.name === 'Meditate 10 min')!.goal).toBe('meditation');
+  });
+  it('matches the new goals by typed words without stealing others', () => {
+    expect(goalsFromText('meditation and breathwork')).toEqual(['meditation']);
+    expect(goalsFromText('go on a hike')).toEqual(['outdoors']);
+    expect(goalsFromText('too much doomscrolling on my phone')).toEqual(['detox']);
+    expect(goalsFromText('volunteer more')).toEqual(['kindness']);
+    expect(goalsFromText('skincare')).toEqual(['selfcare']);
+    expect(goalsFromText('apartment')).toEqual(['home']);
+    expect(goalsFromText('career')).toEqual(['focus']);
+  });
   it('pre-ticks by time budget, alternating goals, and trims timers to the budget', () => {
     const five = suggest(['fitness', 'learning'], 5, []);
     expect(five.filter((s) => s.on).map((s) => s.idea.name)).toEqual(['Workout', 'Read 20 min']);
@@ -71,6 +86,7 @@ describe('epic quest ideas', () => {
       }
     }
     for (const g of GOALS) expect(EPIC_IDEAS.filter((i) => i.goal === g.id).length, g.id).toBe(2);
+    for (const i of EPIC_IDEAS) expect(i.chapters.every(([, , about]) => !!about && about.length <= ABOUT_MAX), i.name).toBe(true);
     expect(new Set(EPIC_IDEAS.map((i) => i.name)).size).toBe(EPIC_IDEAS.length);
   });
   it('become valid epics that load from a save', () => {
@@ -78,6 +94,9 @@ describe('epic quest ideas', () => {
     const s = parseState(JSON.stringify({ ...fresh(), epics }));
     expect(s.epics).toEqual(epics);
     expect(epics[0].links).toEqual(['abc-1']);
+    expect(epics[0].chapters[0]).toEqual({ name: 'First run', at: 1, about: 'Any pace, any distance. Just go.' });
+    const tooLong = { ...epics[0], chapters: [{ name: 'A', about: 'x'.repeat(ABOUT_MAX + 1) }] };
+    expect(() => parseState(JSON.stringify({ ...fresh(), epics: [tooLong] }))).toThrow(); // a damaged save is refused whole
     expect(epics.find((e) => e.name === 'Save $1,000')!.guardian).toBe(2); // no date: a count epic defaults to two months
   });
 });

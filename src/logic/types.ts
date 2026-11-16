@@ -59,7 +59,8 @@ export type LookPart = Exclude<keyof Look, 'name'>;
 // A long-term goal. Progress is worked out like everything else: from ticked chapters, logged amounts, or the
 // log of linked quests from the epic's start. "Finished" is never stored, so unticking can take it back.
 // at: the amount (count / links) that reaches this chapter; missing means evenly spaced. done: day ticked (chapters mode).
-export type Chapter = { name: string; at?: number; done?: string; note?: string };
+// about: what this step means, written ahead (optional); note: a line written after reaching it.
+export type Chapter = { name: string; at?: number; done?: string; note?: string; about?: string };
 export type EpicBy = 'chapters' | 'count' | 'links';
 export type Epic = {
   id: string; name: string; icon: string; color: number; // color: index into EPIC_COLORS

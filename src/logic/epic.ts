@@ -8,6 +8,7 @@ export const CHAPTERS_MAX = 12;
 export const NAME_MAX = 40;
 export const WHY_MAX = 140;
 export const NOTE_MAX = 140;
+export const ABOUT_MAX = 140;
 export const UNIT_MAX = 16;
 export const AMOUNT_MAX = 1e6;
 

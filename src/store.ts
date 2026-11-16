@@ -4,7 +4,7 @@ import { FOCUS_MAX } from './logic/focus';
 import { ENTRIES_MAX, ENTRY_MAX, JOURNAL_MAX, STAMP } from './logic/journal';
 import { CORE, PARTS, validName } from './logic/look';
 import { BGS } from './logic/scene';
-import { AMOUNT_MAX, CHAPTERS_MAX, EPIC_COLORS, GUARDIANS, NAME_MAX, NOTE_MAX, UNIT_MAX, WHY_MAX } from './logic/epic';
+import { ABOUT_MAX, AMOUNT_MAX, CHAPTERS_MAX, EPIC_COLORS, GUARDIANS, NAME_MAX, NOTE_MAX, UNIT_MAX, WHY_MAX } from './logic/epic';
 import type { Settings, State } from './logic/types';
 
 export const KEY = 'habit-quest';
@@ -71,7 +71,7 @@ const validFocus = (f: unknown) => entriesOk(f, (k, v) => isDay(k) && isInt(v, 0
 const isText = (max: number) => (t: unknown) => typeof t === 'string' && t.length <= max;
 const isNum = (x: unknown, min: number, max: number) => typeof x === 'number' && Number.isFinite(x) && x >= min && x <= max;
 const validChapter = (c: any) =>
-  isRecord(c) && isText(NAME_MAX)(c.name) && optional(c.at, (n) => isNum(n, 1, AMOUNT_MAX)) && optional(c.done, isDay) && optional(c.note, isText(NOTE_MAX));
+  isRecord(c) && isText(NAME_MAX)(c.name) && optional(c.at, (n) => isNum(n, 1, AMOUNT_MAX)) && optional(c.done, isDay) && optional(c.note, isText(NOTE_MAX)) && optional(c.about, isText(ABOUT_MAX));
 const validEpic = (e: any) =>
   isRecord(e) && isId(e.id) && isText(NAME_MAX)(e.name) && e.name.length > 0 && isId(e.icon) && isInt(e.color, 0, EPIC_COLORS.length - 1) &&
   optional(e.why, isText(WHY_MAX)) && optional(e.due, isDay) && isDay(e.created) && isInt(e.guardian, 0, GUARDIANS - 1) &&
