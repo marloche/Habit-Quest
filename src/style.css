@@ -193,7 +193,13 @@ h2 + .date-line { margin: -4px 0 16px; font-size: 10px; color: var(--text); }
 .edit-row .q-name { flex: 1; }
 .icon-btn { width: 44px; height: 44px; flex: none; display: grid; place-content: center; background: var(--panel); border: 0; cursor: pointer; }
 .icon-btn:disabled { opacity: .3; }
-.icon-btn.down svg { transform: rotate(180deg); }
+/* Reorder: hold the grip and drag. touch-action none: a finger on it drags the row instead of scrolling the page. */
+.grip { width: 44px; height: 44px; flex: none; display: grid; place-items: center; padding: 0; background: none; border: 0; cursor: grab; touch-action: none; }
+/* Chrome's scroll anchoring would chase the rows that step past the held one, scrolling the page out from under it. */
+.edit-list { overflow-anchor: none; }
+.edit-row.dragging { position: relative; z-index: 5; --edge: var(--gold); background: #3b4566; filter: drop-shadow(0 6px 0 #0008); }
+.edit-row.landed { --edge: var(--gold); }
+body.row-dragging, body.row-dragging * { cursor: grabbing !important; -webkit-user-select: none; user-select: none; }
 
 .habit-form, main > label { display: grid; gap: 16px; }
 label { display: grid; gap: 8px; font-size: 10px; }

@@ -2,7 +2,9 @@ import './style.css';
 import { configureAudio, foley, hasSound, setRoom, setScene, sfx, unlock } from './audio';
 import { banner, floatText, hearts, shake, toast } from './fx';
 import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logic/day';
-import { atRisk, isActive, isDue, isPlanned, score, type Score } from './logic/score';
+import { atRisk, isActive, isDue, score, type Score } from './logic/score';
+import { reorder } from './logic/order';
+import { dragRow, isDragging } from './drag';
 import { BOSS_GOLD, chestLoot, heroOf, type HeroState } from './logic/hero';
 import { buyBlock, itemById, wornIds } from './logic/items';
 import { clock, FOCUS_MAX, focusedMinutes, isOver, MINUTE, parseTimer, timeLeft, type Timer } from './logic/focus';
@@ -64,6 +66,7 @@ let scored: Score; // score of the last render, reused so a tap scores the log o
 let hs: HeroState; // gold balance (and later boss and chests) of the last render
 
 function render() {
+  if (isDragging()) return; // a held row stays put (sync, a new day); the drop redraws
   const t = today();
   const sc = (scored = score(state, t));
   hs = heroOf(state, sc, t);
@@ -358,14 +361,30 @@ function mark(id: string, m: Mark, d = today()) {
   cheerEpics(epicsBefore);
 }
 
-function move(id: string, dir: number) {
-  const list = state.habits;
-  const i = list.findIndex((h) => h.id === id);
-  let j = i + dir;
-  while (list[j] && (list[j].archived || isPlanned(list[j]))) j += dir; // swap with the next quest you can see
-  if (!list[j]) return;
-  [list[i], list[j]] = [list[j], list[i]];
+// Your order is your priority: it orders the QUEST list (within to-do, rest day and done) and sets the 1-9 keys.
+// `to` is a place on EDIT QUESTS. The moved row flashes gold where it lands and scrolls into view.
+function moveQuest(id: string, to: number, focus = false) {
+  const next = reorder(state.habits, id, to);
+  if (next === state.habits) return render(); // nothing moved; a drop still redraws what it held still
+  state.habits = next;
+  sfx('tap');
   commit();
+  const grip = app.querySelector<HTMLElement>(`.grip[data-id="${CSS.escape(id)}"]`);
+  const row = grip?.closest('li');
+  if (!grip || !row) return;
+  if (focus) grip.focus({ preventScroll: true }); // TOP is disabled up there; the keyboard carries on from the grip
+  row.classList.add('landed');
+  setTimeout(() => row.classList.remove('landed'), 700);
+  reveal(row);
+}
+
+// Scrolls just enough to show an element between the top of the screen (below the notch) and the tab bar.
+function reveal(el: Element) {
+  const r = el.getBoundingClientRect();
+  const ceil = parseFloat(getComputedStyle(app.querySelector('main')!).paddingTop) || 16;
+  const floor = (app.querySelector('.tabs')?.getBoundingClientRect().top ?? innerHeight) - 8;
+  if (r.top < ceil) scrollBy(0, r.top - ceil);
+  else if (r.bottom > floor) scrollBy(0, r.bottom - floor);
 }
 
 function saveHabit(form: HTMLFormElement) {
@@ -1050,7 +1069,7 @@ async function importFile(input: HTMLInputElement) {
 // Quiet clicks for taps that only move around; the ones that change your save have their own sounds.
 const TAPS = new Set(['q-filter', 'cal-month','cal-day', 'cal-view', 'slot', 'hero-view', 'epic-list', 'epic-open', 'epic-new', 'epic-edit', 'epic-idea',
   'new', 'edit-habit', 'sugg-show', 'sugg-back', 'sugg-toggle', 'goal', 'budget', 'bg', 'bg-strength', 'preset', 'look', 'look-random',
-  'focus-stop', 'focus-keep', 'badge', 'suggest', 'move', 'keep-edit', 'keep-cancel', 'open-journal', 'ch-more']);
+  'focus-stop', 'focus-keep', 'badge', 'suggest', 'keep-edit', 'keep-cancel', 'open-journal', 'ch-more']);
 const PAGES = new Set(['keep-archive', 'keep-write', 'keep-read']); // moving around the book rustles a page
 
 app.addEventListener('click', (e) => {
@@ -1067,7 +1086,7 @@ app.addEventListener('click', (e) => {
     case 'q-filter': return setFilter(el.dataset.icon ?? '');
     case 'new': editingId = undefined; return go('form');
     case 'edit-habit': editingId = id; return go('form');
-    case 'move': return move(id, Number(el.dataset.dir));
+    case 'to-top': return moveQuest(id, 0, e.detail === 0); // detail 0: pressed from the keyboard
     case 'archive': return archive(id);
     case 'export': return void doExport();
     case 'cal-month': calMonth = addMonths(calMonth, Number(el.dataset.dir)); return render();
@@ -1154,6 +1173,30 @@ app.addEventListener('click', (e) => {
       disconnect();
       return render();
   }
+});
+
+// EDIT QUESTS: hold a quest's grip and drag it to a new place.
+let pressedGrip = ''; // the grip a mouse or finger last pressed; it stays focused, like any clicked button
+app.addEventListener('pointerdown', (e) => {
+  const grip = (e.target as Element).closest<HTMLElement>('.grip');
+  if (!grip) return;
+  pressedGrip = grip.dataset.id ?? '';
+  unlock();
+  dragRow(e, grip, (from, to) => moveQuest(grip.dataset.id ?? '', to));
+});
+
+// A grip reached with Tab: Up / Down move its quest a place, Home / End to the top / bottom. On a grip you pressed,
+// the arrows scroll the page as after any click (a focus ring can't tell: Chrome turns it on at the first key).
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') pressedGrip = '';
+  const grip = (e.target as Element).closest<HTMLElement>('.grip');
+  if (!grip || e.ctrlKey || e.metaKey || e.altKey || grip.dataset.id === pressedGrip) return;
+  const rows = [...(grip.closest('ul')?.children ?? [])];
+  const at = rows.indexOf(grip.closest('li')!);
+  const to = ({ ArrowUp: at - 1, ArrowDown: at + 1, Home: 0, End: rows.length - 1 } as Record<string, number>)[e.key];
+  if (to === undefined) return;
+  e.preventDefault(); // the page doesn't scroll as well
+  if (to >= 0 && to < rows.length && to !== at) moveQuest(grip.dataset.id ?? '', to);
 });
 
 // PC shortcuts: 1-9 toggles quest N in your order, Shift+1-9 its tiny version, Q/C/G/J/H/S/E switch screens,

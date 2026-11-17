@@ -83,6 +83,6 @@ export function settingsView(state: State, today: string, reducedMotion: boolean
     <p class="muted small">Start over from a clean slate: wipes quests, XP, gold, items, journal and focus minutes. Settings stay. Export first if you might want them back.${sync.on ? ' With sync on, it wipes your other devices too.' : ''}</p>
     <button class="btn wide danger" data-action="new-game">NEW GAME</button>
     <h3 class="kbd-help">KEYBOARD</h3>
-    <p class="kbd-help muted small">1-9: check quest N (in your order). Shift+1-9: its tiny version. Press again twice to undo. Q / C / G / H / S / E: quests, calendar, goals (epics), hero, stats, edit.</p>
+    <p class="kbd-help muted small">1-9: check quest N (in your order). Shift+1-9: its tiny version. Press again twice to undo. Q / C / G / H / S / E: quests, calendar, goals (epics), hero, stats, edit. EDIT QUESTS: Tab to a quest's grip (the dots), then Up / Down moves it, Home / End to the top / bottom.</p>
     <p class="muted small center">Habit Quest v0.1 - build ${__BUILD__} UTC</p>`;
 }

@@ -1,19 +1,22 @@
 import { FOCUS_MAX } from '../logic/focus';
+import { inEditList } from '../logic/order';
 import type { Habit } from '../logic/types';
-import { ICONS, icon } from '../sprites';
-import { ARROW, esc } from './html';
+import { ICONS, icon, svg } from '../sprites';
+import { esc } from './html';
 
 const DAYS: [number, string][] = [[1, 'M'], [2, 'T'], [3, 'W'], [4, 'T'], [5, 'F'], [6, 'S'], [0, 'S']];
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const GRIP = svg(['ss.ss', 'ss.ss', '.....', 'ss.ss', 'ss.ss', '.....', 'ss.ss', 'ss.ss'], 16); // six dots
 
+// Your order is your priority: hold a grip and drag, or TOP. Plans live in the calendar, so they aren't listed.
 export function editListView(habits: Habit[]) {
-  const active = habits.filter((h) => !h.archived && h.schedule.kind !== 'once'); // plans live in the calendar
+  const active = habits.filter(inEditList);
   const rows = active.map((h, i) => `
     <li class="edit-row">
+      <button class="grip" type="button" data-grip data-id="${h.id}" aria-label="Move ${esc(h.name)}, place ${i + 1} of ${active.length}. Drag, or use the arrow keys; Home for the top.">${GRIP}</button>
       <span class="q-icon">${icon(h.icon, 24)}</span>
       <span class="q-name">${esc(h.name)}</span>
-      <button class="icon-btn" data-action="move" data-id="${h.id}" data-dir="-1" aria-label="Move ${esc(h.name)} up" ${i === 0 ? 'disabled' : ''}>${ARROW}</button>
-      <button class="icon-btn down" data-action="move" data-id="${h.id}" data-dir="1" aria-label="Move ${esc(h.name)} down" ${i === active.length - 1 ? 'disabled' : ''}>${ARROW}</button>
+      <button class="btn small ghost" data-action="to-top" data-id="${h.id}" aria-label="Move ${esc(h.name)} to the top" ${i === 0 ? 'disabled' : ''}>TOP</button>
       <button class="btn small" data-action="edit-habit" data-id="${h.id}">EDIT</button>
     </li>`);
   return `
