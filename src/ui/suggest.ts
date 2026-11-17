@@ -10,7 +10,7 @@ export type SuggestUi = { step: 'goals' | 'pick'; goals: string[]; budget: Budge
 
 const BUDGETS: [Budget, string][] = [[5, '5 MIN'], [15, '15 MIN'], [30, '30+ MIN']];
 
-const when = (s: Schedule) => (s.kind === 'weekly' ? `${s.times}x a week` : 'every day');
+const when = (s: Schedule) => (s.kind === 'weekly' ? `${s.times}x ${(s.every ?? 1) > 1 ? `every ${s.every} weeks` : 'a week'}` : 'every day');
 
 export const picks = (state: State, ui: SuggestUi) =>
   suggest(ui.goals, ui.budget, state.habits).map((s) => ({ ...s, on: s.on !== ui.flip.has(s.idea.name) }));

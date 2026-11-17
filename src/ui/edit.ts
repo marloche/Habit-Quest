@@ -32,6 +32,8 @@ export function formView(h?: Habit) {
   const s = h?.schedule ?? { kind: 'daily' as const };
   const days = s.kind === 'days' ? s.days : [1, 2, 3, 4, 5];
   const times = s.kind === 'weekly' ? s.times : 3;
+  const every = s.kind === 'weekly' ? s.every ?? 1 : 1;
+  const keep = every > 1; // an existing multi-week quest can keep the blocks it already lines up on
   const icons = Object.keys(ICONS).map((name) => `
     <label class="icon-pick"><input type="radio" name="icon" value="${name}" ${(h?.icon ?? 'sword') === name ? 'checked' : ''} aria-label="${name}">${icon(name, 32)}</label>`);
   return `
@@ -45,10 +47,14 @@ export function formView(h?: Habit) {
         <select name="kind" aria-label="Schedule">
           <option value="daily" ${s.kind === 'daily' ? 'selected' : ''}>Every day</option>
           <option value="days" ${s.kind === 'days' ? 'selected' : ''}>Certain days</option>
-          <option value="weekly" ${s.kind === 'weekly' ? 'selected' : ''}>N times a week</option>
+          <option value="weekly" ${s.kind === 'weekly' ? 'selected' : ''}>N per 1-4 weeks</option>
         </select>
         <div class="days">${DAYS.map(([d, l]) => `<label class="day-pick"><input type="checkbox" name="day" value="${d}" ${days.includes(d) ? 'checked' : ''} aria-label="${DAY_NAMES[d]}"><span>${l}</span></label>`).join('')}</div>
-        <label class="times">TIMES PER WEEK<input type="number" name="times" min="1" max="7" value="${times}"></label>
+        <div class="times">
+          <label>TIMES<input type="number" name="times" min="1" max="7" value="${times}"></label>
+          <label>EVERY<select name="every">${[1, 2, 3, 4].map((n) => `<option value="${n}" ${every === n ? 'selected' : ''}>${n === 1 ? '1 week' : `${n} weeks`}</option>`).join('')}</select></label>
+          <label class="start">FIRST BLOCK STARTS<select name="start">${keep ? '<option value="keep" selected>AS BEFORE</option>' : ''}<option value="this">THIS WEEK</option><option value="next">NEXT WEEK</option></select></label>
+        </div>
       </fieldset>
       <button class="btn wide" type="submit">SAVE</button>
       <button class="btn wide ghost" type="button" data-action="tab" data-tab="edit">CANCEL</button>

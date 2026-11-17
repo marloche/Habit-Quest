@@ -1,4 +1,4 @@
-import { daysBetween } from './logic/day';
+import { daysBetween, weekday } from './logic/day';
 import { emptyWardrobe, SLOTS } from './logic/items';
 import { FOCUS_MAX } from './logic/focus';
 import { ENTRIES_MAX, ENTRY_MAX, JOURNAL_MAX, STAMP } from './logic/journal';
@@ -32,7 +32,7 @@ const optional = (x: unknown, check: (v: unknown) => boolean) => x === undefined
 function validSchedule(s: any) {
   if (s?.kind === 'daily') return true;
   if (s?.kind === 'days') return Array.isArray(s.days) && s.days.length > 0 && s.days.every((d: unknown) => isInt(d, 0, 6));
-  if (s?.kind === 'weekly') return isInt(s.times, 1, 7);
+  if (s?.kind === 'weekly') return isInt(s.times, 1, 7) && optional(s.every, (e) => isInt(e, 2, 4)) && optional(s.from, (d) => isDay(d) && weekday(d as string) === 1);
   if (s?.kind === 'once') return isDay(s.day);
   return false;
 }

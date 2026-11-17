@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './day';
-import { atRisk, COMEBACK, daySummary, levelOf, momentumAt, score, XP, xpForLevel } from './score';
+import { atRisk, blockEnd, blockStart, notStarted, COMEBACK, daySummary, levelOf, momentumAt, score, XP, xpForLevel } from './score';
+import { parseState } from '../store';
 import { emptyWardrobe } from './items';
 import type { Habit, Log, Mark, Schedule, State } from './types';
 
@@ -118,6 +119,55 @@ describe('N times per week', () => {
     const s = score(state([late], logOf([day(5), day(7), day(8), day(9)])), day(9));
     expect(s.habits.h.streak).toBe(1);
     expect(s.awards[day(7)].h.comeback).toBe(false);
+  });
+});
+
+describe('every 2-4 weeks (bedsheets)', () => {
+  const sheets = habit({ kind: 'weekly', times: 1, every: 2 }, day(2)); // created Wednesday, blocks from that Monday
+  it('lines blocks up on the creation week, or on a chosen Monday', () => {
+    expect([day(2), day(13), day(14), day(27), day(28)].map((d) => blockStart(sheets, d))).toEqual([MON, MON, day(14), day(14), day(28)]);
+    expect(blockEnd(sheets, day(20))).toBe(day(27));
+    const next = habit({ kind: 'weekly', times: 1, every: 2, from: day(7) }, day(2)); // "starts next week"
+    expect([day(2), day(7), day(20), day(21)].map((d) => blockStart(next, d))).toEqual([day(-7), day(7), day(7), day(21)]);
+    expect(blockStart(habit({ kind: 'weekly', times: 3 }, day(2)), day(9))).toBe(day(7)); // 1-week blocks: every Monday
+  });
+  it('counts the streak in weeks, any day of the block, and pays a milestone it jumps past', () => {
+    const s = score(state([sheets], logOf([day(3), day(16), day(29), day(42)])), day(43));
+    expect(s.habits.h.streak).toBe(8); // 4 blocks of 2 weeks
+    expect(s.awards[day(29)].h.milestone).toBe(0); // 6 weeks
+    expect(s.awards[day(42)].h.milestone).toBe(50); // 6 -> 8 passes the 7-week milestone
+  });
+  it('resets after a block with no check and gives a comeback', () => {
+    const s = score(state([sheets], logOf([day(3), day(30)])), day(30)); // nothing in days 14-27
+    expect(s.habits.h.streak).toBe(2);
+    expect(s.awards[day(30)].h.comeback).toBe(true);
+  });
+  it('never holds the creation block against you, even when the first block starts next week', () => {
+    const next = habit({ kind: 'weekly', times: 1, every: 2, from: day(7) }, day(2));
+    const s = score(state([next], logOf([day(10)])), day(10));
+    expect(s.awards[day(10)].h.comeback).toBe(false);
+    expect(s.habits.h.streak).toBe(2);
+  });
+  it('expects one check per 2 weeks for momentum', () => {
+    expect(momentumAt([sheets], logOf([day(20)]), day(30))).toBe(2); // the 14 days before day 30 wanted 1, got 1
+  });
+  it('expects nothing before a first block that starts next week', () => {
+    const next = habit({ kind: 'weekly', times: 1, every: 2, from: day(7) }, day(2));
+    expect([day(6), day(7)].map((d) => notStarted(next, d))).toEqual([true, false]);
+    expect(momentumAt([habit(undefined, day(2), 'd'), next], logOf([day(2), day(3), day(4), day(5), day(6)], 'd'), day(7))).toBe(2);
+  });
+  it('nudges in the last 2 days of a block when short and carrying a streak', () => {
+    const log = logOf([day(3), day(17)]); // streak 4w; the block of days 28-41 has nothing yet
+    const risk = (d: string, l = log) => atRisk(state([sheets], l), score(state([sheets], l), d), d).length;
+    expect(risk(day(39))).toBe(0);
+    expect(risk(day(40))).toBe(1);
+    expect(risk(day(40), { ...log, [day(35)]: { h: 'full' } })).toBe(0);
+  });
+  it('accepts 2-4 weeks on a Monday only', () => {
+    const save = (schedule: Schedule) => JSON.stringify(state([habit(schedule)], {}));
+    expect(() => parseState(save({ kind: 'weekly', times: 1, every: 2, from: day(7) }))).not.toThrow();
+    expect(() => parseState(save({ kind: 'weekly', times: 1, every: 5 }))).toThrow();
+    expect(() => parseState(save({ kind: 'weekly', times: 1, every: 2, from: day(8) }))).toThrow(); // a Tuesday
   });
 });
 

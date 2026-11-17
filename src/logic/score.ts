@@ -1,4 +1,4 @@
-import { addDays, weekday, weekStart } from './day';
+import { addDays, daysBetween, weekday, weekStart } from './day';
 import type { Habit, Log, Mark, State } from './types';
 
 export const XP: Record<Mark, number> = { full: 10, tiny: 5 };
@@ -21,15 +21,30 @@ export const isPlanned = (h: Habit) => h.schedule.kind === 'once';
 export const isActive = (h: Habit, day: string) =>
   h.schedule.kind === 'once' ? day === h.schedule.day : day >= h.created && (!h.archived || day < h.archived);
 
-// Expected completions on a day in sevenths, so weekly quotas (times/7 a day) stay exact integers.
+// Weekly quests run in blocks of 1-4 weeks (bedsheets: once every 2). A block starts on a Monday, lined up on the
+// schedule's `from` or, without one, the creation week; with 1-week blocks that's simply every Monday.
+export const everyOf = (h: Habit) => (h.schedule.kind === 'weekly' ? h.schedule.every ?? 1 : 1);
+export function blockStart(h: Habit, day: string): string {
+  const n = 7 * everyOf(h);
+  const anchor = h.schedule.kind === 'weekly' && h.schedule.from ? h.schedule.from : weekStart(h.created);
+  return addDays(anchor, Math.floor(daysBetween(anchor, weekStart(day)) / n) * n);
+}
+export const blockEnd = (h: Habit, day: string) => addDays(blockStart(h, day), 7 * everyOf(h) - 1);
+
+// Expected completions on a day in sevenths, so weekly quotas (times/7 a day) stay exact (halves and quarters for
+// longer blocks are exact in floating point too).
 function expected7(h: Habit, day: string): number {
   if (!isActive(h, day)) return 0;
   const s = h.schedule;
   if (s.kind === 'once') return 0; // plans slip: a planned quest pays out, but missing one never drags momentum
   if (s.kind === 'daily') return 7;
   if (s.kind === 'days') return s.days.includes(weekday(day)) ? 7 : 0;
-  return s.times;
+  if (s.from && day < s.from) return 0; // "starts next week": nothing expected before the first block
+  return s.times / (s.every ?? 1);
 }
+
+// A multi-week quest whose first block hasn't started yet (it waits with the rest days until then).
+export const notStarted = (h: Habit, day: string) => h.schedule.kind === 'weekly' && !!h.schedule.from && day < h.schedule.from;
 
 // Expected completions on a day; weekly habits spread their quota evenly.
 export const expected = (h: Habit, day: string) => expected7(h, day) / 7;
@@ -76,9 +91,14 @@ export function daySummary(habits: Habit[], log: Log, day: string) {
 
 export const RISK_STREAK = 3;
 
-// Quests due today, not done yet, carrying a streak worth protecting.
+// A quest in a block of 2+ weeks is closing in its last 2 days while short of its count (the "due by SUN" nudge).
+export const closing = (h: Habit, sc: Score, today: string) =>
+  h.schedule.kind === 'weekly' && everyOf(h) > 1 && isActive(h, today) && !notStarted(h, today) &&
+  daysBetween(today, blockEnd(h, today)) < 2 && sc.habits[h.id].weekCount < h.schedule.times;
+
+// Quests due today (or closing their block), not done yet, carrying a streak worth protecting.
 export const atRisk = (state: State, sc: Score, today: string) =>
-  state.habits.filter((h) => isDue(h, today) && !state.log[today]?.[h.id] && sc.habits[h.id].streak >= RISK_STREAK);
+  state.habits.filter((h) => ((isDue(h, today) && !state.log[today]?.[h.id]) || closing(h, sc, today)) && sc.habits[h.id].streak >= RISK_STREAK);
 
 export type Award = { xp: number; gold: number; comeback: boolean; milestone: number; streak: number };
 export type HabitStats = {
@@ -86,7 +106,7 @@ export type HabitStats = {
   best: number;
   unit: 'day' | 'week';
   comebackReady: boolean;
-  weekCount: number;
+  weekCount: number; // checks so far in the current block (a week, or 2-4 weeks)
   full: number;
   tiny: number;
 };
@@ -143,9 +163,10 @@ export function score(state: State, today: string): Score {
       let milestone = 0;
 
       if (h.schedule.kind === 'weekly') {
-        // A new week settles the last one; the creation week is never held against you.
-        if (weekday(d) === 1 && d !== h.created) {
-          if (st.weekCount < h.schedule.times && weekStart(h.created) !== addDays(d, -7)) {
+        // A new block settles the last one; the block holding the creation day is never held against you.
+        const every = everyOf(h);
+        if (d === blockStart(h, d) && d !== h.created) {
+          if (st.weekCount < h.schedule.times && blockStart(h, h.created) !== addDays(d, -7 * every)) {
             st.streak = 0;
             missed[h.id] = true;
           }
@@ -154,8 +175,10 @@ export function score(state: State, today: string): Score {
         if (mark) {
           st.weekCount++;
           if (st.weekCount === h.schedule.times) {
-            st.streak++;
-            milestone = MILESTONES[st.streak] ?? 0;
+            // The streak counts weeks, so a 2-week block adds 2 ("4w" = two blocks running); a milestone it jumps past still pays.
+            const before = st.streak;
+            st.streak += every;
+            milestone = Object.entries(MILESTONES).reduce((sum, [at, bonus]) => (+at > before && +at <= st.streak ? sum + bonus : sum), 0);
           }
         }
       } else if (isDue(h, d)) {

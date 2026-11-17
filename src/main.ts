@@ -1,7 +1,7 @@
 import './style.css';
 import { configureAudio, foley, hasSound, setRoom, setScene, sfx, unlock } from './audio';
 import { banner, floatText, hearts, shake, toast } from './fx';
-import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack } from './logic/day';
+import { addDays, addMonths, dayKey, isEvening, rolloverMovesBack, weekStart } from './logic/day';
 import { atRisk, isActive, isDue, score, type Score } from './logic/score';
 import { reorder } from './logic/order';
 import { dragRow, isDragging } from './drag';
@@ -398,7 +398,12 @@ function saveHabit(form: HTMLFormElement) {
     if (!days.length) return alert('Pick at least one day.');
     schedule = { kind, days };
   } else if (kind === 'weekly') {
-    schedule = { kind, times: Math.min(7, Math.max(1, Number(f.get('times')) || 1)) };
+    const times = Math.min(7, Math.max(1, Number(f.get('times')) || 1));
+    const every = Math.min(4, Math.max(1, Number(f.get('every')) || 1));
+    const old = state.habits.find((h) => h.id === editingId)?.schedule;
+    // Blocks of 2+ weeks line up on a Monday: this week's, next week's, or the one they already had.
+    const from = f.get('start') === 'keep' && old?.kind === 'weekly' && old.from ? old.from : addDays(weekStart(today()), f.get('start') === 'next' ? 7 : 0);
+    schedule = every > 1 ? { kind, times, every, from } : { kind, times };
   }
   const minutes = Math.round(Number(f.get('focus')));
   const focus = minutes >= 1 ? Math.min(FOCUS_MAX, minutes) : undefined; // blank or 0 = no timer

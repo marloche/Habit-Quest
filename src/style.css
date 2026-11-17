@@ -219,7 +219,8 @@ legend { font-size: 10px; margin-bottom: 12px; }
 .day-pick input:checked + span { background: var(--blue); color: var(--gold); }
 .times { display: none; }
 form:has(option[value='days']:checked) .days { display: grid; }
-form:has(option[value='weekly']:checked) .times { display: grid; }
+form:has(option[value='weekly']:checked) .times { display: grid; gap: 12px; }
+form:has(select[name='every'] option[value='1']:checked) .start { display: none; } /* a 1-week block always starts Monday */
 .toggle { display: flex; align-items: center; gap: 12px; margin-top: 16px; min-height: 44px; }
 .toggle input { width: 24px; min-height: 24px; accent-color: var(--accent); }
 .vol { display: flex; align-items: center; gap: 12px; margin-top: 8px; }

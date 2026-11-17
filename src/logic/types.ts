@@ -1,7 +1,9 @@
 export type Schedule =
   | { kind: 'daily' }
   | { kind: 'days'; days: number[] } // 0 = Sunday
-  | { kind: 'weekly'; times: number }
+  // `times` checks in each block of `every` weeks (1 when unset; 2-4 for, say, bedsheets every 2 weeks).
+  // Blocks line up on `from`, a Monday (the creation week when unset).
+  | { kind: 'weekly'; times: number; every?: number; from?: string }
   | { kind: 'once'; day: string }; // a planned one-off quest, on that day only
 
 export type Habit = {

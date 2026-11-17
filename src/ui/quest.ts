@@ -1,5 +1,5 @@
-import { addDays, dayKey, dayLabel, isEvening, lateCutoffLabel, lateWindowOpen, weekdayName } from '../logic/day';
-import { atRisk, isActive, isDue, isPlanned, xpForLevel, type Score } from '../logic/score';
+import { addDays, dayKey, dayLabel, daysBetween, isEvening, lateCutoffLabel, lateWindowOpen, weekdayName } from '../logic/day';
+import { atRisk, blockEnd, everyOf, isActive, isDue, isPlanned, notStarted, xpForLevel, type Score } from '../logic/score';
 import type { HeroState } from '../logic/hero';
 import { wornIds } from '../logic/items';
 import { JOURNAL_GOLD, MOODS } from '../logic/journal';
@@ -84,7 +84,9 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
   const have = sc.xp - xpForLevel(sc.level);
   // Still-to-do quests first, then rest-day bonuses, then done ones; your order is kept within each group.
   const restDay = (h: Habit) => h.schedule.kind !== 'weekly' && !isPlanned(h) && !isDue(h, today);
-  const rank = (h: Habit) => (state.log[today]?.[h.id] ? 2 : restDay(h) ? 1 : 0);
+  // A quest in a 2-4 week block that's done for this block waits with the rest-day bonuses until the next one.
+  const blockDone = (h: Habit) => notStarted(h, today) || (h.schedule.kind === 'weekly' && everyOf(h) > 1 && sc.habits[h.id].weekCount >= h.schedule.times);
+  const rank = (h: Habit) => (state.log[today]?.[h.id] ? 2 : restDay(h) || blockDone(h) ? 1 : 0);
   const listed = state.habits.filter((h) => isActive(h, today));
   const habits = [...listed].sort((a, b) => rank(a) - rank(b));
   // Keyboard numbers follow your order, not the sorted one, so a quest keeps its key after you check it.
@@ -123,11 +125,20 @@ export function questView(state: State, sc: Score, hs: HeroState, today: string,
     else if (st.comebackReady) meta = '<span class="hot">COMEBACK x1.5</span>';
     else if (rest) meta = 'Rest day - bonus XP';
     else if (isPlanned(h)) meta = 'Planned for today';
-    if (weekly) meta = `${st.weekCount}/${weekly} this week ${meta}`;
+    const every = everyOf(h);
+    if (weekly && every > 1) {
+      const end = blockEnd(h, today);
+      const left = daysBetween(today, end) + 1;
+      const where = notStarted(h, today) ? `Starts ${dayLabel(addDays(end, 1))}`
+        : st.weekCount >= weekly ? `Done for these ${every} weeks - back ${dayLabel(addDays(end, 1))}`
+        : left <= 2 ? `<span class="hot">Due by ${weekdayName(end)}</span> - ${st.weekCount} of ${weekly}`
+        : `${st.weekCount} of ${weekly} - ${left} days left`;
+      meta = `${where} ${meta}`;
+    } else if (weekly) meta = `${st.weekCount}/${weekly} this week ${meta}`;
     meta += epicTags(state, h.id);
     const streak = st.streak ? `<span class="streak">${svg(FLAME, 16)}${st.streak}${st.unit === 'week' ? 'w' : ''}</span>` : '';
     const label = `${h.name}${armed ? ', tap again to undo' : mark ? ', done. Tap twice to undo' : ''}`;
-    return `<li class="quest${mark ? ` done ${mark}` : ''}${armed ? ' arming' : ''}${rest ? ' rest' : ''}" data-row="${today}:${h.id}">
+    return `<li class="quest${mark ? ` done ${mark}` : ''}${armed ? ' arming' : ''}${rest || blockDone(h) ? ' rest' : ''}" data-row="${today}:${h.id}">
       <button class="q-main" data-action="mark" data-id="${h.id}" data-mark="full" aria-pressed="${!!mark}" aria-label="${esc(label)}"${key ? ` aria-keyshortcuts="${key}"` : ''}>
         ${key ? `<span class="q-key" aria-hidden="true">${key}</span>` : ''}
         <span class="q-icon">${icon(h.icon, 32)}</span>
