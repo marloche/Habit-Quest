@@ -1,16 +1,18 @@
 // Template: the build fills in VERSION and ASSETS (see vite.config.ts).
 const VERSION = '__VERSION__';
 const ASSETS = __ASSETS__;
-const CACHE = `habit-quest-${VERSION}`;
+const PREFIX = 'habit-quest-';
+const CACHE = `${PREFIX}${VERSION}`;
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', ...ASSETS])).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
+  // Delete only this app's old caches: other apps on the same github.io site share this cache storage.
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith(PREFIX) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
