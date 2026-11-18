@@ -1,6 +1,7 @@
 import { CLASSIC, EYES, HAIRS, OUTFITS, SKINS } from './logic/look.ts'; // .ts: scripts/make-icons.mjs loads this file in plain Node
 import type { Look } from './logic/types';
 import { compose } from './hero32.ts';
+import { DRAW, itemById } from './logic/items.ts';
 import { GARBS32, ITEM32, PET, PETS32, TRIMS32, type Layer32 } from './art32.ts';
 
 // Pixel art as rows of palette letters ('.' = transparent), rendered to crisp SVG.
@@ -97,6 +98,7 @@ export const icon = (name: string, size = 24) => svg(ICONS[name] ?? ICONS.star, 
 export const petOf = (worn: string[]) => worn.find((id) => PETS32[id]);
 
 function stamp32(grid: string[][], l: Layer32) {
+  if (l.back) stamp32(grid, { rows: l.back, behind: true });
   l.rows.forEach((row, y) =>
     row && [...row].forEach((ch, x) => {
       if (ch !== '.' && grid[y] && x < grid[y].length && (!l.behind || grid[y][x] === '.')) grid[y][x] = ch;
@@ -120,7 +122,9 @@ export function lookPal(look: Look, glow = false): Record<string, string> {
 // noPet: leave the pet's space empty, for a pet drawn on its own on top.
 export function hero(level: number, size = 64, worn: string[] = [], look: Look = CLASSIC, noPet = false) {
   const t = tierOf(level);
-  const ids = worn.filter((id) => ITEM32[id]);
+  // In drawing order whatever order they come in: a cape over the armor, the weapon in front.
+  const z = (id: string) => DRAW.indexOf(itemById(id)?.slot ?? 'pet');
+  const ids = worn.filter((id) => ITEM32[id]).sort((a, b) => z(a) - z(b));
   const width = ids.some((id) => PETS32[id]) ? 32 + PET : 32;
   const shown = noPet ? ids.filter((id) => !PETS32[id]) : ids;
   const grid = compose(look, GARBS32[look.garb ?? 0] ?? GARBS32[0], width, shown.some((id) => ITEM32[id].cover));

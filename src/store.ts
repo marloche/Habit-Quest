@@ -1,5 +1,5 @@
 import { daysBetween, weekday } from './logic/day';
-import { emptyWardrobe, SLOTS } from './logic/items';
+import { emptyWardrobe, fixWorn, SLOTS } from './logic/items';
 import { FOCUS_MAX } from './logic/focus';
 import { ENTRIES_MAX, ENTRY_MAX, JOURNAL_MAX, STAMP } from './logic/journal';
 import { CORE, PARTS, validName } from './logic/look';
@@ -107,6 +107,7 @@ export function parseState(text: string): State {
   if (x.v < 4) x.journal = {};
   if (x.v < 5) x.focus = {};
   if (x.v < 6) x.epics = [];
+  x.wardrobe.worn = fixWorn(x.wardrobe.worn);
   x.v = 6;
   return x as State;
 }

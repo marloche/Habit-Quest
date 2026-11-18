@@ -5,8 +5,10 @@ import type { Slot, Wardrobe } from './types';
 export type Trophy = { track: string; tier: 2 | 3; how: string };
 export type Item = { id: string; slot: Slot; name: string; price: number; level?: number; chest?: true; trophy?: Trophy };
 
-// Also the drawing order: armor before the weapon, so a weapon is held in front of it.
-export const SLOTS: Slot[] = ['hat', 'armor', 'weapon', 'cape', 'pet'];
+// Wardrobe tab order.
+export const SLOTS: Slot[] = ['hat', 'armor', 'weapon', 'cape', 'wings', 'pet'];
+// Drawing order: a cape's shoulders lie over the armor, wings fill in behind the cape, and the weapon is held in front of it all.
+export const DRAW: Slot[] = ['hat', 'armor', 'cape', 'wings', 'weapon', 'pet'];
 
 // Ids are stored in saves: only ever add, never rename. Array order is display order; chest items keep theirs (chest loot picks by it).
 export const ITEMS: Item[] = [
@@ -50,10 +52,14 @@ export const ITEMS: Item[] = [
   { id: 'red-cape', slot: 'cape', name: 'Red cape', price: 120 },
   { id: 'fur-mantle', slot: 'cape', name: 'Fur mantle', price: 200 },
   { id: 'royal-cape', slot: 'cape', name: 'Royal cape', price: 300, level: 5 },
-  { id: 'feather-cape', slot: 'cape', name: 'Feather cape', price: 380, level: 10 },
   { id: 'starry-cape', slot: 'cape', name: 'Starry cape', price: 500, level: 20 },
-  { id: 'dragonwing-cape', slot: 'cape', name: 'Dragonwing cape', price: 650, level: 20 },
   { id: 'shadow-cape', slot: 'cape', name: 'Shadow cape', price: 0, chest: true },
+  // Wings were capes once: feather-cape and dragonwing-cape keep their ids (fixWorn moves them to the wings slot).
+  { id: 'fairy-wings', slot: 'wings', name: 'Fairy wings', price: 260, level: 5 },
+  { id: 'feather-cape', slot: 'wings', name: 'Feather wings', price: 380, level: 10 },
+  { id: 'butterfly-wings', slot: 'wings', name: 'Butterfly wings', price: 450, level: 10 },
+  { id: 'dragonwing-cape', slot: 'wings', name: 'Dragon wings', price: 650, level: 20 },
+  { id: 'phoenix-wings', slot: 'wings', name: 'Phoenix wings', price: 800, level: 20 },
   { id: 'frog', slot: 'pet', name: 'Frog', price: 150 },
   { id: 'slime', slot: 'pet', name: 'Slime', price: 300 },
   { id: 'fox', slot: 'pet', name: 'Fox', price: 350 },
@@ -97,4 +103,16 @@ export function buyBlock(item: Item, level: number, balance: number, w: Wardrobe
 
 // Worn items that still exist in the catalogue, in drawing order; a trophy shows only while it's earned.
 export const wornIds = (w: Wardrobe, trophies: string[]) =>
-  SLOTS.map((s) => w.worn[s]).filter((id): id is string => !!id && !!itemById(id) && (!itemById(id)!.trophy || trophies.includes(id)));
+  DRAW.map((s) => w.worn[s]).filter((id): id is string => !!id && !!itemById(id) && (!itemById(id)!.trophy || trophies.includes(id)));
+
+// An item worn under another slot's key (wings that used to be capes) moves to its own slot, unless that's taken.
+export function fixWorn(worn: Wardrobe['worn']): Wardrobe['worn'] {
+  const out: Wardrobe['worn'] = {};
+  const all = Object.entries(worn) as [Slot, string][];
+  for (const [k, id] of all) if (!itemById(id) || itemById(id)!.slot === k) out[k] = id;
+  for (const [k, id] of all) {
+    const slot = itemById(id)?.slot;
+    if (slot && slot !== k && !out[slot]) out[slot] = id;
+  }
+  return out;
+}

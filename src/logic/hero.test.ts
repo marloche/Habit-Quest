@@ -3,7 +3,7 @@ import { addDays } from './day';
 import { BOSS_GOLD, BOSS_HP, BOSS_WEEKS, BOSSES, bossName, bossOf, bossShare, chestLoot, heroOf, woundStage } from './hero';
 import { expected, isActive } from './score';
 import { TRACKS } from './achievements';
-import { buyBlock, emptyWardrobe, itemById, ITEMS, wornIds } from './items';
+import { buyBlock, emptyWardrobe, fixWorn, itemById, ITEMS, wornIds } from './items';
 import { score } from './score';
 import { PAL } from '../sprites';
 import { ITEM32, PET, PETS32 } from '../art32';
@@ -48,6 +48,7 @@ describe('item art', () => {
       expect(art.rows.length, i.id).toBe(32);
       const w = i.slot === 'pet' ? 32 + PET : 32;
       expect(art.rows.every((r) => !r || r.length === w), i.id).toBe(true);
+      if (art.back) expect(art.back.length === 32 && art.back.every((r) => !r || r.length === 32), i.id).toBe(true);
       expect(i.slot === 'pet', i.id).toBe(!!PETS32[i.id]);
       expect(art.rows.filter(Boolean).join('').replace(/\./g, ''), i.id).toMatch(colors);
     }
@@ -56,7 +57,7 @@ describe('item art', () => {
     const cell = (id: string, r: number, c: number) => ITEM32[id].rows[r]?.[c] ?? '.';
     for (const i of ITEMS.filter((x) => x.slot === 'weapon'))
       expect([23, 24, 25, 26].some((r) => [22, 23, 24, 25, 26, 27].some((c) => cell(i.id, r, c) !== '.')), i.id).toBe(true); // at the right hand
-    for (const i of ITEMS.filter((x) => x.slot === 'armor'))
+    for (const i of ITEMS.filter((x) => ['armor', 'cape', 'wings'].includes(x.slot) && !ITEM32[x.id].behind)) // behind layers can't cover a hand
       for (const c of [8, 9, 22, 23]) expect(cell(i.id, 25, c), i.id).toBe('.');
   });
 });
@@ -75,6 +76,16 @@ describe('buying', () => {
   });
   it('skips worn ids the catalogue no longer has', () => {
     expect(wornIds({ ...emptyWardrobe(), worn: { hat: 'leaf-crown', pet: 'unicorn' } }, [])).toEqual(['leaf-crown']);
+  });
+  it('lists worn items in drawing order: cape over armor, wings behind it, weapon in front', () => {
+    const worn = { pet: 'frog', weapon: 'bow', wings: 'fairy-wings', cape: 'red-cape', armor: 'chainmail', hat: 'bandana' };
+    expect(wornIds({ ...emptyWardrobe(), worn }, [])).toEqual(['bandana', 'chainmail', 'red-cape', 'fairy-wings', 'bow', 'frog']);
+  });
+  it('moves wings that used to be capes to the wings slot', () => {
+    expect(fixWorn({ cape: 'dragonwing-cape' })).toEqual({ wings: 'dragonwing-cape' });
+    expect(fixWorn({ hat: 'halo', cape: 'feather-cape' })).toEqual({ hat: 'halo', wings: 'feather-cape' });
+    expect(fixWorn({ cape: 'feather-cape', wings: 'fairy-wings' })).toEqual({ wings: 'fairy-wings' }); // the slot is taken: it comes off
+    expect(fixWorn({ cape: 'red-cape', pet: 'unicorn' })).toEqual({ cape: 'red-cape', pet: 'unicorn' }); // unknown ids are left alone
   });
   it('shows a worn trophy only while it is earned', () => {
     const w = { ...emptyWardrobe(), worn: { hat: 'flame-crown' as const } };

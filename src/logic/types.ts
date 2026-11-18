@@ -32,7 +32,7 @@ export type Settings = {
   sfxVol?: number; musicVol?: number; ambVol?: number; // the old LOW / MEDIUM / HIGH (1-3); a slider replaces it once moved
 };
 
-export type Slot = 'hat' | 'armor' | 'weapon' | 'cape' | 'pet';
+export type Slot = 'hat' | 'armor' | 'weapon' | 'cape' | 'wings' | 'pet';
 
 // What you bought (and the price you paid, so retuning prices never rewrites the past),
 // what you wear, and which chests you've opened with what came out.

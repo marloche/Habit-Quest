@@ -181,6 +181,11 @@ describe('hero look in the save', () => {
     for (const bad of [{ style: 22 }, { eye: 8 }, { beard: 5 }, { mark: 4 }, { face: 4 }, { name: '' }, { name: 'A'.repeat(13) }, { name: ' Marlo' }, { name: 7 }])
       expect(() => parseState(JSON.stringify({ ...base, look: { ...ok, ...bad } })), JSON.stringify(bad)).toThrow();
   });
+  it('loads a save wearing wings from the cape slot, moved to the wings slot', () => {
+    const s = { ...base, wardrobe: { ...base.wardrobe, owned: { 'feather-cape': { day: '2026-11-04', paid: 380 } }, worn: { cape: 'feather-cape' } } };
+    expect(parseState(JSON.stringify(s)).wardrobe.worn).toEqual({ wings: 'feather-cape' });
+    expect(parseState(JSON.stringify({ ...s, wardrobe: { ...s.wardrobe, worn: { wings: 'fairy-wings' } } })).wardrobe.worn).toEqual({ wings: 'fairy-wings' });
+  });
   it('round-trips worn armor', () => {
     const s = { ...base, wardrobe: { ...base.wardrobe, owned: { chainmail: { day: '2026-11-04', paid: 220 } }, worn: { armor: 'chainmail' } } };
     expect(parseState(JSON.stringify(s)).wardrobe).toEqual(s.wardrobe);

@@ -13,7 +13,7 @@ import { CHECK, esc } from './html';
 // view: wardrobe, look or achievements; slot: the wardrobe tab shown; buying: item id waiting for a second tap to buy.
 export type HeroUi = { view: 'wardrobe' | 'look' | 'achievements'; slot: Slot | 'trophies'; buying?: string };
 
-const SLOT_NAMES: Record<Slot, string> = { hat: 'HAT', armor: 'ARMOR', weapon: 'WEAPON', cape: 'CAPE', pet: 'PET' };
+const SLOT_NAMES: Record<Slot, string> = { hat: 'HAT', armor: 'ARMOR', weapon: 'WEAPON', cape: 'CAPE', wings: 'WINGS', pet: 'PET' };
 
 export const goldText = (hs: HeroState) => `${hs.balance}${hs.balance < 0 ? ' (debt)' : ''}`;
 
