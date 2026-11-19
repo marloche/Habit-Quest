@@ -194,7 +194,18 @@ function announceTiers() {
 let pettedAt = 0;
 let rubbed = 0;
 let rubTimer: ReturnType<typeof setTimeout>;
+// The happy frame stays while you keep petting and for a second after.
+const happyTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+// The move plays once (1s at most), then back to the idle bob: left on, .petted froze the pet until the next render.
+// A timer, not animationend, so it also clears when animations are off or the page is in the background.
+const moveTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+function cheer(el: HTMLElement) {
+  el.classList.add('happy');
+  clearTimeout(happyTimers.get(el));
+  happyTimers.set(el, setTimeout(() => el.classList.remove('happy'), 1000));
+}
 function pet(el: HTMLElement) {
+  cheer(el);
   if (Date.now() - pettedAt < 700) return;
   pettedAt = Date.now();
   rubbed = 0;
@@ -203,11 +214,14 @@ function pet(el: HTMLElement) {
   el.classList.remove('petted');
   void el.offsetWidth; // restart the animation
   el.classList.add('petted');
+  clearTimeout(moveTimers.get(el));
+  moveTimers.set(el, setTimeout(() => el.classList.remove('petted'), 1050));
   hearts(el);
 }
 app.addEventListener('pointermove', (e) => {
   const el = (e.target as Element).closest<HTMLElement>('.pet');
   if (!el) return;
+  if (el.classList.contains('happy')) cheer(el); // still rubbing: stay happy
   rubbed += Math.abs(e.movementX) + Math.abs(e.movementY);
   clearTimeout(rubTimer);
   rubTimer = setTimeout(() => (rubbed = 0), 500); // a pause ends the rub

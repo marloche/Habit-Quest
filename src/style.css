@@ -352,6 +352,9 @@ form:has(select[name='every'] option[value='1']:checked) .start { display: none;
 .pet svg { display: block; transform-origin: 50% 100%; animation: pet-idle 1.8s steps(2) infinite; }
 @keyframes pet-idle { 50% { transform: translateY(-2px) scaleY(1.03); } }
 .pet.petted svg { animation: .8s steps(8) both; }
+/* While petted (and a second after), the happy frame: eyes shut and its own pose. */
+.pet svg.pj, .pet.happy svg.pn { display: none; }
+.pet.happy svg.pj { display: block; }
 .pet.p-frog.petted svg { animation-name: hop; }
 .pet.p-fox.petted svg { animation-name: wag; }
 .pet.p-little-ghost.petted svg { animation-name: spook; }

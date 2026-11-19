@@ -412,6 +412,70 @@ export const PETS32: Record<string, string[]> = {
     '....kkkk.....kkkk',
   ]),
 };
+// ---------- pets being petted: eyes squeezed shut, and a pose of their own ----------
+// put: [row, col, text], where '_' erases and ' ' keeps the cell. eyes: [row, cols, fill] closes each 2x2 eye into a happy
+// arc (top row dark, bottom corners dark, the rest filled in). move: shift a block [y0, y1, x0, x1, dy] up or down.
+// drop: rows taken out of the middle (the body squashes down); lift: the whole pet rises, a hop; post: put, after all that.
+type Joy = { eyes?: [number, number[], string]; move?: [number, number, number, number, number]; put?: [number, number, string][]; drop?: number[]; lift?: number; post?: [number, number, string][] };
+function joy(rows: string[], j: Joy): string[] {
+  const g = rows.map((r) => [...r]);
+  const blank = () => Array(PET).fill('.');
+  if (j.move) {
+    const [y0, y1, x0, x1, dy] = j.move;
+    const block = g.slice(y0, y1 + 1).map((r) => r.slice(x0, x1 + 1));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) g[y][x] = '.';
+    block.forEach((r, i) => r.forEach((c, k) => c !== '.' && (g[y0 + i + dy][x0 + k] = c)));
+  }
+  if (j.eyes) {
+    const [y, xs, fill] = j.eyes;
+    for (const x of xs) {
+      g[y][x] = 'k'; g[y][x + 1] = 'k';
+      g[y + 1][x - 1] = 'k'; g[y + 1][x] = fill; g[y + 1][x + 1] = fill; g[y + 1][x + 2] = 'k';
+    }
+  }
+  for (const [y, x, t] of j.put ?? []) [...t].forEach((c, i) => c !== ' ' && g[y] && x + i < PET && (g[y][x + i] = c === '_' ? '.' : c));
+  for (const y of [...(j.drop ?? [])].sort((a, b) => b - a)) g.splice(y, 1);
+  while (g.length < PET) g.unshift(blank());
+  for (let i = 0; i < (j.lift ?? 0); i++) (g.shift(), g.push(blank()));
+  for (const [y, x, t] of j.post ?? []) [...t].forEach((c, i) => c !== ' ' && (g[y][x + i] = c === '_' ? '.' : c));
+  return g.map((r) => r.join(''));
+}
+const JOY: Record<string, Joy> = {
+  // Leaps with its back legs out and a wide open smile.
+  frog: { eyes: [10, [4, 14], 'g'], put: [[14, 7, 'kkkkkk'], [15, 7, 'krrrrk'], [16, 8, 'kkkk']], lift: 2, post: [[18, 2, 'kGGk'], [18, 14, 'kGGk'], [19, 2, 'kkkk'], [19, 14, 'kkkk']] },
+  // Squashes flat with a grin.
+  slime: { eyes: [13, [4, 14], 'g'], put: [[15, 7, 'kkkkkk'], [16, 7, 'krrrrk'], [17, 8, 'kkkk']], drop: [10, 12] },
+  // Tongue out, tail swung up high.
+  fox: {
+    eyes: [8, [2, 6], 'o'],
+    put: [[11, 4, 'kuk'], [12, 5, 'u'],
+      ...[12, 13, 14, 15, 16, 17].map((y) => [y, 13, '_______'] as [number, number, string]), [18, 13, 'k____'], [19, 14, '___'], [17, 12, 'kk'],
+      [5, 15, 'kk'], [6, 14, 'kwwk'], [7, 14, 'kwwk'], [8, 13, 'kowwk'], [9, 13, 'kook'], [10, 12, 'kook'], [11, 12, 'kook'], [12, 11, 'kook'],
+      [13, 11, 'kok'], [14, 11, 'kok'], [15, 11, 'kok'], [16, 11, 'ok']],
+  },
+  // Ears perked, mouth open, a paw up by its cheek.
+  cat: { eyes: [10, [3, 15], 'o'], put: [[12, 8, 'kuuk'], [13, 9, 'kk'], [4, 1, 'k'], [4, 18, 'k'], [11, 0, 'kwk'], [12, 0, 'kwk'], [13, 0, 'kkk']] },
+  // Little arms up, big blush, an open "o" of delight.
+  'little-ghost': { eyes: [11, [4, 14], 'w'], put: [[13, 2, 'uuu'], [13, 15, 'uuu'], [14, 9, 'kk'], [15, 9, 'kk'], [8, 0, 'kk'], [9, 0, 'kw'], [10, 1, 'w'], [8, 18, 'kk'], [9, 18, 'wk'], [10, 18, 'w']] },
+  // Wing thrown up high.
+  'baby-dragon': { eyes: [10, [4], 'g'], put: [[4, 11, 'kk'], [5, 10, 'kGGk'], [6, 10, 'kGGk'], [7, 10, 'kGGk']] },
+  // Both wings raised.
+  griffin: { eyes: [10, [4], 'w'], put: [[4, 12, 'kk'], [5, 11, 'kwsk'], [6, 11, 'kwsk'], [7, 11, 'kwssk']] },
+  // Crest flared into a crown of flame.
+  phoenix: { eyes: [9, [4], 'y'], put: [[3, 1, 'r.o.r'], [4, 1, 'ryoyr'], [5, 2, 'ryyyr'], [6, 2, 'rkyyk']] },
+  // Tongue out and a hop.
+  'loyal-hound': { eyes: [8, [3, 7], 's'], put: [[11, 4, 'kuk'], [12, 5, 'u']], lift: 1 },
+  // Fluffs up with ear tufts high.
+  'wise-owl': { eyes: [10, [4, 14], 'w'], put: [[4, 1, 'kk'], [5, 1, 'kSk'], [4, 17, 'kk'], [5, 16, 'kSk']], lift: 1 },
+  // A happy bounce: hops off the ground with its feet kicked out to the sides.
+  'steady-turtle': {
+    eyes: [13, [3], 'l'], lift: 2,
+    post: [[15, 0, '_'.repeat(PET)], [16, 0, '_'.repeat(PET)], [17, 0, '_'.repeat(PET)],
+      [15, 3, 'kllk'], [16, 2, 'kllk'], [17, 1, 'kkk'], [15, 13, 'kllk'], [16, 14, 'kllk'], [17, 16, 'kkk']],
+  },
+};
+export const PETS_JOY32: Record<string, string[]> = Object.fromEntries(Object.entries(PETS32).map(([id, rows]) => [id, JOY[id] ? joy(rows, JOY[id]) : rows]));
+
 const PETS: Record<string, Layer32> = Object.fromEntries(
   Object.entries(PETS32).map(([id, rows]) => [id, { rows: place(32, 32 - PET, rows, 32 + PET) }]),
 );
